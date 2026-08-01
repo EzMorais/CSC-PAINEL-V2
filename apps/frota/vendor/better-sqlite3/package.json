@@ -1,0 +1,8 @@
+{
+  "name": "better-sqlite3",
+  "version": "13.0.0",
+  "description": "Adaptador local: expõe a API do better-sqlite3 sobre o node:sqlite embutido, para não exigir compilação nativa no servidor.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT"
+}

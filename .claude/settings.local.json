@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(claude --version)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(gh auth *)",
+      "Bash(gh --version)",
+      "PowerShell(gh --version)",
+      "PowerShell(gh auth status 2>&1)",
+      "Bash(npm --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
+      "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)"
+    ]
+  }
+}

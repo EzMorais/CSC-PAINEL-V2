@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Stack nativa do Windows — carrega offline, sem depender de rede.
+       Se houver internet, o <link> no layout troca por Barlow/IBM Plex. */
+    --fonte-cond: 'Barlow Condensed', 'Archivo Narrow', 'Arial Narrow', 'Segoe UI', sans-serif;
+    --fonte-corpo: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --fonte-dado: 'IBM Plex Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-concreto text-grafite antialiased;
+    font-family: var(--fonte-corpo);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Todo número do sistema é leitura de instrumento: tabular, alinhado. */
+  .dado {
+    font-family: var(--fonte-dado);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .rotulo {
+    font-family: var(--fonte-cond);
+    @apply text-rotulo uppercase tracking-widest;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-hivis-escuro ring-offset-2 ring-offset-concreto;
+  }
+
+  ::selection {
+    @apply bg-hivis text-grafite;
+  }
+}
+
+@layer components {
+  .cartao {
+    @apply rounded-lg border border-concreto-200 bg-white;
+  }
+
+  .campo {
+    @apply w-full rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm
+           text-grafite placeholder:text-grafite-600/50
+           focus:border-grafite-700 focus:outline-none focus:ring-1 focus:ring-grafite-700;
+  }
+
+  .rotulo-campo {
+    @apply rotulo mb-1.5 block text-grafite-600;
+  }
+
+  .botao {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2
+           text-sm font-medium transition-colors disabled:opacity-50;
+  }
+
+  .botao-primario {
+    @apply botao bg-grafite text-concreto hover:bg-grafite-800;
+  }
+
+  .botao-destaque {
+    @apply botao bg-hivis text-grafite hover:bg-hivis-escuro;
+  }
+
+  .botao-fantasma {
+    @apply botao border border-concreto-300 bg-white text-grafite hover:bg-concreto-100;
+  }
+
+  .selo {
+    @apply inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Barra de rolagem discreta, coerente com o tema de concreto/grafite */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: theme('colors.concreto.100');
+}
+::-webkit-scrollbar-thumb {
+  background: theme('colors.concreto.300');
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.grafite.600');
+}

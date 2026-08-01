@@ -1,0 +1,27 @@
+# dependências
+node_modules/
+
+# build
+.next/
+out/
+
+# dados locais — nunca versionar
+dados/
+*.db
+*.db-shm
+*.db-wal
+
+# segredos
+.env
+.env.local
+
+# anexos enviados pelos usuários
+public/anexos/*
+!public/anexos/.gitkeep
+
+# testes
+test-results/
+playwright-report/
+
+# logs de execução local
+*.log

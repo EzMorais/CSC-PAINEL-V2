@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Mesma forma da tabela do Painel de Locação, de propósito.
+///
+/// Os dois sistemas assinam o cookie de sessão com o mesmo AUTH_SECRET e usam o mesmo
+/// nome de cookie, e cookie não separa por porta — só por host. Então quem entra no
+/// painel em :3000 já chega autenticado aqui em :3002, sem segundo login. Esta tabela
+/// existe para o RH conseguir autenticar por conta própria quando alguém abre direto
+/// nele; o seed mantém o mesmo usuário admin nos dois bancos.
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  papel     String   @default("OPERADOR") // ADMIN | OPERADOR
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+}
+
+/// Espelha o cadastro de obras do painel (mesmos campos que importam aqui).
+///
+/// Banco separado significa que não dá para usar a linha do painel por chave estrangeira.
+/// O `codigo` é a chave natural que liga as duas bases: é único nos dois lados, e é por
+/// ele que uma sincronização futura casaria os registros.
+model Obra {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  cliente     String
+  descricao   String
+  responsavel String?
+  ativa       Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+
+  funcionarios Funcionario[]
+  eventos      Evento[]
+
+  @@index([cliente])
+}
+
+model Cargo {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  cbo       String?
+  /// Insalubridade/periculosidade puxam exigência de EPI e exame específicos.
+  risco     String   @default("NORMAL") // NORMAL | INSALUBRE | PERICULOSO
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+
+  funcionarios Funcionario[]
+}
+
+model Funcionario {
+  id        String @id @default(cuid())
+  matricula String @unique
+  nome      String
+
+  // ── dados pessoais ────────────────────────────────────────────────────────
+  cpf            String    @unique
+  rg             String?
+  dataNascimento DateTime?
+  sexo           String?
+  estadoCivil    String?
+  nomeMae        String?
+
+  // ── contato ───────────────────────────────────────────────────────────────
+  telefone String?
+  email    String?
+
+  // ── endereço ──────────────────────────────────────────────────────────────
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  uf          String?
+
+  // ── contrato ──────────────────────────────────────────────────────────────
+  /// Status não é derivado: afastamento e férias são decisões registradas, não
+  /// consequências de data. Só o desligamento tem data própria (`demitidoEm`).
+  status       String    @default("ATIVO") // ATIVO | AFASTADO | FERIAS | DESLIGADO
+  admitidoEm   DateTime
+  demitidoEm   DateTime?
+  motivoSaida  String?
+  salario      Float?
+  tipoContrato String    @default("CLT") // CLT | PJ | TEMPORARIO | APRENDIZ
+
+  // ── banco ─────────────────────────────────────────────────────────────────
+  banco      String?
+  agencia    String?
+  conta      String?
+  tipoConta  String?
+  chavePix   String?
+
+  // ── vestuário: o tamanho vive aqui porque não muda a cada entrega ─────────
+  tamanhoCamisa  String?
+  tamanhoCalca   String?
+  tamanhoCalcado String?
+
+  observacoes String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  obra   Obra?   @relation(fields: [obraId], references: [id])
+  obraId String?
+  cargo  Cargo?  @relation(fields: [cargoId], references: [id])
+  cargoId String?
+
+  dependentes Dependente[]
+  eventos     Evento[]
+
+  @@index([obraId])
+  @@index([cargoId])
+  @@index([status])
+  @@index([nome])
+}
+
+model Dependente {
+  id             String    @id @default(cuid())
+  nome           String
+  parentesco     String // FILHO | CONJUGE | OUTRO
+  dataNascimento DateTime?
+  cpf            String?
+  /// Dependente para IR e para salário-família seguem regras diferentes; guardar os
+  /// dois separados evita ter que reinterpretar a idade depois.
+  irrf           Boolean   @default(false)
+  salarioFamilia Boolean   @default(false)
+  criadoEm       DateTime  @default(now())
+
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+
+  @@index([funcionarioId])
+}
+
+/// Linha do tempo do funcionário — a fonte da verdade sobre o que aconteceu e quando.
+///
+/// É append-only: nada aqui é editado ou apagado quando o cadastro muda. Trocar a obra
+/// de um funcionário sobrescreve `Funcionario.obraId`, mas a passagem pela obra anterior
+/// continua legível aqui. Era exatamente essa história que a planilha antiga destruía.
+model Evento {
+  id   String @id @default(cuid())
+  tipo String // ADMISSAO | MUDANCA_CARGO | MUDANCA_OBRA | AFASTAMENTO | RETORNO |
+  // FERIAS | ADVERTENCIA | PROMOCAO | DESLIGAMENTO | OBSERVACAO
+  descricaoHumana String
+  detalhe         String?
+  /// Quando o fato ocorreu, que nem sempre é quando foi digitado.
+  ocorridoEm      DateTime
+  registradoEm    DateTime @default(now())
+  /// Nome de quem registrou, copiado da sessão. Texto e não relação: o registro tem de
+  /// sobreviver à exclusão do usuário que o criou.
+  registradoPor   String?
+
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+  obra          Obra?       @relation(fields: [obraId], references: [id])
+  obraId        String?
+
+  @@index([funcionarioId, ocorridoEm])
+  @@index([obraId])
+  @@index([tipo])
+}
