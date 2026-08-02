@@ -4,6 +4,9 @@ node_modules/
 # build
 .next/
 out/
+# cache incremental do TypeScript: é regenerado sozinho a cada `tsc`, e versionado
+# aparecia como "modificado" toda vez que alguém rodava uma checagem de tipos.
+tsconfig.tsbuildinfo
 
 # dados locais — nunca versionar
 dados/
