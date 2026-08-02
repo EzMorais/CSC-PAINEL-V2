@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
@@ -45,7 +47,7 @@ function LinhaObra({ obra, consumo }: { obra: ObraListada; consumo?: ConsumoObra
             setAtiva(proxima)
             setErro(null)
             iniciar(async () => {
-              const r = await alternarAtivaObra(obra.id, proxima)
+              const r = await chamarAction(alternarAtivaObra(obra.id, proxima))
               if (!r.ok) { setErro(r.erro); setAtiva(!proxima) }
             })
           }}
@@ -70,7 +72,7 @@ export function ListaObras({ obras, consumos }: { obras: ObraListada[]; consumos
     const fd = new FormData(form)
     setErro(null)
     iniciar(async () => {
-      const r = await criarObra(Object.fromEntries(fd.entries()))
+      const r = await chamarAction(criarObra(Object.fromEntries(fd.entries())))
       if (!r.ok) return setErro(r.erro)
       setCriando(false)
       form.reset()

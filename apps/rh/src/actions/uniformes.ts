@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { PECA_UNIFORME, MOTIVO_ENTREGA_UNIFORME } from '@/lib/dominio/constantes'
 
@@ -39,7 +39,7 @@ const esquema = z.object({
 })
 
 export async function registrarEntrega(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {

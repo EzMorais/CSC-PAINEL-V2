@@ -7,15 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuario {
-  id        String   @id @default(cuid())
-  nome      String
-  email     String   @unique
-  senhaHash String
-  papel     String   @default("OPERADOR") // ADMIN | OPERADOR
-  ativo     Boolean  @default(true)
-  criadoEm  DateTime @default(now())
-}
+/// Os usuários NÃO moram mais aqui.
+///
+/// Quem cadastra gente, define cargo e confere senha é o Portal (`apps/portal`), e os
+/// módulos só leem o crachá de sessão que ele assina. Antes cada módulo tinha a sua tabela,
+/// e criar alguém significava criar quatro vezes — com o risco garantido de o cargo mudar
+/// num lugar e ficar velho nos outros.
 
 model Obra {
   id          String   @id @default(cuid())
@@ -27,7 +24,7 @@ model Obra {
   ativa       Boolean  @default(true)
   criadoEm    DateTime @default(now())
 
-  locacoes    Locacao[]
+  locacoes Locacao[]
 
   @@index([cliente])
 }
@@ -53,28 +50,28 @@ model FornecedorAlias {
 }
 
 model Locacao {
-  id             String    @id @default(cuid())
-  descricao      String
-  trCodigo       String?
-  quantidade     Int       @default(1)
-  estado         String    @default("OK")
-  observacoes    String?
-  dataInicio     DateTime?
-  dataFim        DateTime?
-  valorItem      Float?
-  devolvidaEm    DateTime?
-  obraAConfirmar Boolean   @default(false)
-  possivelDuplicata Boolean @default(false)
-  numeroOrigem   String?
-  criadoEm       DateTime  @default(now())
-  atualizadoEm   DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  descricao         String
+  trCodigo          String?
+  quantidade        Int       @default(1)
+  estado            String    @default("OK")
+  observacoes       String?
+  dataInicio        DateTime?
+  dataFim           DateTime?
+  valorItem         Float?
+  devolvidaEm       DateTime?
+  obraAConfirmar    Boolean   @default(false)
+  possivelDuplicata Boolean   @default(false)
+  numeroOrigem      String?
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
 
-  obra           Obra        @relation(fields: [obraId], references: [id])
-  obraId         String
-  fornecedor     Fornecedor? @relation(fields: [fornecedorId], references: [id])
-  fornecedorId   String?
+  obra         Obra        @relation(fields: [obraId], references: [id])
+  obraId       String
+  fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String?
 
-  movimentacoes  Movimentacao[]
+  movimentacoes Movimentacao[]
 
   @@index([obraId])
   @@index([fornecedorId])
@@ -83,15 +80,15 @@ model Locacao {
 }
 
 model Movimentacao {
-  id            String   @id @default(cuid())
-  tipo          String
+  id              String   @id @default(cuid())
+  tipo            String
   descricaoHumana String
-  payloadAntes  String?
-  payloadDepois String?
-  criadoEm      DateTime @default(now())
+  payloadAntes    String?
+  payloadDepois   String?
+  criadoEm        DateTime @default(now())
 
-  locacao       Locacao  @relation(fields: [locacaoId], references: [id], onDelete: Cascade)
-  locacaoId     String
+  locacao   Locacao @relation(fields: [locacaoId], references: [id], onDelete: Cascade)
+  locacaoId String
 
   @@index([locacaoId])
 }

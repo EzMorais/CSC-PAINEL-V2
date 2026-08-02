@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A ÚNICA tabela de usuários do conjunto.
+///
+/// Antes, cada módulo tinha a sua, e criar alguém significava criar quatro vezes — com o
+/// risco garantido de o cargo mudar num lugar e ficar velho nos outros. Aqui é um cadastro
+/// só, e os módulos apenas leem o crachá de sessão que este Portal assina.
+///
+/// Os módulos continuam conseguindo verificar a sessão sem consultar este banco: o crachá é
+/// um token assinado com o AUTH_SECRET que todos compartilham, e o cargo viaja dentro dele.
+/// Isso é o que permite o Almoxarifado saber que quem está na tela é gerente sem depender
+/// de o Portal estar no ar naquele instante.
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  /// ADMIN | DIRETORIA | GERENTE | OPERACIONAL | CONSULTA — ver lib/dominio/cargos.ts
+  cargo     String   @default("OPERACIONAL")
+  ativo     Boolean  @default(true)
+  telefone  String?
+  observacao String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  ultimoAcesso DateTime?
+
+  acessos AcessoModulo[]
+
+  @@index([cargo])
+}
+
+/// A quais módulos a pessoa entra.
+///
+/// Separado do cargo de propósito: o cargo diz o QUE a pessoa pode fazer (lançar, aprovar,
+/// só olhar) e isto diz ONDE. Numa construtora é comum alguém ser gerente do almoxarifado e
+/// não ter nada a ver com o RH — juntar as duas coisas num campo só obrigaria a inventar um
+/// cargo novo para cada combinação.
+model AcessoModulo {
+  id     String @id @default(cuid())
+  /// PAINEL | RH | ESTOQUE | FROTA
+  modulo String
+
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId String
+
+  @@unique([usuarioId, modulo])
+  @@index([modulo])
+}
+
+/// Registro de quem entrou e quando, para o Portal poder responder "quem mexeu nisso".
+///
+/// Guarda o e-mail em texto, e não uma relação: o registro tem de sobreviver à exclusão do
+/// usuário — é justamente quando alguém é removido que a pergunta costuma aparecer.
+model RegistroAcesso {
+  id       String   @id @default(cuid())
+  email    String
+  nome     String?
+  sucesso  Boolean
+  motivo   String?
+  ocorrido DateTime @default(now())
+
+  @@index([ocorrido])
+  @@index([email])
+}

@@ -7,22 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Mesma forma da tabela do Painel de Locação, de propósito.
+/// Os usuários NÃO moram mais aqui.
 ///
-/// Os dois sistemas assinam o cookie de sessão com o mesmo AUTH_SECRET e usam o mesmo
-/// nome de cookie, e cookie não separa por porta — só por host. Então quem entra no
-/// painel em :3000 já chega autenticado aqui em :3002, sem segundo login. Esta tabela
-/// existe para o RH conseguir autenticar por conta própria quando alguém abre direto
-/// nele; o seed mantém o mesmo usuário admin nos dois bancos.
-model Usuario {
-  id        String   @id @default(cuid())
-  nome      String
-  email     String   @unique
-  senhaHash String
-  papel     String   @default("OPERADOR") // ADMIN | OPERADOR
-  ativo     Boolean  @default(true)
-  criadoEm  DateTime @default(now())
-}
+/// Quem cadastra gente, define cargo e confere senha é o Portal (`apps/portal`), e os
+/// módulos só leem o crachá de sessão que ele assina. Antes cada módulo tinha a sua tabela,
+/// e criar alguém significava criar quatro vezes — com o risco garantido de o cargo mudar
+/// num lugar e ficar velho nos outros.
 
 /// Espelha o cadastro de obras do painel (mesmos campos que importam aqui).
 ///

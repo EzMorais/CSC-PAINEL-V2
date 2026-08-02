@@ -1,11 +1,17 @@
 import { redirect } from 'next/navigation'
-import { lerSessao } from '@/lib/auth'
-import { FormularioLogin } from '@/components/entrar/formulario-login'
+import { lerSessao, urlDeLogin } from '@/lib/auth'
 
-export const metadata = { title: 'Entrar — Almoxarifado Siqueira Campos' }
+export const metadata = { title: 'Entrar — Almoxarifado' }
+export const dynamic = 'force-dynamic'
 
+/**
+ * Este módulo não tem mais tela de login própria.
+ *
+ * Quem cadastra gente e confere senha é o Portal — ter uma segunda tela aqui significaria
+ * uma segunda lista de usuários para manter em dia, que foi exatamente o problema que o
+ * Portal veio resolver.
+ */
 export default async function EntrarPage() {
-  // Quem já tem sessão não vê o formulário de novo.
   if (await lerSessao()) redirect('/')
-  return <FormularioLogin />
+  redirect(urlDeLogin('/'))
 }

@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { SITUACAO_ITEM_AUDITORIA } from '@/lib/dominio/constantes'
 
@@ -35,7 +35,7 @@ const esquema = z.object({
 })
 
 export async function criarAuditoria(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {

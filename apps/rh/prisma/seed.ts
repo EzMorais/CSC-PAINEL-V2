@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { DADOS_EXEMPLO, type DadosSeed } from './dados-exemplo'
@@ -17,7 +16,6 @@ try {
 const prisma = new PrismaClient()
 
 const CAMINHO_LOCAL = path.join('prisma', 'dados-locais.json')
-const EMAIL_ADMIN = 'admin@siqueiracampos.com.br'
 
 function carregarDados(): { dados: DadosSeed; origem: string } {
   try {
@@ -35,40 +33,9 @@ function haDias(dias: number): Date {
   return new Date(hoje - dias * 86_400_000)
 }
 
-/**
- * Cria o primeiro usuário, e só o primeiro.
- *
- * `create` dentro de um teste de existência, não `upsert`: com upsert, rodar o seed de
- * novo devolveria a senha padrão a uma conta cuja senha já foi trocada.
- *
- * A senha padrão é a mesma do Painel de Locação de propósito — os dois sistemas
- * compartilham a sessão, e ter senhas diferentes para o mesmo e-mail confundiria mais do
- * que protegeria.
- */
-async function semearAdmin() {
-  const jaExiste = await prisma.usuario.findUnique({ where: { email: EMAIL_ADMIN } })
-  if (jaExiste) {
-    console.log(`Usuário: ${EMAIL_ADMIN} já existe — senha preservada.`)
-    return
-  }
-
-  const senha = process.env.SENHA_ADMIN || 'locacao2026'
-  await prisma.usuario.create({
-    data: {
-      nome: 'Administrador',
-      email: EMAIL_ADMIN,
-      senhaHash: bcrypt.hashSync(senha, 10),
-      papel: 'ADMIN',
-    },
-  })
-  console.log(`Usuário: ${EMAIL_ADMIN} criado (senha: ${senha}) — troque no primeiro acesso.`)
-}
-
 async function main() {
   const { dados, origem } = carregarDados()
   console.log(`Origem dos dados: ${origem}`)
-
-  await semearAdmin()
 
   for (const obra of dados.obras) {
     await prisma.obra.upsert({

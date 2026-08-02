@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Copy, Check, Mail, TriangleAlert, Send, Zap } from 'lucide-react'
@@ -55,7 +57,7 @@ export function EnviarEmail({
     setErro(null)
     setAviso(null)
     iniciarEnvio(async () => {
-      const r = await dispararEmailDaSolicitacao(solicitacaoId, destinatario || null)
+      const r = await chamarAction(dispararEmailDaSolicitacao(solicitacaoId, destinatario || null))
       if (!r.ok) return setErro(r.erro)
       setAviso(`Pedido enviado para ${r.dados.enviadoPara}.`)
     })
@@ -74,7 +76,7 @@ export function EnviarEmail({
   function marcarEnviada() {
     setErro(null)
     iniciar(async () => {
-      const r = await mudarStatusSolicitacao(solicitacaoId, STATUS_SOLICITACAO.ENVIADA)
+      const r = await chamarAction(mudarStatusSolicitacao(solicitacaoId, STATUS_SOLICITACAO.ENVIADA))
       if (!r.ok) setErro(r.erro)
     })
   }

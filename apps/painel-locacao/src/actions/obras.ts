@@ -3,7 +3,7 @@
 import { revalidarTelas } from '@/lib/revalidar'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
 
@@ -15,7 +15,7 @@ const esquema = z.object({
 })
 
 export async function salvarObra(id: string | null, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
   const d = { ...parsed.data, responsavel: parsed.data.responsavel || null }
@@ -37,7 +37,7 @@ export async function salvarObra(id: string | null, entrada: unknown): Promise<R
 }
 
 export async function alternarObra(id: string, ativa: boolean): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     if (!ativa) {
       const emUso = await prisma.locacao.count({ where: { obraId: id, devolvidaEm: null } })
@@ -54,7 +54,7 @@ export async function alternarObra(id: string, ativa: boolean): Promise<Resultad
 }
 
 export async function listarObras() {
-  await exigirSessao()
+  await exigirLancamento()
   return prisma.obra.findMany({
     orderBy: [{ cliente: 'asc' }, { codigo: 'asc' }],
     include: { _count: { select: { locacoes: true } } },

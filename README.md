@@ -1,20 +1,59 @@
 # CSC — Painéis Internos (Construtora Siqueira Campos)
 
-Monorepo com três sistemas web internos, cada um numa pasta dentro de `apps/`:
+Monorepo com cinco aplicações, cada uma numa pasta dentro de `apps/`:
 
 | Pasta | Sistema | Porta | Para que serve |
 |---|---|---|---|
+| [`apps/portal`](apps/portal) | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
 | [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3000 | Controle de equipamentos alugados por obra |
 | [`apps/rh`](apps/rh) | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | [`apps/estoque`](apps/estoque) | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
 | [`apps/frota`](apps/frota) | Frota | 3000 | Veículos, manutenções e abastecimento |
 
-Cada sistema roda separado, com seu próprio banco de dados. Todos são Next.js + TypeScript,
-com Prisma (ou Drizzle, no caso do Frota) sobre SQLite.
+**Comece pelo Portal.** É ele que tem a tela de login e o cadastro de usuários; os outros
+não pedem senha própria — leem o crachá de sessão que o Portal assina. Entrando uma vez,
+você circula por todos.
 
-**O login é único**: entrar em um deles vale para os outros — todos assinam o mesmo cookie
-de sessão, e cookie não separa por porta. Para isso funcionar, os arquivos `.env` precisam
-ter o **mesmo `AUTH_SECRET`** (o instalador automático já cuida disso).
+Cada sistema roda separado, com seu próprio banco de dados. Todos são Next.js + TypeScript,
+com Prisma (ou Drizzle, no caso do Frota) sobre SQLite. Para o login único funcionar, os
+`.env` precisam ter o **mesmo `AUTH_SECRET`** (o instalador automático já cuida disso).
+
+## Cargos: quem preenche e quem confere
+
+O cadastro de gente é **um só**, no Portal. Antes eram quatro cadastros separados, e um
+cargo mudado num lugar ficava velho nos outros.
+
+| Cargo | O que faz |
+|---|---|
+| **Administrador** | Cadastra usuários e mexe nas configurações. Faz tudo. |
+| **Diretoria** | Vê tudo e aprova tudo. Não cadastra usuários nem lança no dia a dia. |
+| **Gerente / Engenheiro** | Confere e aprova o que a equipe lançou, nos módulos a que tem acesso. |
+| **Operacional** | Lança o dia a dia. Não aprova o próprio lançamento. |
+| **Consulta** | Só lê. Para quem acompanha sem poder alterar. |
+
+Além do cargo, cada pessoa tem a lista de **quais sistemas acessa** — é comum alguém ser
+gerente do almoxarifado e não ter nada a ver com o RH.
+
+O princípio por trás de tudo: **quem lança não aprova**. Sem essa separação a aprovação
+vira um clique a mais na mesma mão, e deixa de proteger de qualquer coisa. É por isso que
+o cargo Operacional não aprova — e que nem um gerente aprova um pedido feito por ele mesmo.
+
+### Aprovações no Almoxarifado
+
+Três coisas que o cargo Operacional **pede** e a gerência **autoriza**:
+
+1. **Ajuste de inventário** acima da diferença configurada — é a forma mais silenciosa de um
+   furo de estoque virar número certo no sistema.
+2. **Perda ou quebra**, sempre — é baixa sem nada entrando em troca.
+3. **Solicitação de compra** acima do valor configurado — compromete dinheiro e vai direto
+   ao fornecedor.
+
+Enquanto o pedido está aguardando, **nada mudou**: o saldo continua o mesmo e nenhum e-mail
+saiu. O efeito acontece na aprovação. Fazer o contrário — executar e desfazer se recusado —
+deixaria o estoque errado no meio do caminho e, na compra, um e-mail já no fornecedor que
+não dá para desenviar.
+
+Os limites ficam em **Configurações**, no Almoxarifado.
 
 ## Como o Almoxarifado e o RH conversam
 
@@ -39,8 +78,10 @@ Repositório **privado** — contém a operação de uma empresa real.
 
 ## Como rodar em outro computador
 
-Guia para quem nunca usou terminal nem instalou um projeto de programação antes. Você não
-precisa instalar os três sistemas — só o(s) que for usar.
+Guia para quem nunca usou terminal nem instalou um projeto de programação antes.
+
+O **Portal é obrigatório** — é ele que guarda os usuários. Dos outros, instale só o(s) que
+for usar.
 
 > **Num computador totalmente novo, sem nada instalado?** Tem um caminho ainda mais direto:
 > baixe **[github.com/EzMorais/VISUAL-TT](https://github.com/EzMorais/VISUAL-TT)** (público,
@@ -52,7 +93,7 @@ precisa instalar os três sistemas — só o(s) que for usar.
 
 Só dois passos manuais — baixar o projeto e clicar num arquivo. O script cuida do resto:
 Node.js, Git, Visual Studio Code, GitHub CLI, Claude Code, as extensões do VS Code
-recomendadas para este projeto, e os três apps instalados com banco de dados pronto.
+recomendadas para este projeto, e todos os módulos instalados com banco de dados pronto.
 
 #### 1. Baixar o projeto com o GitHub Desktop
 
@@ -78,8 +119,8 @@ Se alguma etapa falhar (falta de internet no meio, por exemplo), **é seguro rod
 de novo**: cada passo confere se já foi feito antes de repetir.
 
 Quando terminar, o projeto abre sozinho no VS Code. Para **usar** cada sistema, falta só
-ligar o servidor de cada um — veja "Passo 4", "Passo 5" e "Passo 6" abaixo (pule a parte de
-instalar dependências e criar `.env`: o script já fez isso).
+ligar o servidor de cada um — veja os passos 4 a 8 abaixo (pule a parte de instalar
+dependências e criar `.env`: o script já fez isso).
 
 > **O que o script instala**, para quem quiser conferir ou fazer à mão depois: Node.js LTS,
 > Git, Visual Studio Code, GitHub CLI, [Claude Code](https://claude.com/claude-code) (o
@@ -99,7 +140,7 @@ a passo completo abaixo.
 
 ### Passo 1 — Instalar o Node.js
 
-Todos os três sistemas precisam do **Node.js**. É um programa só, serve para os três.
+Todos os sistemas precisam do **Node.js**. É um programa só, serve para todos.
 
 1. Acesse [nodejs.org](https://nodejs.org)
 2. Clique no botão que diz **LTS** (é a versão recomendada)
@@ -131,7 +172,7 @@ estiver logado com uma conta que tenha acesso.
 4. Procure `CSC-PAINEL` na lista (aba "GitHub.com") e escolha uma pasta local, tipo `C:\CSC-PAINEL`
 5. Clique **Clone**
 
-Isso baixa o projeto inteiro (os três sistemas) para o seu computador.
+Isso baixa o projeto inteiro (todos os módulos) para o seu computador.
 
 > Se preferir usar o terminal em vez do GitHub Desktop, com o [Git](https://git-scm.com/)
 > instalado e a conta do GitHub autenticada:
@@ -152,7 +193,31 @@ Jeito mais simples de abrir o terminal já na pasta certa:
 Uma janela preta abre já "dentro" daquela pasta. É ali que os comandos dos passos seguintes
 vão ser digitados.
 
-### Passo 4 — Painel de Locação
+### Passo 4 — Portal (faça este primeiro)
+
+É ele que guarda os usuários. Sem o Portal instalado e semeado, não há com que fazer login
+em nenhum dos outros.
+
+```bash
+npm install
+echo DATABASE_URL="file:./dev.db" > .env
+node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Abra **http://localhost:3004**. Login: `admin@siqueiracampos.com.br` / `locacao2026`.
+
+> **Guarde o `.env` deste passo.** Os outros módulos precisam do **mesmo `AUTH_SECRET`** —
+> nos passos seguintes você copia este arquivo em vez de gerar um novo. É ele que faz o
+> login do Portal valer nos demais.
+
+O seed cria contas de **exemplo** de cada cargo (senha `exemplo2026`) para você ver a
+hierarquia funcionando. Apague-as no Portal antes de usar o sistema para valer.
+
+### Passo 5 — Painel de Locação
 
 Na janela de terminal aberta dentro de `apps/painel-locacao`, digite cada linha e aperte
 Enter, esperando a anterior terminar:
@@ -200,7 +265,7 @@ dados de teste, ou importe a planilha real da empresa.
 Para deixar rodando, **não feche essa janela do terminal** — é o servidor. Para desligar,
 clique dentro dela e aperte `Ctrl+C`.
 
-### Passo 5 — RH
+### Passo 6 — RH
 
 Mesma lógica, numa janela de terminal aberta dentro de `apps/rh`:
 
@@ -225,7 +290,7 @@ dois poderem rodar ao mesmo tempo).
 > em vez de gerar um novo para o RH. Não é obrigatório — sem isso cada sistema pede login
 > separado, e funciona normalmente.
 
-### Passo 6 — Almoxarifado
+### Passo 7 — Almoxarifado
 
 Numa janela de terminal dentro de `apps/estoque`:
 
@@ -253,7 +318,7 @@ Abra **http://localhost:3003**. Login: o mesmo dos outros (`admin@siqueiracampos
 > assinado com o `AUTH_SECRET`. Se forem diferentes, a entrega de EPI para de funcionar com
 > uma mensagem de "token inválido" — nada mais quebra, mas essa parte para.
 
-### Passo 7 — Frota
+### Passo 8 — Frota
 
 O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
 no terminal:
@@ -314,7 +379,7 @@ rode o passo do seed de novo.
 
 ## Primeira experiência — o que fazer depois de instalar
 
-Guia rápido pra quem nunca usou nenhum dos três sistemas: o que você vê na primeira tela e
+Guia rápido pra quem nunca usou nenhum dos sistemas: o que você vê na primeira tela e
 o que fazer com isso, sem precisar entender nada de programação.
 
 ### Painel de Locação — controle de equipamento alugado por obra

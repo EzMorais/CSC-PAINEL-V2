@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { NORMA_TREINAMENTO } from '@/lib/dominio/constantes'
 
@@ -36,7 +36,7 @@ const esquemaTurma = z.object({
 })
 
 export async function criarTurma(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquemaTurma.safeParse(entrada)
   if (!parsed.success) {
@@ -74,7 +74,7 @@ const esquemaParticipante = z.object({
 
 /** Matrícula avulsa numa turma que já existe — pra quem ficou de fora na criação. */
 export async function adicionarParticipante(entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaParticipante.safeParse(entrada)
   if (!parsed.success) {
@@ -96,7 +96,7 @@ export async function adicionarParticipante(entrada: unknown): Promise<Resultado
  * matrícula por engano, e apagar destruiria um documento já enviado.
  */
 export async function removerParticipante(participanteId: string): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   try {
     const participante = await prisma.treinamentoParticipante.findUnique({
@@ -121,7 +121,7 @@ const esquemaCertificado = z.object({
 
 /** Certificado é anexado por participante, depois que a turma já existe — não faz parte da criação. */
 export async function anexarCertificado(entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaCertificado.safeParse(entrada)
   if (!parsed.success) {

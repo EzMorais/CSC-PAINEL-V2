@@ -7,12 +7,12 @@ import { prisma } from '@/lib/prisma'
 import { MOVIMENTACAO } from '@/lib/dominio/constantes'
 import { dataBR } from '@/lib/dominio/formato'
 import { obterLocacao } from '@/queries/locacoes'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
 
 export async function carregarLocacao(id: string) {
-  await exigirSessao()
+  await exigirLancamento()
   return obterLocacao(id)
 }
 
@@ -29,7 +29,7 @@ const esquemaLocacao = z.object({
 })
 
 export async function criarLocacao(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  await exigirSessao()
+  await exigirLancamento()
   const parsed = esquemaLocacao.safeParse(entrada)
   if (!parsed.success) {
     return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
@@ -65,7 +65,7 @@ export async function criarLocacao(entrada: unknown): Promise<Resultado<{ id: st
 }
 
 export async function editarLocacao(id: string, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   const parsed = esquemaLocacao.partial().safeParse(entrada)
   if (!parsed.success) {
     return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
@@ -117,7 +117,7 @@ export async function editarLocacao(id: string, entrada: unknown): Promise<Resul
 }
 
 export async function renovarLocacao(id: string, diasExtras?: number): Promise<Resultado<{ novaData: Date }>> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const l = await prisma.locacao.findUnique({ where: { id } })
     if (!l) return { ok: false, erro: 'Locação não encontrada.' }
@@ -159,7 +159,7 @@ export async function renovarLocacao(id: string, diasExtras?: number): Promise<R
  * real já se perdeu. É esse apagamento que esta função existe para impedir.
  */
 export async function devolverLocacao(id: string, dataDevolucao: Date, motivo?: string): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const l = await prisma.locacao.findUnique({ where: { id } })
     if (!l) return { ok: false, erro: 'Locação não encontrada.' }
@@ -190,7 +190,7 @@ export async function devolverLocacao(id: string, dataDevolucao: Date, motivo?: 
 export async function transferirLocacao(
   id: string, obraDestinoId: string, dataInicio: Date, dataFim: Date, motivo?: string
 ): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const l = await prisma.locacao.findUnique({ where: { id }, include: { obra: true } })
     if (!l) return { ok: false, erro: 'Locação não encontrada.' }
@@ -228,7 +228,7 @@ export async function transferirLocacao(
 }
 
 export async function reclassificarEmLote(ids: string[], obraDestinoId: string): Promise<Resultado<{ movidas: number }>> {
-  await exigirSessao()
+  await exigirLancamento()
   if (!ids.length) return { ok: false, erro: 'Nenhum item selecionado.' }
   try {
     const destino = await prisma.obra.findUnique({ where: { id: obraDestinoId } })

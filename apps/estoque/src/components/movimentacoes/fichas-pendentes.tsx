@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useState, useTransition } from 'react'
 import { RefreshCw, TriangleAlert } from 'lucide-react'
 import { sincronizarFicha } from '@/actions/movimentacoes'
@@ -33,7 +35,7 @@ export function FichasPendentes({ fichas }: { fichas: FichaPendente[] }) {
     iniciar(async () => {
       const falhas: string[] = []
       for (const f of fichas) {
-        const r = await sincronizarFicha(f.id)
+        const r = await chamarAction(sincronizarFicha(f.id))
         if (!r.ok) falhas.push(r.erro)
       }
       // Uma mensagem só: se o RH está fora do ar, as dez fichas falham pelo mesmo motivo, e

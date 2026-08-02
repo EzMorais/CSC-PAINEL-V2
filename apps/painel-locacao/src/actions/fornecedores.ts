@@ -3,7 +3,7 @@
 import { revalidarTelas } from '@/lib/revalidar'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
 
@@ -14,7 +14,7 @@ const esquema = z.object({
 })
 
 export async function salvarFornecedor(id: string | null, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
 
@@ -66,7 +66,7 @@ export async function salvarFornecedor(id: string | null, entrada: unknown): Pro
 }
 
 export async function alternarFornecedor(id: string, ativo: boolean): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     await prisma.fornecedor.update({ where: { id }, data: { ativo } })
     revalidarTelas('/fornecedores')
@@ -77,7 +77,7 @@ export async function alternarFornecedor(id: string, ativo: boolean): Promise<Re
 }
 
 export async function listarFornecedores() {
-  await exigirSessao()
+  await exigirLancamento()
   return prisma.fornecedor.findMany({
     orderBy: { nome: 'asc' },
     include: { aliases: { select: { alias: true } }, _count: { select: { locacoes: true } } },

@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { mudarStatusSolicitacao, excluirSolicitacao } from '@/actions/solicitacoes'
@@ -15,7 +17,7 @@ export function AcoesStatus({ id, status }: { id: string; status: string }) {
   function mudar(novo: string) {
     setErro(null)
     iniciar(async () => {
-      const r = await mudarStatusSolicitacao(id, novo)
+      const r = await chamarAction(mudarStatusSolicitacao(id, novo))
       if (!r.ok) setErro(r.erro)
     })
   }
@@ -23,7 +25,7 @@ export function AcoesStatus({ id, status }: { id: string; status: string }) {
   function excluir() {
     setErro(null)
     iniciar(async () => {
-      const r = await excluirSolicitacao(id)
+      const r = await chamarAction(excluirSolicitacao(id))
       if (!r.ok) return setErro(r.erro)
       router.push('/solicitacoes')
       router.refresh()

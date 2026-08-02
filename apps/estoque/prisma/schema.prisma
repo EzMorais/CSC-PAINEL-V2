@@ -7,21 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Mesma forma da tabela dos outros módulos, de propósito.
+/// Os usuários NÃO moram mais aqui.
 ///
-/// Os sistemas assinam o cookie de sessão com o mesmo AUTH_SECRET e usam o mesmo nome de
-/// cookie, e cookie não separa por porta — só por host. Então quem entra no painel em :3000
-/// já chega autenticado aqui em :3003, sem segundo login. Esta tabela existe para o
-/// almoxarifado conseguir autenticar por conta própria quando alguém abre direto nele.
-model Usuario {
-  id        String   @id @default(cuid())
-  nome      String
-  email     String   @unique
-  senhaHash String
-  papel     String   @default("OPERADOR") // ADMIN | OPERADOR
-  ativo     Boolean  @default(true)
-  criadoEm  DateTime @default(now())
-}
+/// Quem cadastra gente, define cargo e confere senha é o Portal (`apps/portal`), e os
+/// módulos só leem o crachá de sessão que ele assina. Antes cada módulo tinha a sua tabela,
+/// e criar alguém significava criar quatro vezes — com o risco garantido de o cargo mudar
+/// num lugar e ficar velho nos outros.
 
 /// Espelha o cadastro de obras dos outros módulos (só os campos que importam aqui).
 ///
@@ -185,6 +176,45 @@ model SolicitacaoCompra {
   @@index([status])
 }
 
+/// Pedido de autorização para um lançamento que o cargo Operacional não fecha sozinho.
+///
+/// Guarda o que SERIA feito, não o que foi feito: enquanto está pendente, nada mudou no
+/// saldo nem saiu e-mail nenhum. A execução acontece na aprovação. O caminho contrário —
+/// executar e desfazer se o gerente recusar — deixaria o estoque momentaneamente errado e,
+/// no caso da compra, um e-mail já enviado ao fornecedor que não dá para "desenviar".
+///
+/// `dados` é JSON porque cada tipo carrega campos diferentes; validar o formato é
+/// responsabilidade de quem aprova (`actions/aprovacoes.ts`), na hora de executar.
+model Aprovacao {
+  id     String  @id @default(cuid())
+  /// AJUSTE_INVENTARIO | PERDA | SOLICITACAO_COMPRA
+  tipo   String
+  /// PENDENTE | APROVADA | REJEITADA
+  status String  @default("PENDENTE")
+  dados  String
+  /// O que a pessoa escreveu para justificar o pedido.
+  motivo String?
+  /// Resumo legível, montado no momento do pedido. Existe para a fila de aprovação não
+  /// precisar entender o JSON de cada tipo só para mostrar uma linha na tela.
+  resumo String
+
+  solicitanteId   String
+  solicitanteNome String
+  aprovadorId     String?
+  aprovadorNome   String?
+  /// Por que o gerente recusou. Sem isto, a pessoa refaz o mesmo pedido sem saber o que mudar.
+  motivoRejeicao  String?
+
+  /// Id do que foi criado quando a aprovação saiu — a ponte entre o pedido e o efeito.
+  referenciaId String?
+
+  criadoEm   DateTime  @default(now())
+  decididoEm DateTime?
+
+  @@index([status, criadoEm])
+  @@index([tipo])
+}
+
 /// Conta de e-mail que dispara as solicitações de compra. Uma linha só.
 ///
 /// Mora no banco, e não no `.env`, de propósito: quem configura isto é o almoxarife, e
@@ -196,21 +226,33 @@ model SolicitacaoCompra {
 /// `id` fixo em "unica" porque é configuração do sistema, não uma lista: sem isso, dois
 /// cadastros acidentais deixariam o envio dependendo de qual linha viesse primeiro.
 model ConfiguracaoEmail {
-  id                 String    @id @default("unica")
-  provedor           String    @default("GMAIL") // GMAIL | OUTLOOK | OUTRO
+  id                 String  @id @default("unica")
+  provedor           String  @default("GMAIL") // GMAIL | OUTLOOK | OUTRO
   host               String
-  porta              Int       @default(587)
+  porta              Int     @default(587)
   usuario            String
   senha              String
   remetente          String?
   destinatarioPadrao String?
   copiaPara          String?
   /// Dispara o e-mail sozinho assim que uma solicitação é criada.
-  enviarAutomatico   Boolean   @default(true)
-  ativo              Boolean   @default(true)
+  enviarAutomatico   Boolean @default(true)
+
+  /// Acima deste valor, a solicitação de compra precisa de aprovação da gerência.
+  ///
+  /// Zero desliga a regra. O padrão não é zero de propósito: um limite que começa
+  /// desativado costuma continuar desativado, e aí a aprovação só existe no papel.
+  limiteAprovacaoCompra Float @default(1000)
+
+  /// Acima desta quantidade, o ajuste de inventário precisa de aprovação.
+  ///
+  /// Quantidade e não valor: o furo clássico de almoxarifado é sumir com item barato em
+  /// volume, justamente o que passaria despercebido num limite em reais.
+  limiteAjusteInventario Float     @default(10)
+  ativo                  Boolean   @default(true)
   /// Último teste que funcionou — é o que diz se dá para confiar na configuração.
-  testadoEm          DateTime?
-  atualizadoEm       DateTime  @updatedAt
+  testadoEm              DateTime?
+  atualizadoEm           DateTime  @updatedAt
 }
 
 /// Um item pedido.

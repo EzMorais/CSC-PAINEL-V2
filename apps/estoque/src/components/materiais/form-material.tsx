@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { criarMaterial, editarMaterial } from '@/actions/materiais'
@@ -38,11 +40,11 @@ export function FormMaterial({ id, codigo, valores = {} }: Props) {
     iniciar(async () => {
       // Os dois ramos são tratados separados porque só a criação devolve um id.
       if (id) {
-        const r = await editarMaterial(id, dados)
+        const r = await chamarAction(editarMaterial(id, dados))
         if (!r.ok) return setErro(r.erro)
         router.push(`/materiais/${id}`)
       } else {
-        const r = await criarMaterial(dados, codigo)
+        const r = await chamarAction(criarMaterial(dados, codigo))
         if (!r.ok) return setErro(r.erro)
         router.push(`/materiais/${r.dados.id}`)
       }

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Building2, Truck, BarChart3,
-  Settings, Menu, X, LogOut, ExternalLink,
+  Settings, ClipboardCheck, Menu, X, LogOut, ExternalLink,
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { sair } from '@/actions/auth'
@@ -15,6 +15,7 @@ const ITENS = [
   { href: '/materiais',     rotulo: 'Materiais',     Icone: Package },
   { href: '/movimentacoes', rotulo: 'Movimentações', Icone: ArrowLeftRight },
   { href: '/solicitacoes',  rotulo: 'Compras',       Icone: ShoppingCart },
+  { href: '/aprovacoes',    rotulo: 'Aprovações',    Icone: ClipboardCheck },
   { href: '/obras',         rotulo: 'Obras',         Icone: Building2 },
   { href: '/fornecedores',  rotulo: 'Fornecedores',  Icone: Truck },
   { href: '/relatorios',    rotulo: 'Relatórios',    Icone: BarChart3 },

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { lerPlanilha, type LinhaPlanilha } from '@/lib/planilha/parser'
 import { construirMapa } from '@/lib/planilha/mapa-abas'
 import { MOVIMENTACAO } from '@/lib/dominio/constantes'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 
 export type Resultado<T> = { ok: true; dados: T } | { ok: false; erro: string }
 
@@ -56,7 +56,7 @@ async function mapaDasObras() {
 }
 
 export async function gerarPrevia(caminho: string): Promise<Resultado<PreviaImportacao>> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const { linhas, ignoradas } = await lerPlanilha(caminho, await mapaDasObras())
     const mapa = await mapaFornecedores()
@@ -110,7 +110,7 @@ function chave(l: LinhaPlanilha, obraId: string): string {
 }
 
 export async function confirmarImportacao(caminho: string): Promise<Resultado<{ criadas: number; puladas: number; fornecedoresCriados: number }>> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const { linhas } = await lerPlanilha(caminho, await mapaDasObras())
 
@@ -197,7 +197,7 @@ export async function confirmarImportacao(caminho: string): Promise<Resultado<{ 
  */
 export async function receberUpload(formData: FormData): Promise<Resultado<{ caminho: string }>> {
   // Grava arquivo em disco: sem esta guarda qualquer um enche o servidor de uploads.
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const arquivo = formData.get('planilha')
     if (!(arquivo instanceof File)) return { ok: false, erro: 'Nenhum arquivo enviado.' }

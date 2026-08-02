@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { CATEGORIA_DOCUMENTO_EMPRESA, CATEGORIA_DOCUMENTO_PESSOAL, ROTULO_CATEGORIA_DOCUMENTO_PESSOAL } from '@/lib/dominio/constantes'
 
@@ -34,7 +34,7 @@ const esquemaEmpresa = z.object({
 
 /** Reenviar o mesmo título+categoria(+obra) cria uma versão nova — a antiga não é apagada. */
 export async function registrarDocumentoEmpresa(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquemaEmpresa.safeParse(entrada)
   if (!parsed.success) {
@@ -76,7 +76,7 @@ const esquemaPessoal = z.object({
 
 /** Um item do checklist de admissão — o título vem da própria categoria, não é digitado. */
 export async function registrarDocumentoPessoal(entrada: unknown): Promise<Resultado> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquemaPessoal.safeParse(entrada)
   if (!parsed.success) {

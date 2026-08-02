@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { Plus, TriangleAlert } from 'lucide-react'
 import { useState, useTransition } from 'react'
 import { registrarMovimentacao } from '@/actions/movimentacoes'
@@ -29,6 +31,7 @@ export function FormMovimentacao({
   const [materialId, setMaterialId] = useState('')
   const [funcionarioId, setFuncionarioId] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [pendente, iniciar] = useTransition()
 
   const material = opcoes.materiais.find((m) => m.id === materialId)
@@ -54,13 +57,19 @@ export function FormMovimentacao({
     const fd = new FormData(e.currentTarget)
     setErro(null)
     iniciar(async () => {
-      const r = await registrarMovimentacao({
+      const r = await chamarAction(registrarMovimentacao({
         ...Object.fromEntries(fd.entries()),
         // O nome viaja junto do id porque o extrato do almoxarifado precisa continuar
         // legível mesmo sem o RH no ar — ver o comentário no schema.
         funcionarioNome: funcionarioEscolhido?.nome ?? '',
-      })
+      }))
       if (!r.ok) return setErro(r.erro)
+      if (r.dados.pendenteAprovacao) {
+        setAviso(
+          'Baixa por perda enviada para a gerência aprovar. O saldo só muda depois disso — ' +
+            'acompanhe em Aprovações.',
+        )
+      }
       setAberto(false)
       reiniciar()
     })
@@ -68,12 +77,19 @@ export function FormMovimentacao({
 
   if (!aberto) {
     return (
-      <button
-        type="button" onClick={() => setAberto(true)} data-testid="nova-movimentacao"
-        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-      >
-        <Plus className="size-4" /> Nova movimentação
-      </button>
+      <div className="space-y-2">
+        {aviso && (
+          <p role="status" data-testid="aviso-aprovacao" className="rounded-md border border-status-atencao/40 bg-status-atencao/10 p-3 text-sm">
+            {aviso}
+          </p>
+        )}
+        <button
+          type="button" onClick={() => { setAberto(true); setAviso(null) }} data-testid="nova-movimentacao"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          <Plus className="size-4" /> Nova movimentação
+        </button>
+      </div>
     )
   }
 

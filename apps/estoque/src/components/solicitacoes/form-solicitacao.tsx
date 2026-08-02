@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Sparkles, X } from 'lucide-react'
@@ -22,7 +24,7 @@ export function FormSolicitacao() {
   function sugerir() {
     setErro(null)
     iniciarSugestao(async () => {
-      const r = await gerarSugestao()
+      const r = await chamarAction(gerarSugestao())
       if (!r.ok) return setErro(r.erro)
       setItens(r.dados)
     })
@@ -43,7 +45,7 @@ export function FormSolicitacao() {
     if (!itens || itens.length === 0) return
     setErro(null)
     iniciarSalvar(async () => {
-      const r = await criarSolicitacao({
+      const r = await chamarAction(criarSolicitacao({
         observacao,
         itens: itens.map((i) => ({
           materialId: i.materialId,
@@ -52,8 +54,9 @@ export function FormSolicitacao() {
           minimoNaEpoca: i.estoqueMinimo,
           precoEstimado: i.precoEstimado ?? '',
         })),
-      })
+      }))
       if (!r.ok) return setErro(r.erro)
+      // A tela do pedido mostra o estado — inclusive quando ficou aguardando a gerência.
       router.push(`/solicitacoes/${r.dados.id}`)
       router.refresh()
     })

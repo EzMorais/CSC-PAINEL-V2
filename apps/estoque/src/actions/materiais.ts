@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { CATEGORIA_MATERIAL, UNIDADE } from '@/lib/dominio/constantes'
 
@@ -57,7 +57,7 @@ function mensagem(e: unknown, padrao: string): string {
 }
 
 export async function criarMaterial(entrada: unknown, codigo: string): Promise<Resultado<{ id: string }>> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -74,7 +74,7 @@ export async function criarMaterial(entrada: unknown, codigo: string): Promise<R
 }
 
 export async function editarMaterial(id: string, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -98,7 +98,7 @@ export async function editarMaterial(id: string, entrada: unknown): Promise<Resu
  * Inativar tira o item das listas de lançamento sem tocar no passado.
  */
 export async function alternarAtivoMaterial(id: string, ativo: boolean): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     await prisma.material.update({ where: { id }, data: { ativo } })
     revalidarTelas('/', '/materiais', `/materiais/${id}`)

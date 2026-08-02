@@ -2,12 +2,16 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { obterSolicitacao, proximoNumero, sugerirItens } from '@/queries/solicitacoes'
 import { STATUS_SOLICITACAO } from '@/lib/dominio/constantes'
 import { assuntoDoEmail, corpoDoEmail } from '@/lib/dominio/email-solicitacao'
+import { brl } from '@/lib/dominio/formato'
 import { configuracaoEmail, enviarEmail } from '@/lib/email/enviar'
+import { limitesDeAprovacao } from '@/queries/aprovacoes'
+import { abrirPedido, precisaAprovacao } from '@/lib/pedir-aprovacao'
+import { TIPO_APROVACAO } from '@/lib/dominio/aprovacoes'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
 
@@ -26,8 +30,10 @@ const esquema = z.object({
   itens: z.array(esquemaItem).min(1, 'Selecione ao menos um material.'),
 })
 
-export async function criarSolicitacao(entrada: unknown): Promise<Resultado<{ id: string; numero: string }>> {
-  const sessao = await exigirSessao()
+export async function criarSolicitacao(
+  entrada: unknown,
+): Promise<Resultado<{ id: string; numero: string; pendenteAprovacao: boolean }>> {
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -54,12 +60,33 @@ export async function criarSolicitacao(entrada: unknown): Promise<Resultado<{ id
       },
     })
 
+    // Acima do limite, o pedido não sai antes de a gerência olhar — e o e-mail ao
+    // fornecedor é justamente o que não dá para desfazer depois de enviado.
+    const total = d.itens.reduce(
+      (s, i) => s + (typeof i.precoEstimado === 'number' ? i.precoEstimado * i.quantidade : 0),
+      0,
+    )
+    const { compra: limite } = await limitesDeAprovacao()
+
+    if (precisaAprovacao(sessao.cargo, limite > 0 && total > limite)) {
+      await abrirPedido({
+        tipo: TIPO_APROVACAO.SOLICITACAO_COMPRA,
+        resumo: `${solicitacao.numero}: ${d.itens.length} ${d.itens.length === 1 ? 'item' : 'itens'}, estimativa de ${brl(total)}.`,
+        dados: { solicitacaoId: solicitacao.id },
+        motivo: d.observacao ?? null,
+        solicitanteId: sessao.id,
+        solicitanteNome: sessao.nome,
+      })
+      revalidarTelas('/', '/aprovacoes', '/solicitacoes')
+      return { ok: true, dados: { id: solicitacao.id, numero: solicitacao.numero, pendenteAprovacao: true } }
+    }
+
     // Dispara o e-mail sozinho, se houver conta vinculada. A solicitação já está gravada:
     // um erro no envio não pode desfazer o pedido, só ficar registrado nele para reenvio.
     await dispararEmailDaSolicitacao(solicitacao.id, null)
 
     revalidarTelas('/', '/solicitacoes')
-    return { ok: true, dados: { id: solicitacao.id, numero: solicitacao.numero } }
+    return { ok: true, dados: { id: solicitacao.id, numero: solicitacao.numero, pendenteAprovacao: false } }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao criar a solicitação.' }
   }
@@ -151,7 +178,7 @@ export async function dispararEmailDaSolicitacao(
  * pedir o que falta à tarde, não o que faltava de manhã.
  */
 export async function gerarSugestao(): Promise<Resultado<Awaited<ReturnType<typeof sugerirItens>>>> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const itens = await sugerirItens()
     if (itens.length === 0) {
@@ -171,7 +198,7 @@ export async function gerarSugestao(): Promise<Resultado<Awaited<ReturnType<type
  * fiscal na mão, com preço e quantidade reais, que quase nunca são exatamente os pedidos.
  */
 export async function mudarStatusSolicitacao(id: string, status: string): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const valido = Object.values(STATUS_SOLICITACAO) as string[]
   if (!valido.includes(status)) return { ok: false, erro: 'Status inválido.' }
@@ -194,7 +221,7 @@ export async function mudarStatusSolicitacao(id: string, status: string): Promis
 }
 
 export async function excluirSolicitacao(id: string): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     const s = await prisma.solicitacaoCompra.findUnique({ where: { id }, select: { status: true } })
     if (!s) return { ok: false, erro: 'Solicitação não encontrada.' }

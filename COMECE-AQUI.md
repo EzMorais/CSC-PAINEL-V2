@@ -1,17 +1,20 @@
 # Como rodar este projeto em outro computador
 
 Guia para quem nunca usou terminal nem instalou um projeto de programação antes.
-O repositório tem **quatro sistemas**, cada um numa pasta dentro de `apps/`:
+O repositório tem **cinco aplicações**, cada uma numa pasta dentro de `apps/`:
 
 | Pasta | Sistema | Porta | Para que serve |
 |---|---|---|---|
+| `apps/portal` | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
 | `apps/painel-locacao` | Painel de Locação | 3000 | Equipamentos alugados por obra |
 | `apps/rh` | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | `apps/estoque` | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
 | `apps/frota` | Frota | 3000 | Veículos, manutenções e abastecimento |
 
-Cada um roda separado, com seu próprio banco de dados. O login é único: entrar em um vale
-para os outros.
+**Comece pelo Portal.** É ele que tem a tela de login e o cadastro de gente; os outros não
+pedem senha própria. Entrando uma vez, você circula por todos.
+
+Cada um roda separado, com seu próprio banco de dados.
 
 > **Almoxarifado e RH andam juntos.** Quando um EPI sai do estoque para um funcionário, a
 > ficha de entrega aparece sozinha no RH. Para isso funcionar, os dois precisam do **mesmo
@@ -30,7 +33,7 @@ para os outros.
 
 Só dois passos manuais — baixar o projeto e clicar num arquivo. O script cuida do resto:
 Node.js, Git, Visual Studio Code, GitHub CLI, Claude Code, as extensões do VS Code
-recomendadas para este projeto, e os três apps instalados com banco de dados pronto.
+recomendadas para este projeto, e todos os módulos instalados com banco de dados pronto.
 
 ### 1. Baixar o projeto com o GitHub Desktop
 
@@ -56,7 +59,7 @@ Se alguma etapa falhar (falta de internet no meio, por exemplo), **é seguro rod
 de novo**: cada passo confere se já foi feito antes de repetir.
 
 Quando terminar, o projeto abre sozinho no VS Code. Para **usar** cada sistema, falta só
-ligar o servidor de cada um — veja os passos 4, 5 e 6 abaixo (pule a parte de instalar
+ligar o servidor de cada um — veja os passos 4 a 8 abaixo (pule a parte de instalar
 dependências e criar `.env`: o script já fez isso).
 
 > **O que o script instala**, para quem quiser conferir ou fazer à mão depois: Node.js LTS,
@@ -76,7 +79,7 @@ a passo completo abaixo.
 
 ## Passo 1 — Instalar o Node.js
 
-Todos os três sistemas precisam do **Node.js**. É um programa só, serve para os três.
+Todos os sistemas precisam do **Node.js**. É um programa só, serve para todos.
 
 1. Acesse [nodejs.org](https://nodejs.org)
 2. Clique no botão que diz **LTS** (é a versão recomendada)
@@ -110,7 +113,7 @@ estiver logado com uma conta que tenha acesso.
 4. Procure `CSC-PAINEL` na lista (aba "GitHub.com") e escolha uma pasta local, tipo `C:\CSC-PAINEL`
 5. Clique **Clone**
 
-Isso baixa o projeto inteiro (os três sistemas) para o seu computador.
+Isso baixa o projeto inteiro (todos os módulos) para o seu computador.
 
 > Se preferir usar o terminal em vez do GitHub Desktop, com o [Git](https://git-scm.com/)
 > instalado e a conta do GitHub autenticada:
@@ -123,7 +126,7 @@ Isso baixa o projeto inteiro (os três sistemas) para o seu computador.
 ## Passo 3 — Abrir o terminal na pasta certa
 
 Cada sistema abaixo precisa de comandos digitados num terminal, dentro da pasta dele
-(`apps/painel-locacao`, `apps/rh` ou `apps/frota`).
+(`apps/portal`, `apps/painel-locacao`, `apps/rh`, `apps/estoque` ou `apps/frota`).
 
 Jeito mais simples de abrir o terminal já na pasta certa:
 
@@ -135,7 +138,33 @@ vão ser digitados.
 
 ---
 
-## Passo 4 — Painel de Locação
+## Passo 4 — Portal (faça este primeiro)
+
+É ele que guarda os usuários. Sem o Portal, não há com que fazer login em nenhum dos outros.
+Numa janela de terminal dentro de `apps/portal`:
+
+```bash
+npm install
+echo DATABASE_URL="file:./dev.db" > .env
+node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Abra **http://localhost:3004**. Login: `admin@siqueiracampos.com.br` / `locacao2026`.
+
+> **Guarde o `.env` deste passo.** Nos passos seguintes você vai **copiar este arquivo** em
+> vez de gerar um novo — é o mesmo `AUTH_SECRET` que faz o login do Portal valer nos outros
+> sistemas.
+
+O seed cria contas de **exemplo** de cada cargo (senha `exemplo2026`) para você ver a
+hierarquia funcionando. Apague-as no Portal antes de usar para valer.
+
+---
+
+## Passo 5 — Painel de Locação
 
 Na janela de terminal aberta dentro de `apps/painel-locacao`, digite cada linha e aperte
 Enter, esperando a anterior terminar:
@@ -185,7 +214,7 @@ clique dentro dela e aperte `Ctrl+C`.
 
 ---
 
-## Passo 5 — RH
+## Passo 6 — RH
 
 Mesma lógica, numa janela de terminal aberta dentro de `apps/rh`:
 
@@ -212,7 +241,7 @@ dois poderem rodar ao mesmo tempo).
 
 ---
 
-## Passo 6 — Almoxarifado
+## Passo 7 — Almoxarifado
 
 Numa janela de terminal dentro de `apps/estoque`. Aqui **não** se cria um segredo novo: ele
 precisa ser o mesmo do RH, senão a entrega de EPI não consegue falar com o RH.
@@ -231,7 +260,7 @@ Abra **http://localhost:3003**. Login: o mesmo dos outros
 
 ---
 
-## Passo 7 — Frota
+## Passo 8 — Frota
 
 O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
 no terminal:

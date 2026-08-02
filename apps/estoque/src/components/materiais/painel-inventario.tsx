@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useState, useTransition } from 'react'
 import { ClipboardCheck } from 'lucide-react'
 import { ajustarPorInventario } from '@/actions/movimentacoes'
@@ -29,14 +31,20 @@ export function PainelInventario({
     setErro(null)
     setAviso(null)
     iniciar(async () => {
-      const r = await ajustarPorInventario({
+      const r = await chamarAction(ajustarPorInventario({
         materialId,
         quantidadeContada: fd.get('quantidadeContada'),
         observacao: fd.get('observacao'),
-      })
+      }))
       if (!r.ok) return setErro(r.erro)
       const d = r.dados.diferenca
-      setAviso(`Ajuste lançado: ${d > 0 ? 'sobra' : 'falta'} de ${Math.abs(d)} ${unidade}.`)
+      const tipo = d > 0 ? 'sobra' : 'falta'
+      setAviso(
+        r.dados.pendenteAprovacao
+          ? `Pedido enviado para a gerência: ${tipo} de ${Math.abs(d)} ${unidade}. ` +
+            'O saldo só muda depois da aprovação — acompanhe em Aprovações.'
+          : `Ajuste lançado: ${tipo} de ${Math.abs(d)} ${unidade}.`,
+      )
       setAberto(false)
     })
   }
@@ -98,7 +106,10 @@ export function PainelInventario({
             type="checkbox" checked={ativo} disabled={alternando}
             onChange={(e) => {
               const proximo = e.target.checked
-              iniciarAlternar(async () => { await alternarAtivoMaterial(materialId, proximo) })
+              iniciarAlternar(async () => {
+                const r = await chamarAction(alternarAtivoMaterial(materialId, proximo))
+                if (!r.ok) setErro(r.erro)
+              })
             }}
           />
           Material ativo

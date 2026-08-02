@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
@@ -36,7 +38,7 @@ function LinhaFornecedor({ fornecedor }: { fornecedor: FornecedorListado }) {
             setAtivo(proximo)
             setErro(null)
             iniciar(async () => {
-              const r = await alternarAtivoFornecedor(fornecedor.id, proximo)
+              const r = await chamarAction(alternarAtivoFornecedor(fornecedor.id, proximo))
               if (!r.ok) { setErro(r.erro); setAtivo(!proximo) }
             })
           }}
@@ -59,7 +61,7 @@ export function ListaFornecedores({ fornecedores }: { fornecedores: FornecedorLi
     const fd = new FormData(form)
     setErro(null)
     iniciar(async () => {
-      const r = await criarFornecedor(Object.fromEntries(fd.entries()))
+      const r = await chamarAction(criarFornecedor(Object.fromEntries(fd.entries())))
       if (!r.ok) return setErro(r.erro)
       setCriando(false)
       form.reset()

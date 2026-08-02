@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirAdministracao } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { configuracaoEmail, enviarEmail, testarConexao } from '@/lib/email/enviar'
 import { PROVEDOR_EMAIL, SERVIDOR_PADRAO, type ProvedorEmail } from '@/lib/email/provedores'
@@ -27,7 +27,7 @@ const esquema = z.object({
 })
 
 export async function salvarConfiguracaoEmail(entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirAdministracao()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -87,7 +87,7 @@ export async function salvarConfiguracaoEmail(entrada: unknown): Promise<Resulta
  * problema só quando o pedido de compra real não chegar ao fornecedor.
  */
 export async function testarEnvioEmail(): Promise<Resultado<{ enviadoPara: string }>> {
-  await exigirSessao()
+  await exigirAdministracao()
 
   const config = await configuracaoEmail()
   if (!config) return { ok: false, erro: 'Salve a configuração antes de testar.' }
@@ -116,7 +116,7 @@ export async function testarEnvioEmail(): Promise<Resultado<{ enviadoPara: strin
 }
 
 export async function desativarEnvioEmail(): Promise<Resultado> {
-  await exigirSessao()
+  await exigirAdministracao()
   try {
     await prisma.configuracaoEmail.update({ where: { id: 'unica' }, data: { ativo: false } })
     revalidarTelas('/configuracoes', '/solicitacoes')

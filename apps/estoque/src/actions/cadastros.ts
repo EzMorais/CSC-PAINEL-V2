@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
@@ -17,7 +17,7 @@ const esquemaFornecedor = z.object({
 })
 
 export async function criarFornecedor(entrada: unknown): Promise<Resultado<{ id: string; nome: string }>> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaFornecedor.safeParse(entrada)
   if (!parsed.success) {
@@ -45,7 +45,7 @@ export async function criarFornecedor(entrada: unknown): Promise<Resultado<{ id:
 }
 
 export async function alternarAtivoFornecedor(id: string, ativo: boolean): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     await prisma.fornecedor.update({ where: { id }, data: { ativo } })
     revalidarTelas('/fornecedores')
@@ -72,7 +72,7 @@ const esquemaObra = z.object({
  * se reconhecer quando a sincronização existir.
  */
 export async function criarObra(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaObra.safeParse(entrada)
   if (!parsed.success) {
@@ -100,7 +100,7 @@ export async function criarObra(entrada: unknown): Promise<Resultado<{ id: strin
 }
 
 export async function alternarAtivaObra(id: string, ativa: boolean): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     await prisma.obra.update({ where: { id }, data: { ativa } })
     revalidarTelas('/', '/obras')

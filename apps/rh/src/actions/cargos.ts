@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { RISCO_CARGO } from '@/lib/dominio/constantes'
 
@@ -27,7 +27,7 @@ const esquema = z.object({
  * cliente já adicionou.
  */
 export async function criarCargo(entrada: unknown): Promise<Resultado<{ id: string; nome: string }>> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -52,7 +52,7 @@ const esquemaEdicao = z.object({
 
 /** Edição a partir de Configurações: só risco e ativo — nome/CBO não mudam depois de criado. */
 export async function editarCargo(id: string, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaEdicao.safeParse(entrada)
   if (!parsed.success) {

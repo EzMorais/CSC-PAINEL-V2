@@ -1,5 +1,7 @@
 'use client'
 
+import { chamarAction } from '@/lib/chamar-action'
+
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Check, Mail, Send, TriangleAlert } from 'lucide-react'
@@ -31,10 +33,10 @@ export function FormEmail({ config }: { config: ConfiguracaoEmailTela }) {
     setErro(null)
     setAviso(null)
     iniciarSalvar(async () => {
-      const r = await salvarConfiguracaoEmail({
+      const r = await chamarAction(salvarConfiguracaoEmail({
         ...Object.fromEntries(fd.entries()),
         enviarAutomatico: fd.get('enviarAutomatico') === 'on',
-      })
+      }))
       if (!r.ok) return setErro(r.erro)
       setAviso('Configuração salva. Agora clique em "Enviar e-mail de teste" para confirmar que funciona.')
       router.refresh()
@@ -45,7 +47,7 @@ export function FormEmail({ config }: { config: ConfiguracaoEmailTela }) {
     setErro(null)
     setAviso(null)
     iniciarTeste(async () => {
-      const r = await testarEnvioEmail()
+      const r = await chamarAction(testarEnvioEmail())
       if (!r.ok) return setErro(r.erro)
       setAviso(`E-mail de teste enviado para ${r.dados.enviadoPara}. Confira a caixa de entrada.`)
       router.refresh()
@@ -55,7 +57,7 @@ export function FormEmail({ config }: { config: ConfiguracaoEmailTela }) {
   function desativar() {
     setErro(null)
     iniciarTeste(async () => {
-      const r = await desativarEnvioEmail()
+      const r = await chamarAction(desativarEnvioEmail())
       if (!r.ok) return setErro(r.erro)
       setAviso('Envio automático desativado. Os botões de Gmail e Outlook continuam funcionando.')
       router.refresh()

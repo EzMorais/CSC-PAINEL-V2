@@ -158,10 +158,13 @@ function Preparar-App($pasta, $porta, $gerarPlanilhaExemplo) {
   }
 }
 
-Write-Titulo "5/6 - Preparando o Painel de Locacao, o RH e o Almoxarifado"
+Write-Titulo "5/6 - Preparando o Portal e os modulos"
+# O Portal vem primeiro: e ele que guarda os usuarios e assina o cracha de sessao que os
+# outros leem. Sem ele semeado, nao ha com que logar em lugar nenhum.
+Preparar-App 'portal' 3004 $false
 Preparar-App 'painel-locacao' 3000 $true
 Preparar-App 'rh' 3002 $false
-# O Almoxarifado conversa com o RH pela API de integracao, e os dois so se reconhecem se o
+# O Almoxarifado conversa com o RH pela API de integracao, e todos so se reconhecem se o
 # AUTH_SECRET for o mesmo -- que e o que este script garante, usando um valor unico para
 # todos os modulos.
 Preparar-App 'estoque' 3003 $false
@@ -182,7 +185,12 @@ if (Test-Comando 'code') {
 }
 
 Write-Host ""
+Write-Host "COMECE PELO PORTAL: http://localhost:3004" -ForegroundColor Cyan
+Write-Host "E ele quem tem a tela de login e o cadastro de usuarios. Entrando nele, voce" -ForegroundColor White
+Write-Host "chega nos outros sem logar de novo." -ForegroundColor White
+Write-Host ""
 Write-Host "Para USAR cada sistema, abra um terminal na pasta dele e rode 'npm run dev':" -ForegroundColor White
+Write-Host "  apps\portal          -> http://localhost:3004  (login e usuarios)" -ForegroundColor White
 Write-Host "  apps\painel-locacao  -> http://localhost:3000" -ForegroundColor White
 Write-Host "  apps\rh              -> http://localhost:3002" -ForegroundColor White
 Write-Host "  apps\estoque         -> http://localhost:3003" -ForegroundColor White
@@ -193,8 +201,11 @@ Write-Host "funcionarios e mandar a ficha. Se o RH estiver desligado na hora, a 
 Write-Host "material acontece do mesmo jeito e a ficha fica marcada como pendente, para" -ForegroundColor White
 Write-Host "reenviar depois na tela de Movimentacoes." -ForegroundColor White
 Write-Host ""
-Write-Host "Login do Painel, do RH e do Almoxarifado: admin@siqueiracampos.com.br / locacao2026" -ForegroundColor White
-Write-Host "Login da Frota:                           admin@siqueiracampos.com.br / frota2026" -ForegroundColor White
+Write-Host "Login (Portal, Painel, RH e Almoxarifado): admin@siqueiracampos.com.br / locacao2026" -ForegroundColor White
+Write-Host "Login da Frota (ainda com cadastro proprio): admin@siqueiracampos.com.br / frota2026" -ForegroundColor White
+Write-Host ""
+Write-Host "O seed do Portal cria contas de EXEMPLO de cada cargo (senha exemplo2026)." -ForegroundColor Yellow
+Write-Host "Apague-as no Portal antes de usar o sistema para valer." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Mais detalhes e solucao de problemas: README.md e COMECE-AQUI.md na pasta do projeto." -ForegroundColor White
 Write-Host ""

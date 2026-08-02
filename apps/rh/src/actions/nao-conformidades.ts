@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { GRAVIDADE_NC, STATUS_NC } from '@/lib/dominio/constantes'
 
@@ -31,7 +31,7 @@ const esquema = z.object({
 
 /** Nasce solta ou a partir de um item de auditoria reprovado — `auditoriaItemId` é o que diferencia. */
 export async function criarNaoConformidade(entrada: unknown): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -69,7 +69,7 @@ const esquemaStatus = z.object({
 })
 
 export async function atualizarStatusNaoConformidade(id: string, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaStatus.safeParse(entrada)
   if (!parsed.success) {

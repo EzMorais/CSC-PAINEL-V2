@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirSessao } from '@/lib/auth'
+import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { obterFuncionario } from '@/queries/funcionarios'
 import { apenasDigitos, cpfValido } from '@/lib/dominio/cpf'
@@ -122,7 +122,7 @@ function mensagem(e: unknown, padrao: string): string {
 }
 
 export async function criarFuncionario(entrada: unknown, matricula: string): Promise<Resultado<{ id: string }>> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -170,7 +170,7 @@ export async function criarFuncionario(entrada: unknown, matricula: string): Pro
  * um log de cliques em vez de um histórico do funcionário.
  */
 export async function editarFuncionario(id: string, entrada: unknown): Promise<Resultado> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) {
@@ -255,7 +255,7 @@ const esquemaEvento = z.object({
 
 /** Registro manual na timeline — advertência, promoção, observação. */
 export async function registrarEvento(funcionarioId: string, entrada: unknown): Promise<Resultado> {
-  const sessao = await exigirSessao()
+  const sessao = await exigirLancamento()
 
   const parsed = esquemaEvento.safeParse(entrada)
   if (!parsed.success) {
@@ -295,7 +295,7 @@ const esquemaDependente = z.object({
 })
 
 export async function salvarDependente(funcionarioId: string, entrada: unknown): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
 
   const parsed = esquemaDependente.safeParse(entrada)
   if (!parsed.success) {
@@ -328,7 +328,7 @@ export async function salvarDependente(funcionarioId: string, entrada: unknown):
 }
 
 export async function removerDependente(id: string, funcionarioId: string): Promise<Resultado> {
-  await exigirSessao()
+  await exigirLancamento()
   try {
     await prisma.dependente.delete({ where: { id } })
     revalidarTelas(`/funcionarios/${funcionarioId}`)
@@ -339,6 +339,6 @@ export async function removerDependente(id: string, funcionarioId: string): Prom
 }
 
 export async function carregarFuncionario(id: string) {
-  await exigirSessao()
+  await exigirLancamento()
   return obterFuncionario(id)
 }
