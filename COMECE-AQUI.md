@@ -12,7 +12,61 @@ O repositório tem **três sistemas independentes**, cada um numa pasta dentro d
 Você não precisa instalar os três — só o(s) que for usar. Cada um roda separado, com seu
 próprio banco de dados e seu próprio login.
 
+> **Num computador totalmente novo, sem nada instalado?** Tem um caminho ainda mais direto:
+> baixe **[github.com/EzMorais/VISUAL-TT](https://github.com/EzMorais/VISUAL-TT)** (público,
+> sem precisar de login pra baixar) e rode o `.bat` de lá — ele instala tudo, inclusive baixa
+> este projeto sozinho. É o mesmo instalador descrito abaixo, só que também resolve o "baixar
+> o projeto" pra quem ainda não tem GitHub Desktop nem conta logada em nada.
+
 ---
+
+## Caminho rápido (recomendado): um script instala tudo sozinho
+
+Só dois passos manuais — baixar o projeto e clicar num arquivo. O script cuida do resto:
+Node.js, Git, Visual Studio Code, GitHub CLI, Claude Code, as extensões do VS Code
+recomendadas para este projeto, e os três apps instalados com banco de dados pronto.
+
+### 1. Baixar o projeto com o GitHub Desktop
+
+1. Baixe e instale o [GitHub Desktop](https://desktop.github.com/)
+2. Abra o programa e faça login com a conta do GitHub que tem acesso a este repositório
+   (ele é privado — sem login com acesso, o download não aparece)
+3. Menu **File → Clone repository**
+4. Procure `CSC-PAINEL` na lista (aba "GitHub.com") e escolha uma pasta local, tipo `C:\CSC-PAINEL`
+5. Clique **Clone**
+
+### 2. Rodar o script de instalação
+
+1. Abra a pasta onde clonou o projeto (Explorador de Arquivos)
+2. Dê duplo clique em **`configurar-novo-computador.bat`**
+3. Uma janela azul do **Controle de Conta de Usuário** do Windows pode aparecer perguntando
+   se o programa pode fazer alterações no dispositivo — clique **Sim**. É esperado: instalar
+   programas exige essa permissão.
+4. Uma janela preta abre e mostra o progresso de cada etapa (1/6, 2/6...). **Não fecha
+   sozinha** — quando terminar tudo, ela pede para apertar Enter.
+5. A primeira vez demora — pode passar de 15 minutos, dependendo da internet. Deixe rodando.
+
+Se alguma etapa falhar (falta de internet no meio, por exemplo), **é seguro rodar o arquivo
+de novo**: cada passo confere se já foi feito antes de repetir.
+
+Quando terminar, o projeto abre sozinho no VS Code. Para **usar** cada sistema, falta só
+ligar o servidor de cada um — veja os passos 4, 5 e 6 abaixo (pule a parte de instalar
+dependências e criar `.env`: o script já fez isso).
+
+> **O que o script instala**, para quem quiser conferir ou fazer à mão depois: Node.js LTS,
+> Git, Visual Studio Code, GitHub CLI, [Claude Code](https://claude.com/claude-code) (o
+> assistente de IA usado para construir este projeto), e as extensões do VS Code em
+> `.vscode/extensions.json` — Prisma, ESLint, Tailwind CSS IntelliSense, GitLens, Error Lens,
+> SQLTools e Path Intellisense. Você não precisa saber o que cada uma faz — é só deixar o VS
+> Code instalar quando ele perguntar (aparece um aviso "This workspace has extension
+> recommendations" ao abrir a pasta, com um botão **Install All**).
+
+Prefere entender ou fazer cada passo manualmente (ou o script não funcionou)? Segue o passo
+a passo completo abaixo.
+
+---
+
+## Passo a passo manual
 
 ## Passo 1 — Instalar o Node.js
 

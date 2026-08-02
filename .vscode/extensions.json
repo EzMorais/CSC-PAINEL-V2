@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "Prisma.prisma",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-sqlite",
+    "christian-kohler.path-intellisense"
+  ]
+}
