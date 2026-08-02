@@ -127,6 +127,15 @@ function Preparar-App($pasta, $porta, $gerarPlanilhaExemplo) {
       Write-Host "  [$pasta] .env ja existe -- nao mexi nele." -ForegroundColor Gray
     }
 
+    # Passo obrigatorio, nao opcional: o npm 11 bloqueia scripts de instalacao de pacote
+    # por padrao, entao o postinstall do Prisma -- que normalmente geraria o cliente
+    # sozinho -- nao roda. Sem isto, um computador novo instala tudo "com sucesso" e so
+    # quebra depois, no primeiro comando que toca o banco, com a mensagem
+    # "@prisma/client did not initialize yet".
+    Write-Host "  [$pasta] Gerando o cliente do banco de dados..." -ForegroundColor Cyan
+    npx prisma generate
+    if ($LASTEXITCODE -ne 0) { throw "prisma generate terminou com erro (codigo $LASTEXITCODE)" }
+
     Write-Host "  [$pasta] Aplicando o banco de dados..." -ForegroundColor Cyan
     npx prisma migrate deploy
     if ($LASTEXITCODE -ne 0) { throw "prisma migrate deploy terminou com erro (codigo $LASTEXITCODE)" }

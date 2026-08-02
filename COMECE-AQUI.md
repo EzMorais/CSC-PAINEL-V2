@@ -149,11 +149,17 @@ node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString
 Depois:
 
 ```bash
+npx prisma generate
 npx prisma migrate deploy
 npm run db:seed
 npm run gerar:exemplo
 npm run dev
 ```
+
+> O `npx prisma generate` não é opcional. As versões novas do npm bloqueiam os scripts de
+> instalação dos pacotes por segurança, e é justamente um desses scripts que normalmente
+> prepararia o acesso ao banco sozinho. Sem essa linha, tudo instala "com sucesso" e só
+> quebra no comando seguinte, com a mensagem `@prisma/client did not initialize yet`.
 
 Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3000**.
 
@@ -181,6 +187,7 @@ Mesma lógica, numa janela de terminal aberta dentro de `apps/rh`:
 npm install
 echo DATABASE_URL="file:./dev.db" > .env
 node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
+npx prisma generate
 npx prisma migrate deploy
 npm run db:seed
 npm run dev
@@ -234,6 +241,16 @@ Detalhes extras (backup, alertas por e-mail, rodar como serviço do Windows) est
 **"node não é reconhecido como comando interno ou externo"**
 O Node não foi instalado ou o "Add to PATH" não foi marcado. Reinstale pelo
 [nodejs.org](https://nodejs.org) marcando essa opção, e reinicie o computador.
+
+**Aparece `path length ... exceeds max length of filesystem`**
+A pasta onde você colocou o projeto está fundo demais. O Windows tem um limite antigo de
+tamanho de caminho, e os arquivos internos do Next.js são longos. Mova a pasta para perto da
+raiz do disco — `C:\CSC-PAINEL` resolve.
+
+**Aparece `@prisma/client did not initialize yet`**
+Faltou rodar `npx prisma generate` dentro da pasta daquele sistema. As versões novas do npm
+bloqueiam os scripts de instalação dos pacotes, e esse comando é o que normalmente rodaria
+sozinho. Rode ele e repita o comando que falhou.
 
 **A tela de login não aceita, ou dá erro estranho ao abrir**
 Confira se o arquivo `.env` foi criado dentro da pasta certa (`apps/painel-locacao/.env`,
