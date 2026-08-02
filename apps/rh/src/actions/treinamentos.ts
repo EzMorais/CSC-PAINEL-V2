@@ -67,6 +67,53 @@ export async function criarTurma(entrada: unknown): Promise<Resultado<{ id: stri
   }
 }
 
+const esquemaParticipante = z.object({
+  treinamentoId: z.string().trim().min(1),
+  funcionarioId: z.string().trim().min(1, 'Selecione um funcionário.'),
+})
+
+/** Matrícula avulsa numa turma que já existe — pra quem ficou de fora na criação. */
+export async function adicionarParticipante(entrada: unknown): Promise<Resultado> {
+  await exigirSessao()
+
+  const parsed = esquemaParticipante.safeParse(entrada)
+  if (!parsed.success) {
+    return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
+  }
+
+  try {
+    await prisma.treinamentoParticipante.create({ data: parsed.data })
+    revalidarTelas(`/treinamentos/${parsed.data.treinamentoId}`, '/treinamentos')
+    return { ok: true, dados: undefined }
+  } catch (e) {
+    const msg = e instanceof Error && e.message.includes('Unique') ? 'Esse funcionário já está nessa turma.' : 'Falha ao adicionar o participante.'
+    return { ok: false, erro: msg }
+  }
+}
+
+/**
+ * Só remove quem ainda não tem certificado anexado — depois disso vira histórico, não
+ * matrícula por engano, e apagar destruiria um documento já enviado.
+ */
+export async function removerParticipante(participanteId: string): Promise<Resultado> {
+  await exigirSessao()
+
+  try {
+    const participante = await prisma.treinamentoParticipante.findUnique({
+      where: { id: participanteId },
+      select: { certificado: true, treinamentoId: true },
+    })
+    if (!participante) return { ok: false, erro: 'Participante não encontrado.' }
+    if (participante.certificado) return { ok: false, erro: 'Já tem certificado anexado — não dá para remover.' }
+
+    await prisma.treinamentoParticipante.delete({ where: { id: participanteId } })
+    revalidarTelas(`/treinamentos/${participante.treinamentoId}`, '/treinamentos')
+    return { ok: true, dados: undefined }
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao remover o participante.' }
+  }
+}
+
 const esquemaCertificado = z.object({
   participanteId: z.string().trim().min(1),
   certificado: z.string().trim().min(1, 'Selecione um arquivo.'),

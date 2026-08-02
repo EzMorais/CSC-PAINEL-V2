@@ -49,6 +49,18 @@ export async function funcionariosParaSelecao() {
 
 export type FuncionarioParaSelecao = Awaited<ReturnType<typeof funcionariosParaSelecao>>[number]
 
+/** Quem ainda pode ser adicionado a uma turma já existente — quem já está matriculado some da lista. */
+export async function funcionariosForaDaTurma(treinamentoId: string) {
+  return prisma.funcionario.findMany({
+    where: {
+      status: { not: STATUS.DESLIGADO },
+      treinamentos: { none: { treinamentoId } },
+    },
+    orderBy: { nome: 'asc' },
+    select: { id: true, nome: true, matricula: true },
+  })
+}
+
 /**
  * Participações com validade vencida ou vencendo nos próximos `dias`.
  *

@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { ParticipanteLinha } from '@/components/treinamentos/participante-linha'
-import { obterTurma } from '@/queries/treinamentos'
+import { FormAdicionarParticipante } from '@/components/treinamentos/form-adicionar-participante'
+import { funcionariosForaDaTurma, obterTurma } from '@/queries/treinamentos'
 import { ROTULO_NORMA_TREINAMENTO, type NormaTreinamento } from '@/lib/dominio/constantes'
 import { dataBR } from '@/lib/dominio/formato'
 
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function TurmaPage({ params }: Props) {
   const { id } = await params
-  const turma = await obterTurma(id)
+  const [turma, funcionariosDisponiveis] = await Promise.all([obterTurma(id), funcionariosForaDaTurma(id)])
   if (!turma) notFound()
 
   const hoje = new Date()
@@ -55,6 +56,7 @@ export default async function TurmaPage({ params }: Props) {
             ))}
           </ul>
         )}
+        <FormAdicionarParticipante treinamentoId={turma.id} funcionarios={funcionariosDisponiveis} />
       </section>
     </div>
   )

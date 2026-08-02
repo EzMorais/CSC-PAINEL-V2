@@ -1,9 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useTransition, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { criarFuncionario, editarFuncionario } from '@/actions/funcionarios'
-import { STATUS, TIPO_CONTRATO, ROTULO_STATUS, type Status } from '@/lib/dominio/constantes'
+import { criarCargo } from '@/actions/cargos'
+import { STATUS, TIPO_CONTRATO, ROTULO_STATUS, RISCO_CARGO, type Status } from '@/lib/dominio/constantes'
 
 export type Opcoes = {
   obras: Array<{ id: string; codigo: string; descricao: string }>
@@ -65,6 +67,50 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
   const [aba, setAba] = useState<Aba>('pessoais')
   const [erro, setErro] = useState<string | null>(null)
   const [pendente, iniciar] = useTransition()
+
+  // Cargo não tinha nenhuma tela de cadastro, só o seed — isto resolve "preciso de um
+  // cargo que ainda não existe" sem sair do formulário do funcionário. A lista criada
+  // aqui fica só no cliente (cargosExtra); o próximo carregamento da página já traz o
+  // cargo novo junto de `opcoes.cargos`, vindo do banco.
+  const [cargosExtra, setCargosExtra] = useState<Array<{ id: string; nome: string }>>([])
+  const [criandoCargo, setCriandoCargo] = useState(false)
+  const [nomeCargo, setNomeCargo] = useState('')
+  const [riscoCargo, setRiscoCargo] = useState<(typeof RISCO_CARGO)[number]>('NORMAL')
+  const [erroCargo, setErroCargo] = useState<string | null>(null)
+  const [pendenteCargo, iniciarCargo] = useTransition()
+  // Cargo recém-criado que ainda precisa ser selecionado no <select> assim que a opção
+  // dele existir no DOM — ver o efeito abaixo.
+  const [cargoParaSelecionar, setCargoParaSelecionar] = useState<string | null>(null)
+  const selectCargoRef = useRef<HTMLSelectElement>(null)
+  const cargosTotais = [...opcoes.cargos, ...cargosExtra]
+
+  // Setar `select.value` logo após `setCargosExtra` não funciona: o setState é
+  // assíncrono, então nesse instante a <option> nova ainda não existe no DOM, e o
+  // navegador ignora silenciosamente um valor sem opção correspondente — o select fica
+  // em branco. Este efeito roda depois do commit, quando a opção já está renderizada.
+  useEffect(() => {
+    if (cargoParaSelecionar && selectCargoRef.current) {
+      selectCargoRef.current.value = cargoParaSelecionar
+      setCargoParaSelecionar(null)
+    }
+  }, [cargoParaSelecionar, cargosExtra])
+
+  // Não é um <form> aninhado dentro do <form> principal de propósito: HTML não permite
+  // form dentro de form (o navegador ignora o de dentro), e o clique em "Criar cargo"
+  // estava na prática submetendo o formulário do funcionário inteiro. Por isso os campos
+  // aqui são controlados e lidos direto do estado, sem FormData.
+  function adicionarCargo() {
+    setErroCargo(null)
+    iniciarCargo(async () => {
+      const r = await criarCargo({ nome: nomeCargo, risco: riscoCargo })
+      if (!r.ok) return setErroCargo(r.erro)
+      setCargosExtra((atuais) => [...atuais, r.dados])
+      setCargoParaSelecionar(r.dados.id)
+      setCriandoCargo(false)
+      setNomeCargo('')
+      setRiscoCargo('NORMAL')
+    })
+  }
 
   function enviar(fd: FormData) {
     setErro(null)
@@ -181,10 +227,59 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
           </select>
         </Campo>
         <Campo nome="cargoId" rotulo="Cargo">
-          <select id="cargoId" name="cargoId" defaultValue={valores.cargoId ?? ''} className={CAMPO}>
-            <option value="">— sem cargo —</option>
-            {opcoes.cargos.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <div className="flex gap-2">
+            <select
+              ref={selectCargoRef} id="cargoId" name="cargoId"
+              defaultValue={valores.cargoId ?? ''} className={CAMPO}
+            >
+              <option value="">— sem cargo —</option>
+              {cargosTotais.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+            <button
+              type="button" onClick={() => setCriandoCargo((v) => !v)}
+              title="Novo cargo" aria-label="Novo cargo"
+              className="grid size-9 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+
+          {criandoCargo && (
+            <div className="mt-2 space-y-2 rounded-md border border-border bg-muted/30 p-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  data-testid="novo-cargo-nome"
+                  value={nomeCargo} onChange={(e) => setNomeCargo(e.target.value)}
+                  placeholder="Nome do cargo" autoFocus className={CAMPO}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarCargo() } }}
+                />
+                <select
+                  data-testid="novo-cargo-risco"
+                  value={riscoCargo}
+                  onChange={(e) => setRiscoCargo(e.target.value as (typeof RISCO_CARGO)[number])}
+                  className={CAMPO}
+                >
+                  {RISCO_CARGO.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              {erroCargo && <p role="alert" className="text-xs text-destructive">{erroCargo}</p>}
+              <div className="flex gap-2">
+                <button
+                  data-testid="criar-cargo"
+                  type="button" onClick={adicionarCargo} disabled={pendenteCargo || !nomeCargo.trim()}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {pendenteCargo ? 'Criando…' : 'Criar cargo'}
+                </button>
+                <button
+                  type="button" onClick={() => { setCriandoCargo(false); setErroCargo(null); setNomeCargo('') }}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </Campo>
         <Campo nome="salario" rotulo="Salário" tipo="number" valor={valores.salario} dica="Use ponto para centavos." />
       </div>
