@@ -13,13 +13,26 @@
   --muted-foreground: oklch(0.52 0.015 260);
   --border: oklch(0.91 0.006 260);
   --input: oklch(0.91 0.006 260);
-  --ring: oklch(0.55 0.14 250);
-  --primary: oklch(0.55 0.14 250);
+  /* Índigo — cor de identidade do Painel de Locação. Cada módulo tem a sua; ver os
+     outros apps para RH (verde-azulado), Almoxarifado (terracota) e Portal (azul). */
+  --ring: oklch(0.50 0.19 288);
+  --primary: oklch(0.50 0.19 288);
   --primary-foreground: oklch(0.99 0 0);
   --accent: oklch(0.94 0.01 260);
   --accent-foreground: oklch(0.21 0.015 260);
   --destructive: oklch(0.58 0.20 27);
   --destructive-foreground: oklch(0.99 0 0);
+
+  /* Paleta categórica do gráfico "por fornecedor" — 6 matizes fixos, nesta ordem,
+     validados contra daltonismo (ΔE ≥ 8 simulado / ≥ 15 visão normal entre vizinhos).
+     Não são "decoração": trocar a ordem quebra a garantia de distinção entre fatias
+     vizinhas. Ver a skill de dataviz para a fonte da paleta. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
 }
 
 .dark {
@@ -31,15 +44,24 @@
   --muted-foreground: oklch(0.71 0.015 260);
   --border: oklch(0.32 0.014 260);
   --input: oklch(0.32 0.014 260);
-  --ring: oklch(0.62 0.15 250);
-  --primary: oklch(0.62 0.15 250);
-  --primary-foreground: oklch(0.17 0.02 260);
+  --ring: oklch(0.67 0.17 288);
+  --primary: oklch(0.67 0.17 288);
+  --primary-foreground: oklch(0.16 0.02 288);
   --accent: oklch(0.29 0.014 260);
   --accent-foreground: oklch(0.95 0.005 260);
   /* Mais claro que no tema claro: sobre fundo escuro o vermelho de 0.58 fica abaixo
      do contraste mínimo para texto. */
   --destructive: oklch(0.70 0.17 27);
   --destructive-foreground: oklch(0.17 0.02 260);
+
+  /* Mesmos 6 matizes, um passo mais claro para o fundo escuro — mesma ordem, mesma
+     garantia de distinção. */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
 }
 
 @theme inline {

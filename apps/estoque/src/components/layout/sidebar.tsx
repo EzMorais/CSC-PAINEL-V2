@@ -8,6 +8,7 @@ import {
   Settings, ClipboardCheck, Menu, X, LogOut, ExternalLink,
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { Marca } from '@/components/marca/logo'
 import { sair } from '@/actions/auth'
 
 const ITENS = [
@@ -22,8 +23,7 @@ const ITENS = [
   { href: '/configuracoes', rotulo: 'Configurações', Icone: Settings },
 ]
 
-/** Onde os outros módulos respondem. Mesmo host, outra porta — a sessão vale em todos. */
-const URL_PAINEL = process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3000'
+/** Onde o RH responde. Mesmo host, outra porta — a sessão vale nos dois. */
 const URL_RH_PUBLICA = process.env.NEXT_PUBLIC_URL_RH ?? 'http://localhost:3002'
 
 type Usuario = { nome: string; email: string }
@@ -60,7 +60,9 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
         >
           <Menu className="size-4" />
         </button>
-        <span className="font-semibold">Almoxarifado</span>
+        <span className="flex items-center gap-2 font-semibold">
+          <Marca className="size-6 shrink-0" /> Almoxarifado
+        </span>
         <ThemeToggle />
       </header>
 
@@ -76,9 +78,12 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
                     ${aberto ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="font-semibold leading-tight">Siqueira Campos</p>
-            <p className="text-xs text-muted-foreground">Almoxarifado</p>
+          <div className="flex items-center gap-2">
+            <Marca className="size-8 shrink-0" />
+            <div>
+              <p className="font-semibold leading-tight">Siqueira Campos</p>
+              <p className="text-xs text-muted-foreground">Almoxarifado</p>
+            </div>
           </div>
           <button
             type="button" onClick={() => setAberto(false)}
@@ -94,14 +99,6 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
 
         {/* mt-auto empurra para o rodapé da navegação, em qualquer altura de tela */}
         <div className="mt-auto space-y-2 border-t border-border pt-4">
-          <a
-            href={URL_PAINEL}
-            className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground
-                       transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            Painel de Locação
-          </a>
           <a
             href={`${URL_RH_PUBLICA}/epis`}
             className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground

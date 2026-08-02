@@ -6,9 +6,10 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Users, Building2, GraduationCap, HardHat, Shirt, Stethoscope,
   FileText, ClipboardCheck, TriangleAlert, BarChart3, Settings,
-  Menu, X, LogOut, ExternalLink,
+  Menu, X, LogOut,
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { Marca } from '@/components/marca/logo'
 import { sair } from '@/actions/auth'
 
 /**
@@ -30,9 +31,6 @@ const ITENS = [
   { href: '/relatorios',        rotulo: 'Relatórios',        Icone: BarChart3 },
   { href: '/configuracoes',     rotulo: 'Configurações',     Icone: Settings },
 ]
-
-/** Onde o Painel de Locação responde. Mesmo host, outra porta — a sessão vale nos dois. */
-const URL_PAINEL = process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3000'
 
 type Usuario = { nome: string; email: string }
 
@@ -68,7 +66,9 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
         >
           <Menu className="size-4" />
         </button>
-        <span className="font-semibold">RH e SST</span>
+        <span className="flex items-center gap-2 font-semibold">
+          <Marca className="size-6 shrink-0" /> RH e SST
+        </span>
         <ThemeToggle />
       </header>
 
@@ -84,9 +84,12 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
                     ${aberto ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="font-semibold leading-tight">Siqueira Campos</p>
-            <p className="text-xs text-muted-foreground">Recursos Humanos e SST</p>
+          <div className="flex items-center gap-2">
+            <Marca className="size-8 shrink-0" />
+            <div>
+              <p className="font-semibold leading-tight">Siqueira Campos</p>
+              <p className="text-xs text-muted-foreground">Recursos Humanos e SST</p>
+            </div>
           </div>
           <button
             type="button" onClick={() => setAberto(false)}
@@ -102,15 +105,6 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
 
         {/* mt-auto empurra para o rodapé da navegação, em qualquer altura de tela */}
         <div className="mt-auto space-y-2 border-t border-border pt-4">
-          <a
-            href={URL_PAINEL}
-            className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground
-                       transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <ExternalLink className="size-4 shrink-0" />
-            Painel de Locação
-          </a>
-
           <div className="px-3 pt-2">
             <p className="truncate text-sm font-medium" title={usuario.nome}>{usuario.nome}</p>
             <p className="truncate text-xs text-muted-foreground" title={usuario.email}>{usuario.email}</p>

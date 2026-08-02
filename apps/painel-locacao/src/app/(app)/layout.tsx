@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { lerSessao } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/sidebar'
+import { HubNavegacao } from '@/components/layout/hub-navegacao'
 
 /**
  * Porta de entrada de tudo que exige sessão.
@@ -23,6 +24,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     <div className="min-h-dvh lg:flex">
       <Sidebar usuario={{ nome: sessao.nome, email: sessao.email }} />
       <main className="min-w-0 flex-1">{children}</main>
+      <HubNavegacao cargo={sessao.cargo} modulos={sessao.modulos} atual="PAINEL" />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { LayoutDashboard, Package, Building2, Truck, Upload, Menu, X, LogOut } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { Marca } from '@/components/marca/logo'
 import { sair } from '@/actions/auth'
 
 const ITENS = [
@@ -49,7 +50,9 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
         >
           <Menu className="size-4" />
         </button>
-        <span className="font-semibold">Locação SC</span>
+        <span className="flex items-center gap-2 font-semibold">
+          <Marca className="size-6 shrink-0" /> Locação SC
+        </span>
         <ThemeToggle />
       </header>
 
@@ -65,9 +68,12 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
                     ${aberto ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="font-semibold leading-tight">Siqueira Campos</p>
-            <p className="text-xs text-muted-foreground">Painel de Locação</p>
+          <div className="flex items-center gap-2">
+            <Marca className="size-8 shrink-0" />
+            <div>
+              <p className="font-semibold leading-tight">Siqueira Campos</p>
+              <p className="text-xs text-muted-foreground">Painel de Locação</p>
+            </div>
           </div>
           <button
             type="button" onClick={() => setAberto(false)}

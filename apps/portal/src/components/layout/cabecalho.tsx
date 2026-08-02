@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutGrid, LogOut, Users } from 'lucide-react'
+import { LogOut, Users } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { Marca } from '@/components/marca/logo'
 import { sair } from '@/actions/auth'
 import { ROTULO_CARGO, type Cargo } from '@/lib/dominio/cargos'
 
@@ -19,9 +20,7 @@ export function Cabecalho({
     <header className="border-b border-border bg-card">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-            <LayoutGrid className="size-4" />
-          </span>
+          <Marca className="size-8 shrink-0" />
           <span className="font-semibold leading-tight">Siqueira Campos</span>
         </Link>
 

@@ -8,7 +8,7 @@ export function GraficoAdmissoes({ dados }: Props) {
   const vazio = dados.every((d) => d.total === 0)
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <h2 className="text-sm font-medium">Admissões por mês</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">Últimos 6 meses</p>
 

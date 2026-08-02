@@ -70,7 +70,7 @@ export default async function DashboardRh() {
       <div className="grid gap-4 lg:grid-cols-2">
         <GraficoAdmissoes dados={admissoes} />
 
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="text-sm font-medium">Efetivo por obra</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Sem contar desligados</p>
 
@@ -109,7 +109,7 @@ export default async function DashboardRh() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="text-sm font-medium">Movimentações recentes</h2>
         {eventos.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">Nada registrado ainda.</p>

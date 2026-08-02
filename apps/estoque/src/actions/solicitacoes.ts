@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
-import { obterSolicitacao, proximoNumero, sugerirItens } from '@/queries/solicitacoes'
+import { obterSolicitacao, proximoNumero, sugerirItens, type ItemSugerido } from '@/queries/solicitacoes'
+import { listarMateriaisComSaldo } from '@/queries/saldos'
 import { STATUS_SOLICITACAO } from '@/lib/dominio/constantes'
 import { assuntoDoEmail, corpoDoEmail } from '@/lib/dominio/email-solicitacao'
 import { brl } from '@/lib/dominio/formato'
@@ -187,6 +188,39 @@ export async function gerarSugestao(): Promise<Resultado<Awaited<ReturnType<type
     return { ok: true, dados: itens }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao gerar a sugestão.' }
+  }
+}
+
+/**
+ * Materiais para adicionar à mão na solicitação, além do que a sugestão automática trouxer.
+ *
+ * Não exige estar abaixo do mínimo — ao contrário da sugestão, aqui a pessoa pode pedir
+ * qualquer material ativo, inclusive um que nunca teve movimentação (saldo e mínimo saem
+ * como zero, e ela ajusta a quantidade à mão).
+ */
+export async function buscarMateriaisParaPedido(termo: string): Promise<Resultado<ItemSugerido[]>> {
+  await exigirLancamento()
+  const limpo = termo.trim()
+  if (limpo.length < 2) return { ok: true, dados: [] }
+
+  try {
+    const materiais = await listarMateriaisComSaldo({ busca: limpo })
+    const itens: ItemSugerido[] = materiais
+      .filter((m) => m.ativo)
+      .slice(0, 8)
+      .map((m) => ({
+        materialId: m.id,
+        codigo: m.codigo,
+        nome: m.nome,
+        unidade: m.unidade,
+        saldo: m.saldo,
+        estoqueMinimo: m.estoqueMinimo,
+        quantidadeSugerida: 1,
+        precoEstimado: m.ultimoPreco,
+      }))
+    return { ok: true, dados: itens }
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao buscar materiais.' }
   }
 }
 

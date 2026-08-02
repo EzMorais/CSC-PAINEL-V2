@@ -65,7 +65,7 @@ export default async function DashboardEstoquePage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-sm font-medium">Repor no almoxarifado</h2>
             <Link href="/materiais" className="text-xs text-primary hover:underline">ver todos</Link>
@@ -95,7 +95,7 @@ export default async function DashboardEstoquePage() {
           )}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="text-sm font-medium">Consumo por obra</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Saídas menos devoluções</p>
           {obras.length === 0 ? (
@@ -128,7 +128,7 @@ export default async function DashboardEstoquePage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-medium">Movimentações recentes</h2>
           <Link href="/movimentacoes" className="text-xs text-primary hover:underline">ver todas</Link>

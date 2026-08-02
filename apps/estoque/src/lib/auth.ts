@@ -40,6 +40,8 @@ export type Sessao = {
   email: string
   /** Vem do Portal, dentro do crachá. Ver `lib/dominio/cargos.ts`. */
   cargo: string
+  /** Módulos liberados para a pessoa no Portal — usado pelo hub de navegação rápida. */
+  modulos: string[]
 }
 
 /**
@@ -61,6 +63,7 @@ export async function lerSessao(): Promise<Sessao | null> {
       // `papel` é o nome antigo do campo. Aceitar os dois evita que um crachá emitido antes
       // desta mudança derrube a pessoa para o cargo mais fraco sem nenhum aviso.
       cargo: String(payload.cargo ?? payload.papel ?? CARGO.CONSULTA),
+      modulos: Array.isArray(payload.modulos) ? payload.modulos.map(String) : [],
     }
   } catch {
     // Assinatura inválida, expirado ou adulterado — tudo vira "não autenticado".

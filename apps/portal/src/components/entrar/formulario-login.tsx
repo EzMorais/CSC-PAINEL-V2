@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState } from 'react'
-import { LayoutGrid } from 'lucide-react'
 import { entrar, type EstadoLogin } from '@/actions/auth'
 
 const CAMPO =
@@ -14,14 +13,10 @@ export function FormularioLogin({ destino }: { destino: string }) {
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-            <LayoutGrid className="size-5" />
-          </span>
-          <div>
-            <p className="font-semibold leading-tight">Siqueira Campos</p>
-            <p className="text-xs text-muted-foreground">Portal dos sistemas</p>
-          </div>
+        <div className="mb-8 flex flex-col items-center gap-2 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element -- imagem decorativa fixa, sem necessidade de otimização do next/image */}
+          <img src="/marca-completa.png" alt="Construtora Siqueira Campos" className="h-16 w-auto" />
+          <p className="text-sm text-muted-foreground">Portal dos sistemas</p>
         </div>
 
         <form action={acao} className="space-y-4 rounded-lg border border-border bg-card p-6">

@@ -61,7 +61,7 @@ export function GraficoObra({ dados }: { dados: FatiaGrafico[] }) {
               borderRadius: '0.5rem', fontSize: '0.8125rem',
             }}
           />
-          <Bar dataKey="valor" fill="oklch(0.55 0.19 255)" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="valor" fill="var(--primary)" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
       {semValor.length > 0 && (

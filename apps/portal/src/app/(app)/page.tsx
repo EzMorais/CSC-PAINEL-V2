@@ -56,7 +56,8 @@ export default async function PortalPage() {
             {liberados.map(({ modulo, descricao, Icone }) => (
               <a
                 key={modulo} href={URL_MODULO[modulo]} data-testid={`sistema-${modulo}`}
-                className="group flex items-start gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent"
+                className="group flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-sm
+                           transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
                   <Icone className="size-5" />
@@ -94,7 +95,7 @@ export default async function PortalPage() {
         </section>
       )}
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="flex items-center gap-2 text-sm font-medium">
           <ShieldCheck className="size-4 text-muted-foreground" /> O que o seu cargo permite
         </h2>

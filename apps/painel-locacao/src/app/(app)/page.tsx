@@ -65,17 +65,17 @@ export default async function DashboardPage() {
       )}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="min-w-0 rounded-lg border border-border bg-card p-4">
+        <section className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="mb-2 font-medium">Valor por fornecedor</h2>
           <GraficoFornecedor dados={porFornecedor} />
         </section>
-        <section className="min-w-0 rounded-lg border border-border bg-card p-4">
+        <section className="min-w-0 rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="mb-2 font-medium">Valor por obra</h2>
           <GraficoObra dados={porObra} />
         </section>
       </div>
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         {/* "Vencidos e" no título não é redundância: a consulta não tem piso inferior
             de data e, com os dados de hoje, as 25 linhas são todas de itens já
             vencidos. Um título só de "próximos 7 dias" descreveria a tela errada. */}

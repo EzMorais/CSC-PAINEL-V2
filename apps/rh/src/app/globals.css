@@ -13,8 +13,10 @@
   --muted-foreground: oklch(0.52 0.015 260);
   --border: oklch(0.91 0.006 260);
   --input: oklch(0.91 0.006 260);
-  --ring: oklch(0.55 0.14 250);
-  --primary: oklch(0.55 0.14 250);
+  /* Verde-azulado — cor de identidade do RH e SST. Cada módulo tem a sua; ver os
+     outros apps para Painel (índigo), Almoxarifado (terracota) e Portal (azul). */
+  --ring: oklch(0.52 0.11 172);
+  --primary: oklch(0.52 0.11 172);
   --primary-foreground: oklch(0.99 0 0);
   --accent: oklch(0.94 0.01 260);
   --accent-foreground: oklch(0.21 0.015 260);
@@ -31,9 +33,9 @@
   --muted-foreground: oklch(0.71 0.015 260);
   --border: oklch(0.32 0.014 260);
   --input: oklch(0.32 0.014 260);
-  --ring: oklch(0.62 0.15 250);
-  --primary: oklch(0.62 0.15 250);
-  --primary-foreground: oklch(0.17 0.02 260);
+  --ring: oklch(0.68 0.12 172);
+  --primary: oklch(0.68 0.12 172);
+  --primary-foreground: oklch(0.16 0.02 172);
   --accent: oklch(0.29 0.014 260);
   --accent-foreground: oklch(0.95 0.005 260);
   /* Mais claro que no tema claro: sobre fundo escuro o vermelho de 0.58 fica abaixo

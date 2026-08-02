@@ -4,9 +4,10 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { brl } from '@/lib/dominio/formato'
 import type { FatiaGrafico } from '@/queries/dashboard'
 
+/** Ordem fixa — ver o comentário de `--chart-1..6` em `globals.css`. */
 const CORES = [
-  'oklch(0.55 0.19 255)', 'oklch(0.58 0.20 300)', 'oklch(0.60 0.14 195)',
-  'oklch(0.62 0.16 150)', 'oklch(0.70 0.16 75)',  'oklch(0.58 0.20 27)',
+  'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)',
+  'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)',
 ]
 
 /** Cinza reservado: não é um fornecedor, é ausência de fornecedor. */

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { lerSessao } from '@/lib/auth'
 import { Cabecalho } from '@/components/layout/cabecalho'
+import { HubNavegacao } from '@/components/layout/hub-navegacao'
 import { CARGO } from '@/lib/dominio/cargos'
 
 /**
@@ -21,6 +22,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         ehAdmin={sessao.cargo === CARGO.ADMIN}
       />
       <main>{children}</main>
+      <HubNavegacao cargo={sessao.cargo} modulos={sessao.modulos} atual="PORTAL" />
     </div>
   )
 }
