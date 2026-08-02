@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { Copy, Check, Mail, TriangleAlert, Send } from 'lucide-react'
-import { mudarStatusSolicitacao } from '@/actions/solicitacoes'
+import { Copy, Check, Mail, TriangleAlert, Send, Zap } from 'lucide-react'
+import { mudarStatusSolicitacao, dispararEmailDaSolicitacao } from '@/actions/solicitacoes'
 import { montarLinks } from '@/lib/dominio/email-solicitacao'
 import { STATUS_SOLICITACAO } from '@/lib/dominio/constantes'
+import { dataBR } from '@/lib/dominio/formato'
 
 const CAMPO =
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
@@ -21,22 +23,43 @@ export type FornecedorContato = { id: string; nome: string; email: string | null
  * real da pessoa — fica na "Enviados" dela, o fornecedor responde para ela, e não há
  * credencial nenhuma guardada no servidor.
  */
+export type EnvioAutomatico = {
+  /** Há conta de e-mail vinculada e ativa. */
+  vinculado: boolean
+  enviadoPara: string | null
+  enviadoEm: Date | null
+  erro: string | null
+}
+
 export function EnviarEmail({
-  solicitacaoId, status, assunto, corpo, fornecedores,
+  solicitacaoId, status, assunto, corpo, fornecedores, envio,
 }: {
   solicitacaoId: string
   status: string
   assunto: string
   corpo: string
   fornecedores: FornecedorContato[]
+  envio: EnvioAutomatico
 }) {
   const [destinatario, setDestinatario] = useState('')
   const [copiado, setCopiado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [pendente, iniciar] = useTransition()
+  const [enviando, iniciarEnvio] = useTransition()
 
   const links = montarLinks(destinatario, assunto, corpo)
   const comEmail = fornecedores.filter((f) => f.email)
+
+  function dispararAgora() {
+    setErro(null)
+    setAviso(null)
+    iniciarEnvio(async () => {
+      const r = await dispararEmailDaSolicitacao(solicitacaoId, destinatario || null)
+      if (!r.ok) return setErro(r.erro)
+      setAviso(`Pedido enviado para ${r.dados.enviadoPara}.`)
+    })
+  }
 
   async function copiar() {
     try {
@@ -62,6 +85,27 @@ export function EnviarEmail({
   return (
     <div className="space-y-3 rounded-lg border border-border bg-card p-4">
       <h2 className="text-sm font-medium">Enviar por e-mail</h2>
+
+      {envio.enviadoEm && (
+        <p className="flex items-start gap-2 rounded-md border border-status-ativa/40 bg-status-ativa/10 p-2 text-xs">
+          <Check className="mt-0.5 size-3.5 shrink-0 text-status-ativa" />
+          <span>
+            Já enviado para <strong>{envio.enviadoPara}</strong> em {dataBR(envio.enviadoEm)}.
+            Enviar de novo manda o mesmo pedido outra vez.
+          </span>
+        </p>
+      )}
+
+      {envio.erro && (
+        <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs">
+          <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+          <span>
+            O envio automático falhou: {envio.erro}
+            {' '}Corrija em <Link href="/configuracoes" className="underline">Configurações</Link> e
+            use o botão abaixo, ou mande pelos botões do Gmail/Outlook.
+          </span>
+        </p>
+      )}
 
       <div>
         <label htmlFor="destinatario" className="mb-1 block text-sm font-medium">Para</label>
@@ -90,6 +134,30 @@ export function EnviarEmail({
           </p>
         )}
       </div>
+
+      {envio.vinculado ? (
+        <div className="rounded-md border border-border bg-muted/30 p-3">
+          <button
+            type="button" onClick={dispararAgora} disabled={enviando} data-testid="disparar-email"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          >
+            <Zap className="size-4" />
+            {enviando ? 'Enviando…' : envio.enviadoEm ? 'Enviar de novo' : 'Enviar agora pelo sistema'}
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sai pela conta vinculada, sem abrir o navegador.
+            {destinatario ? ` Vai para ${destinatario}.` : ' Deixe o campo acima vazio para ir ao comprador padrão.'}
+          </p>
+        </div>
+      ) : (
+        <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+          Nenhuma conta de e-mail vinculada — os botões abaixo abrem o e-mail já escrito, e
+          você aperta enviar. Para o pedido sair sozinho ao ser criado, vincule uma conta em{' '}
+          <Link href="/configuracoes" className="text-primary underline">Configurações</Link>.
+        </p>
+      )}
+
+      {aviso && <p role="status" className="rounded-md border border-border bg-muted/40 p-2 text-xs">{aviso}</p>}
 
       <div className="flex flex-wrap gap-2">
         <a

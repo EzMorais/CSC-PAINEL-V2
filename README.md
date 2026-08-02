@@ -398,9 +398,31 @@ comprar — e, no caso de EPI, para qual pessoa cada equipamento foi entregue.
 7. Se o RH estiver desligado na hora, a saída acontece do mesmo jeito e aparece um aviso
    amarelo em Movimentações com o botão **Reenviar agora** — a ficha não se perde.
 8. Em **Compras** → **Nova solicitação** → **Gerar sugestão**: o sistema junta tudo que está
-   abaixo do mínimo e sugere quanto comprar. Dá para editar, salvar, e então enviar o pedido
-   pronto pelo **Gmail**, **Outlook** ou pelo app de e-mail do computador — os botões abrem o
-   e-mail já escrito, com os itens e as quantidades.
+   abaixo do mínimo e sugere quanto comprar. Dá para editar antes de salvar.
+9. Para o pedido **sair sozinho por e-mail**, vá em **Configurações** e vincule uma conta —
+   veja abaixo. Sem vincular nada, a tela do pedido oferece botões que abrem o **Gmail**, o
+   **Outlook** ou o app de e-mail do computador com a mensagem já escrita; você só aperta
+   enviar.
+
+### Fazer as solicitações saírem por e-mail sozinhas
+
+No Almoxarifado, em **Configurações**:
+
+1. Escolha **Gmail** ou **Outlook** — o endereço do servidor é preenchido sozinho.
+2. Preencha o e-mail que vai enviar e o **e-mail do comprador** (para quem o pedido vai).
+3. No campo Senha vai uma **senha de aplicativo**, não a senha normal do e-mail. Os dois
+   provedores já não aceitam mais a senha da conta. A própria tela mostra o passo a passo
+   para gerar a sua (leva um minuto, e exige verificação em duas etapas ligada).
+4. Salve e clique em **Enviar e-mail de teste**. Só depois do teste passar dá para confiar
+   que os pedidos vão sair — a tela avisa em amarelo enquanto isso não foi feito.
+
+Com a conta vinculada, criar uma solicitação já dispara o e-mail. Se o envio falhar (senha
+trocada, internet fora), **o pedido não se perde**: ele fica salvo, a tela mostra o motivo
+da falha e oferece um botão de reenviar, além dos botões de Gmail/Outlook.
+
+> **Por que uma senha de aplicativo:** ela vale só para enviar e-mail e pode ser cancelada a
+> qualquer momento sem mexer na senha da conta. Ela fica guardada no banco de dados local
+> para o sistema conseguir enviar sozinho — e nunca volta para a tela depois de salva.
 
 ### Frota — controle de veículos
 

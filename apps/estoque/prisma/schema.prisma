@@ -171,9 +171,46 @@ model SolicitacaoCompra {
   atendidaEm    DateTime?
   registradoPor String?
 
+  /// Resultado do disparo automático por e-mail.
+  ///
+  /// O erro fica gravado, e não só em log, porque quem precisa saber que o pedido não saiu
+  /// é o almoxarife na tela — não alguém lendo o terminal do servidor. Sem isto, uma senha
+  /// de aplicativo expirada faria os pedidos pararem de sair em silêncio.
+  emailEnviadoPara String?
+  emailEnviadoEm   DateTime?
+  emailErro        String?
+
   itens ItemSolicitacao[]
 
   @@index([status])
+}
+
+/// Conta de e-mail que dispara as solicitações de compra. Uma linha só.
+///
+/// Mora no banco, e não no `.env`, de propósito: quem configura isto é o almoxarife, e
+/// pedir a ele que edite um arquivo de texto do servidor devolveria justamente a
+/// dificuldade que a tela existe para tirar. A senha guardada aqui deve ser uma SENHA DE
+/// APLICATIVO — tanto o Gmail quanto o Outlook exigem uma, e é bom que exijam: ela vale só
+/// para enviar e-mail e pode ser revogada sem trocar a senha da conta.
+///
+/// `id` fixo em "unica" porque é configuração do sistema, não uma lista: sem isso, dois
+/// cadastros acidentais deixariam o envio dependendo de qual linha viesse primeiro.
+model ConfiguracaoEmail {
+  id                 String    @id @default("unica")
+  provedor           String    @default("GMAIL") // GMAIL | OUTLOOK | OUTRO
+  host               String
+  porta              Int       @default(587)
+  usuario            String
+  senha              String
+  remetente          String?
+  destinatarioPadrao String?
+  copiaPara          String?
+  /// Dispara o e-mail sozinho assim que uma solicitação é criada.
+  enviarAutomatico   Boolean   @default(true)
+  ativo              Boolean   @default(true)
+  /// Último teste que funcionou — é o que diz se dá para confiar na configuração.
+  testadoEm          DateTime?
+  atualizadoEm       DateTime  @updatedAt
 }
 
 /// Um item pedido.

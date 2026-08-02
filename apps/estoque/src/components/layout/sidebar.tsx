@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, ArrowLeftRight, ShoppingCart, Building2, Truck, BarChart3,
-  Menu, X, LogOut, ExternalLink,
+  Settings, Menu, X, LogOut, ExternalLink,
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { sair } from '@/actions/auth'
@@ -18,6 +18,7 @@ const ITENS = [
   { href: '/obras',         rotulo: 'Obras',         Icone: Building2 },
   { href: '/fornecedores',  rotulo: 'Fornecedores',  Icone: Truck },
   { href: '/relatorios',    rotulo: 'Relatórios',    Icone: BarChart3 },
+  { href: '/configuracoes', rotulo: 'Configurações', Icone: Settings },
 ]
 
 /** Onde os outros módulos respondem. Mesmo host, outra porta — a sessão vale em todos. */

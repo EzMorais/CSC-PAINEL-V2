@@ -5,6 +5,7 @@ import { EnviarEmail } from '@/components/solicitacoes/enviar-email'
 import { AcoesStatus } from '@/components/solicitacoes/acoes-status'
 import { obterSolicitacao } from '@/queries/solicitacoes'
 import { listarFornecedores } from '@/queries/movimentacoes'
+import { configuracaoEmail } from '@/lib/email/enviar'
 import { assuntoDoEmail, corpoDoEmail } from '@/lib/dominio/email-solicitacao'
 import {
   ROTULO_STATUS_SOLICITACAO, TOM_STATUS_SOLICITACAO, type StatusSolicitacao,
@@ -30,7 +31,11 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function SolicitacaoPage({ params }: Props) {
   const { id } = await params
-  const [solicitacao, fornecedores] = await Promise.all([obterSolicitacao(id), listarFornecedores()])
+  const [solicitacao, fornecedores, config] = await Promise.all([
+    obterSolicitacao(id),
+    listarFornecedores(),
+    configuracaoEmail(),
+  ])
   if (!solicitacao) notFound()
 
   const itensEmail = solicitacao.itens.map((i) => ({
@@ -126,6 +131,12 @@ export default async function SolicitacaoPage({ params }: Props) {
         assunto={assuntoDoEmail(paraEmail)}
         corpo={corpoDoEmail(paraEmail)}
         fornecedores={fornecedores.map((f) => ({ id: f.id, nome: f.nome, email: f.email }))}
+        envio={{
+          vinculado: Boolean(config?.ativo),
+          enviadoPara: solicitacao.emailEnviadoPara,
+          enviadoEm: solicitacao.emailEnviadoEm,
+          erro: solicitacao.emailErro,
+        }}
       />
 
       <section className="rounded-lg border border-border bg-card p-4">
