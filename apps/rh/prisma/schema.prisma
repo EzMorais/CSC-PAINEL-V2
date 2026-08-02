@@ -45,13 +45,13 @@ model Obra {
 }
 
 model Cargo {
-  id        String   @id @default(cuid())
-  nome      String   @unique
-  cbo       String?
+  id       String   @id @default(cuid())
+  nome     String   @unique
+  cbo      String?
   /// Insalubridade/periculosidade puxam exigência de EPI e exame específicos.
-  risco     String   @default("NORMAL") // NORMAL | INSALUBRE | PERICULOSO
-  ativo     Boolean  @default(true)
-  criadoEm  DateTime @default(now())
+  risco    String   @default("NORMAL") // NORMAL | INSALUBRE | PERICULOSO
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
 
   funcionarios Funcionario[]
 }
@@ -93,11 +93,11 @@ model Funcionario {
   tipoContrato String    @default("CLT") // CLT | PJ | TEMPORARIO | APRENDIZ
 
   // ── banco ─────────────────────────────────────────────────────────────────
-  banco      String?
-  agencia    String?
-  conta      String?
-  tipoConta  String?
-  chavePix   String?
+  banco     String?
+  agencia   String?
+  conta     String?
+  tipoConta String?
+  chavePix  String?
 
   // ── vestuário: o tamanho vive aqui porque não muda a cada entrega ─────────
   tamanhoCamisa  String?
@@ -109,13 +109,14 @@ model Funcionario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  obra   Obra?   @relation(fields: [obraId], references: [id])
-  obraId String?
-  cargo  Cargo?  @relation(fields: [cargoId], references: [id])
+  obra    Obra?   @relation(fields: [obraId], references: [id])
+  obraId  String?
+  cargo   Cargo?  @relation(fields: [cargoId], references: [id])
   cargoId String?
 
-  dependentes Dependente[]
-  eventos     Evento[]
+  dependentes      Dependente[]
+  eventos          Evento[]
+  entregasUniforme EntregaUniforme[]
 
   @@index([obraId])
   @@index([cargoId])
@@ -141,14 +142,41 @@ model Dependente {
   @@index([funcionarioId])
 }
 
+/// Entrega de uniforme a um funcionário — recibo, não cadastro.
+///
+/// `tamanho` é gravado aqui de novo, mesmo já existindo em `Funcionario.tamanhoCamisa` etc.,
+/// porque o cadastro pode mudar depois (funcionário engordou, trocou de calçado) e isso não
+/// pode reescrever o que foi entregue no passado. `assinatura` é a imagem (PNG em data URI)
+/// desenhada na hora, gravada como texto porque este app não tem nenhum armazenamento de
+/// arquivo (disco, S3) — é só SQLite, e um campo de texto resolve sem criar uma dependência
+/// nova. É append-only, como `Evento`: um recibo emitido errado se corrige com uma nova
+/// entrega, não editando a antiga.
+model EntregaUniforme {
+  id            String   @id @default(cuid())
+  peca          String // CAMISA | CALCA | CALCADO | OUTRO
+  tamanho       String
+  quantidade    Int      @default(1)
+  motivo        String // ADMISSAO | REPOSICAO | TROCA | DANIFICADO
+  entregueEm    DateTime
+  observacao    String?
+  assinatura    String?
+  registradoPor String?
+  criadoEm      DateTime @default(now())
+
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+
+  @@index([funcionarioId, entregueEm])
+}
+
 /// Linha do tempo do funcionário — a fonte da verdade sobre o que aconteceu e quando.
 ///
 /// É append-only: nada aqui é editado ou apagado quando o cadastro muda. Trocar a obra
 /// de um funcionário sobrescreve `Funcionario.obraId`, mas a passagem pela obra anterior
 /// continua legível aqui. Era exatamente essa história que a planilha antiga destruía.
 model Evento {
-  id   String @id @default(cuid())
-  tipo String // ADMISSAO | MUDANCA_CARGO | MUDANCA_OBRA | AFASTAMENTO | RETORNO |
+  id              String   @id @default(cuid())
+  tipo            String // ADMISSAO | MUDANCA_CARGO | MUDANCA_OBRA | AFASTAMENTO | RETORNO |
   // FERIAS | ADVERTENCIA | PROMOCAO | DESLIGAMENTO | OBSERVACAO
   descricaoHumana String
   detalhe         String?

@@ -36,6 +36,7 @@ export type FuncionarioSeed = {
   cidade: string | null
   uf: string | null
   tamanhoCamisa: string | null
+  tamanhoCalca: string | null
   tamanhoCalcado: string | null
 }
 
@@ -69,21 +70,21 @@ export const DADOS_EXEMPLO: DadosSeed = {
   ],
 
   funcionarios: [
-    { nome: 'JOÃO BATISTA SILVEIRA',   cpf: '529.982.247-25', obraCodigo: 'EX-1001-25',  cargoNome: 'Mestre de obras',        status: 'ATIVO',     admitidoHaDias: 940, telefone: '(11) 90000-0001', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalcado: '42' },
-    { nome: 'ANTÔNIO PEREIRA LIMA',    cpf: '111.444.777-35', obraCodigo: 'EX-1001-25',  cargoNome: 'Pedreiro',               status: 'ATIVO',     admitidoHaDias: 620, telefone: '(11) 90000-0002', cidade: 'Guarulhos',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalcado: '41' },
-    { nome: 'CARLOS EDUARDO ROCHA',    cpf: '390.533.447-05', obraCodigo: 'EX-1001-25',  cargoNome: 'Servente de obras',      status: 'ATIVO',     admitidoHaDias: 410, telefone: '(11) 90000-0003', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalcado: '40' },
-    { nome: 'MARCOS VINÍCIUS ALVES',   cpf: '693.318.670-93', obraCodigo: 'EX-1002-25',  cargoNome: 'Eletricista de obras',   status: 'ATIVO',     admitidoHaDias: 300, telefone: '(11) 90000-0004', cidade: 'Osasco',     uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalcado: '43' },
-    { nome: 'PAULO HENRIQUE COSTA',    cpf: '045.464.870-70', obraCodigo: 'EX-1002-25',  cargoNome: 'Soldador',               status: 'ATIVO',     admitidoHaDias: 250, telefone: '(11) 90000-0005', cidade: 'Barueri',    uf: 'SP', tamanhoCamisa: 'GG', tamanhoCalcado: '44' },
-    { nome: 'RAFAEL AUGUSTO MENDES',   cpf: '857.706.930-37', obraCodigo: 'EX-1010-25A', cargoNome: 'Carpinteiro',            status: 'ATIVO',     admitidoHaDias: 180, telefone: '(11) 90000-0006', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalcado: '41' },
-    { nome: 'FERNANDA APARECIDA DIAS', cpf: '153.509.460-56', obraCodigo: 'EX-1010-25A', cargoNome: 'Técnico em segurança',   status: 'ATIVO',     admitidoHaDias: 150, telefone: '(11) 90000-0007', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalcado: '37' },
-    { nome: 'JOSÉ ROBERTO NASCIMENTO', cpf: '206.884.290-41', obraCodigo: 'EX-1010-25B', cargoNome: 'Armador de ferragem',    status: 'FERIAS',    admitidoHaDias: 720, telefone: '(11) 90000-0008', cidade: 'Carapicuíba', uf: 'SP', tamanhoCamisa: 'G', tamanhoCalcado: '42' },
-    { nome: 'LUCIANA MARTINS SOUZA',   cpf: '478.171.480-31', obraCodigo: 'EX-1010-25B', cargoNome: 'Auxiliar administrativo', status: 'ATIVO',    admitidoHaDias: 90,  telefone: '(11) 90000-0009', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalcado: '36' },
-    { nome: 'SEBASTIÃO GOMES FARIA',   cpf: '350.451.795-60', obraCodigo: 'EX-1020-26',  cargoNome: 'Operador de máquinas',   status: 'AFASTADO',  admitidoHaDias: 520, telefone: '(11) 90000-0010', cidade: 'Jandira',    uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalcado: '43' },
-    { nome: 'ADRIANO CÉSAR BARBOSA',   cpf: '624.919.590-46', obraCodigo: 'EX-1020-26',  cargoNome: 'Pedreiro',               status: 'ATIVO',     admitidoHaDias: 60,  telefone: '(11) 90000-0011', cidade: 'Cotia',      uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalcado: '40' },
-    { nome: 'WELLINGTON SANTOS CRUZ',  cpf: '937.132.370-18', obraCodigo: 'EX-1020-26',  cargoNome: 'Servente de obras',      status: 'ATIVO',     admitidoHaDias: 25,  telefone: '(11) 90000-0012', cidade: 'Itapevi',    uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalcado: '41' },
+    { nome: 'JOÃO BATISTA SILVEIRA',   cpf: '529.982.247-25', obraCodigo: 'EX-1001-25',  cargoNome: 'Mestre de obras',        status: 'ATIVO',     admitidoHaDias: 940, telefone: '(11) 90000-0001', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalca: '42', tamanhoCalcado: '42' },
+    { nome: 'ANTÔNIO PEREIRA LIMA',    cpf: '111.444.777-35', obraCodigo: 'EX-1001-25',  cargoNome: 'Pedreiro',               status: 'ATIVO',     admitidoHaDias: 620, telefone: '(11) 90000-0002', cidade: 'Guarulhos',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalca: '40', tamanhoCalcado: '41' },
+    { nome: 'CARLOS EDUARDO ROCHA',    cpf: '390.533.447-05', obraCodigo: 'EX-1001-25',  cargoNome: 'Servente de obras',      status: 'ATIVO',     admitidoHaDias: 410, telefone: '(11) 90000-0003', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalca: '40', tamanhoCalcado: '40' },
+    { nome: 'MARCOS VINÍCIUS ALVES',   cpf: '693.318.670-93', obraCodigo: 'EX-1002-25',  cargoNome: 'Eletricista de obras',   status: 'ATIVO',     admitidoHaDias: 300, telefone: '(11) 90000-0004', cidade: 'Osasco',     uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalca: '42', tamanhoCalcado: '43' },
+    { nome: 'PAULO HENRIQUE COSTA',    cpf: '045.464.870-70', obraCodigo: 'EX-1002-25',  cargoNome: 'Soldador',               status: 'ATIVO',     admitidoHaDias: 250, telefone: '(11) 90000-0005', cidade: 'Barueri',    uf: 'SP', tamanhoCamisa: 'GG', tamanhoCalca: '44', tamanhoCalcado: '44' },
+    { nome: 'RAFAEL AUGUSTO MENDES',   cpf: '857.706.930-37', obraCodigo: 'EX-1010-25A', cargoNome: 'Carpinteiro',            status: 'ATIVO',     admitidoHaDias: 180, telefone: '(11) 90000-0006', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalca: '40', tamanhoCalcado: '41' },
+    { nome: 'FERNANDA APARECIDA DIAS', cpf: '153.509.460-56', obraCodigo: 'EX-1010-25A', cargoNome: 'Técnico em segurança',   status: 'ATIVO',     admitidoHaDias: 150, telefone: '(11) 90000-0007', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalca: '38', tamanhoCalcado: '37' },
+    { nome: 'JOSÉ ROBERTO NASCIMENTO', cpf: '206.884.290-41', obraCodigo: 'EX-1010-25B', cargoNome: 'Armador de ferragem',    status: 'FERIAS',    admitidoHaDias: 720, telefone: '(11) 90000-0008', cidade: 'Carapicuíba', uf: 'SP', tamanhoCamisa: 'G', tamanhoCalca: '42', tamanhoCalcado: '42' },
+    { nome: 'LUCIANA MARTINS SOUZA',   cpf: '478.171.480-31', obraCodigo: 'EX-1010-25B', cargoNome: 'Auxiliar administrativo', status: 'ATIVO',    admitidoHaDias: 90,  telefone: '(11) 90000-0009', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalca: '38', tamanhoCalcado: '36' },
+    { nome: 'SEBASTIÃO GOMES FARIA',   cpf: '350.451.795-60', obraCodigo: 'EX-1020-26',  cargoNome: 'Operador de máquinas',   status: 'AFASTADO',  admitidoHaDias: 520, telefone: '(11) 90000-0010', cidade: 'Jandira',    uf: 'SP', tamanhoCamisa: 'G',  tamanhoCalca: '42', tamanhoCalcado: '43' },
+    { nome: 'ADRIANO CÉSAR BARBOSA',   cpf: '624.919.590-46', obraCodigo: 'EX-1020-26',  cargoNome: 'Pedreiro',               status: 'ATIVO',     admitidoHaDias: 60,  telefone: '(11) 90000-0011', cidade: 'Cotia',      uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalca: '40', tamanhoCalcado: '40' },
+    { nome: 'WELLINGTON SANTOS CRUZ',  cpf: '937.132.370-18', obraCodigo: 'EX-1020-26',  cargoNome: 'Servente de obras',      status: 'ATIVO',     admitidoHaDias: 25,  telefone: '(11) 90000-0012', cidade: 'Itapevi',    uf: 'SP', tamanhoCamisa: 'M',  tamanhoCalca: '40', tamanhoCalcado: '41' },
     // Sem obra e sem cargo de propósito: alimenta o indicador de cadastro incompleto,
     // que ficaria sempre zerado — e portanto não conferível — se todo mundo viesse completo.
-    { nome: 'DIEGO FERREIRA PINTO',    cpf: '295.859.030-59', obraCodigo: null,          cargoNome: null,                     status: 'ATIVO',     admitidoHaDias: 10,  telefone: null,              cidade: null,         uf: null, tamanhoCamisa: null, tamanhoCalcado: null },
-    { nome: 'MARIA DE LOURDES RAMOS',  cpf: '832.194.320-93', obraCodigo: 'EX-1001-25',  cargoNome: 'Servente de obras',      status: 'DESLIGADO', admitidoHaDias: 800, telefone: '(11) 90000-0014', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalcado: '37' },
+    { nome: 'DIEGO FERREIRA PINTO',    cpf: '295.859.030-59', obraCodigo: null,          cargoNome: null,                     status: 'ATIVO',     admitidoHaDias: 10,  telefone: null,              cidade: null,         uf: null, tamanhoCamisa: null, tamanhoCalca: null, tamanhoCalcado: null },
+    { nome: 'MARIA DE LOURDES RAMOS',  cpf: '832.194.320-93', obraCodigo: 'EX-1001-25',  cargoNome: 'Servente de obras',      status: 'DESLIGADO', admitidoHaDias: 800, telefone: '(11) 90000-0014', cidade: 'São Paulo',  uf: 'SP', tamanhoCamisa: 'P',  tamanhoCalca: '38', tamanhoCalcado: '37' },
   ],
 }

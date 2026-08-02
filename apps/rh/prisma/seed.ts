@@ -126,6 +126,7 @@ async function main() {
         cidade: f.cidade,
         uf: f.uf,
         tamanhoCamisa: f.tamanhoCamisa,
+        tamanhoCalca: f.tamanhoCalca,
         tamanhoCalcado: f.tamanhoCalcado,
         obraId,
         cargoId,
