@@ -39,7 +39,15 @@ export function FormEntrega({ funcionarios }: { funcionarios: FuncionarioParaEnt
     setErro(null)
   }
 
-  function registrar(fd: FormData) {
+  // `<form action={fn}>` reseta o DOM do formulário (via form.reset() nativo) assim que a
+  // action retorna — inclusive quando ela falha na validação, e inclusive para os selects
+  // controlados (funcionarioId/peca), cujo valor no DOM volta para a primeira opção sem que
+  // o estado do React mude junto. O próximo envio then lê o FormData já dessincronizado —
+  // parece que a seleção "voltou ao padrão" sozinha. `onSubmit` com `preventDefault` não tem
+  // esse reset automático, por isso o formulário usa esse caminho em vez do de action direta.
+  function aoSubmeter(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
     setErro(null)
     if (!fd.get('assinatura')) {
       setErro('Colete a assinatura de recebimento antes de salvar.')
@@ -69,7 +77,7 @@ export function FormEntrega({ funcionarios }: { funcionarios: FuncionarioParaEnt
   const hoje = new Date().toISOString().slice(0, 10)
 
   return (
-    <form action={registrar} className="space-y-4 rounded-lg border border-border bg-card p-4">
+    <form onSubmit={aoSubmeter} className="space-y-4 rounded-lg border border-border bg-card p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="funcionarioId" className="mb-1 block text-sm font-medium">Funcionário *</label>

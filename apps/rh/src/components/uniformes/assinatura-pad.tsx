@@ -74,9 +74,14 @@ export function AssinaturaPad({ name = 'assinatura' }: { name?: string }) {
     setAssinou(true)
   }
 
-  function soltar() {
+  function soltar(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!desenhando.current) return
     desenhando.current = false
+    // Sem isto, a captura do ponteiro (setPointerCapture no início do traço) sobrevive ao
+    // gesto: o próximo clique do usuário fora do canvas — por exemplo, no botão Registrar —
+    // ainda chega aqui como se fosse um evento do canvas, disparando este handler de novo
+    // com `assinou` de um fechamento desatualizado.
+    canvasRef.current?.releasePointerCapture(e.pointerId)
     if (inputRef.current && canvasRef.current) {
       inputRef.current.value = assinou ? canvasRef.current.toDataURL('image/png') : ''
     }
