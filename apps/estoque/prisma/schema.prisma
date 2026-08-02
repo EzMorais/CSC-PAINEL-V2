@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Mesma forma da tabela dos outros módulos, de propósito.
+///
+/// Os sistemas assinam o cookie de sessão com o mesmo AUTH_SECRET e usam o mesmo nome de
+/// cookie, e cookie não separa por porta — só por host. Então quem entra no painel em :3000
+/// já chega autenticado aqui em :3003, sem segundo login. Esta tabela existe para o
+/// almoxarifado conseguir autenticar por conta própria quando alguém abre direto nele.
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  papel     String   @default("OPERADOR") // ADMIN | OPERADOR
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+}
+
+/// Espelha o cadastro de obras dos outros módulos (só os campos que importam aqui).
+///
+/// Banco separado significa que não dá para usar a linha do painel por chave estrangeira.
+/// O `codigo` é a chave natural que liga as bases: é único em todos os lados, e é por ele
+/// que uma sincronização futura casaria os registros.
+model Obra {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  cliente     String
+  descricao   String
+  responsavel String?
+  ativa       Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+
+  movimentacoes Movimentacao[]
+
+  @@index([cliente])
+}
+
+model Fornecedor {
+  id       String   @id @default(cuid())
+  nome     String   @unique
+  cnpj     String?
+  telefone String?
+  email    String?
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  movimentacoes Movimentacao[]
+}
+
+/// O material em si — o cadastro, não a quantidade.
+///
+/// Repare que NÃO existe um campo `saldo` aqui. O saldo é somado a partir das
+/// movimentações toda vez que é lido (ver `queries/saldos.ts`). Guardar um número aqui
+/// seria mais rápido, mas cria a possibilidade de ele discordar do histórico — e quando
+/// discorda, não há como saber qual dos dois está certo. Somar o histórico é sempre
+/// verdade por construção: é a mesma razão pela qual o Painel de Locação calcula o status
+/// em vez de gravá-lo.
+///
+/// `estoqueMinimo` é o ponto de alerta de compra, digitado por quem cadastra — não é
+/// calculado a partir de consumo, porque consumo de obra varia demais entre fases para
+/// uma média significar alguma coisa.
+model Material {
+  id            String   @id @default(cuid())
+  codigo        String   @unique
+  nome          String
+  categoria     String // CIMENTO_ARGAMASSA | AGREGADO | ACO_FERRAGEM | MADEIRA | ELETRICA | ...
+  unidade       String // UN | CX | KG | SC | M | M2 | M3 | L | PC | PAR | RL
+  estoqueMinimo Float    @default(0)
+  localizacao   String?
+  observacao    String?
+  ativo         Boolean  @default(true)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  movimentacoes Movimentacao[]
+
+  @@index([categoria])
+  @@index([nome])
+}
+
+/// O livro-razão do almoxarifado: toda entrada, saída, devolução, perda e ajuste.
+///
+/// É append-only, como a timeline do RH. Uma movimentação lançada errado se corrige com
+/// uma nova movimentação no sentido contrário, nunca editando ou apagando a antiga — se
+/// desse para apagar, o saldo de ontem mudaria retroativamente e nenhum inventário
+/// fechado voltaria a fechar.
+///
+/// `quantidade` é SEMPRE positiva. O sinal vem do `tipo`, não do número: cada tipo tem
+/// exatamente uma direção (ver `SINAL_MOVIMENTACAO` em `lib/dominio/constantes.ts`).
+/// Misturar sinal dentro da coluna faria uma saída digitada como positiva somar em vez de
+/// subtrair, sem nada na tela denunciando o erro.
+///
+/// `valorUnitario` só é preenchido na entrada — é o preço pago naquela compra. Saída não
+/// tem preço porque o material já foi pago quando entrou.
+model Movimentacao {
+  id            String   @id @default(cuid())
+  tipo          String // ENTRADA | SAIDA | DEVOLUCAO | PERDA | AJUSTE_POSITIVO | AJUSTE_NEGATIVO
+  quantidade    Float
+  valorUnitario Float?
+  documento     String?
+  observacao    String?
+  /// Quando o fato ocorreu, que nem sempre é quando foi digitado.
+  ocorridoEm    DateTime
+  registradoEm  DateTime @default(now())
+  /// Nome de quem registrou, copiado da sessão. Texto e não relação: o registro tem de
+  /// sobreviver à exclusão do usuário que o criou.
+  registradoPor String?
+
+  material     Material    @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  materialId   String
+  obra         Obra?       @relation(fields: [obraId], references: [id])
+  obraId       String?
+  fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String?
+
+  @@index([materialId, ocorridoEm])
+  @@index([obraId])
+  @@index([tipo])
+  @@index([ocorridoEm])
+}

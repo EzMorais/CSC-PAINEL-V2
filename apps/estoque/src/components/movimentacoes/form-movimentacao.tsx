@@ -1,0 +1,181 @@
+'use client'
+
+import { Plus } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { registrarMovimentacao } from '@/actions/movimentacoes'
+import {
+  MOVIMENTACAO, ROTULO_MOVIMENTACAO, EXIGE_OBRA, EXIGE_FORNECEDOR,
+  type TipoMovimentacao,
+} from '@/lib/dominio/constantes'
+import type { Opcoes } from '@/queries/materiais'
+
+const CAMPO =
+  'w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'outline-none focus-visible:ring-2 focus-visible:ring-ring'
+
+export function FormMovimentacao({ opcoes }: { opcoes: Opcoes }) {
+  const [aberto, setAberto] = useState(false)
+  // Controlados porque o formulário muda de forma conforme a escolha: entrada pede
+  // fornecedor e preço, saída pede obra, perda não pede nenhum dos dois.
+  const [tipo, setTipo] = useState<TipoMovimentacao>(MOVIMENTACAO.ENTRADA)
+  const [materialId, setMaterialId] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [pendente, iniciar] = useTransition()
+
+  const material = opcoes.materiais.find((m) => m.id === materialId)
+  const pedeObra = EXIGE_OBRA.includes(tipo)
+  const pedeFornecedor = EXIGE_FORNECEDOR.includes(tipo)
+
+  function reiniciar() {
+    setTipo(MOVIMENTACAO.ENTRADA)
+    setMaterialId('')
+    setErro(null)
+  }
+
+  // onSubmit + preventDefault, não `action={fn}`: o form action do React 19 reseta o DOM
+  // do formulário assim que a função retorna, inclusive quando falha na validação — e os
+  // selects controlados voltariam para a primeira opção sem o estado do React acompanhar,
+  // deixando o próximo envio com dados diferentes do que aparece na tela.
+  function aoSubmeter(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    setErro(null)
+    iniciar(async () => {
+      const r = await registrarMovimentacao(Object.fromEntries(fd.entries()))
+      if (!r.ok) return setErro(r.erro)
+      setAberto(false)
+      reiniciar()
+    })
+  }
+
+  if (!aberto) {
+    return (
+      <button
+        type="button" onClick={() => setAberto(true)} data-testid="nova-movimentacao"
+        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+      >
+        <Plus className="size-4" /> Nova movimentação
+      </button>
+    )
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10)
+
+  return (
+    <form onSubmit={aoSubmeter} className="space-y-4 rounded-lg border border-border bg-card p-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="tipo" className="mb-1 block text-sm font-medium">Tipo *</label>
+          <select
+            id="tipo" name="tipo" required value={tipo}
+            onChange={(e) => setTipo(e.target.value as TipoMovimentacao)} className={CAMPO}
+          >
+            {Object.values(MOVIMENTACAO).map((t) => (
+              <option key={t} value={t}>{ROTULO_MOVIMENTACAO[t]}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="materialId" className="mb-1 block text-sm font-medium">Material *</label>
+          <select
+            id="materialId" name="materialId" required value={materialId}
+            onChange={(e) => setMaterialId(e.target.value)} className={CAMPO}
+          >
+            <option value="">— selecione —</option>
+            {opcoes.materiais.map((m) => (
+              <option key={m.id} value={m.id}>{m.codigo} — {m.nome}</option>
+            ))}
+          </select>
+          {opcoes.materiais.length === 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Nenhum material ativo cadastrado ainda — cadastre um antes de movimentar.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="quantidade" className="mb-1 block text-sm font-medium">
+            Quantidade{material ? ` (${material.unidade})` : ''} *
+          </label>
+          <input
+            id="quantidade" name="quantidade" type="number" min={0} step="any" required className={CAMPO}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="ocorridoEm" className="mb-1 block text-sm font-medium">Data *</label>
+          <input id="ocorridoEm" name="ocorridoEm" type="date" required defaultValue={hoje} className={CAMPO} />
+        </div>
+
+        {pedeObra && (
+          <div>
+            <label htmlFor="obraId" className="mb-1 block text-sm font-medium">Obra *</label>
+            <select id="obraId" name="obraId" required defaultValue="" className={CAMPO}>
+              <option value="" disabled>— selecione —</option>
+              {opcoes.obras.map((o) => (
+                <option key={o.id} value={o.id}>{o.codigo} — {o.descricao}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {pedeFornecedor && (
+          <>
+            <div>
+              <label htmlFor="fornecedorId" className="mb-1 block text-sm font-medium">Fornecedor</label>
+              <select id="fornecedorId" name="fornecedorId" defaultValue="" className={CAMPO}>
+                <option value="">— não informar —</option>
+                {opcoes.fornecedores.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="valorUnitario" className="mb-1 block text-sm font-medium">
+                Preço por {material?.unidade ?? 'unidade'}
+              </label>
+              <input
+                id="valorUnitario" name="valorUnitario" type="number" min={0} step="0.01" className={CAMPO}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Usado para calcular o valor em estoque. Use ponto para centavos.
+              </p>
+            </div>
+          </>
+        )}
+
+        <div>
+          <label htmlFor="documento" className="mb-1 block text-sm font-medium">Documento</label>
+          <input id="documento" name="documento" placeholder="Nota fiscal, requisição…" className={CAMPO} />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="observacao" className="mb-1 block text-sm font-medium">Observação</label>
+        <textarea id="observacao" name="observacao" rows={2} className={CAMPO} />
+      </div>
+
+      {erro && (
+        <p role="alert" data-testid="erro-form" className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {erro}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="submit" disabled={pendente} data-testid="salvar-movimentacao"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {pendente ? 'Registrando…' : 'Registrar'}
+        </button>
+        <button
+          type="button" onClick={() => { setAberto(false); reiniciar() }}
+          className="rounded-md border border-border px-4 py-2 text-sm"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}

@@ -1,0 +1,74 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Banco de dados — dados reais de custo de obra não vão para o repositório
+*.db
+*.db-journal
+prisma/*.db*
+
+# Planilhas de origem — dados financeiros da construtora
+*.xlsx
+*.xlsm
+dados/
+
+# Exports gerados
+exports/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Superpowers (documentação de processo, não faz parte do app)
+.superpowers/
+
+# Dados reais da construtora — nomes de clientes, telefones e funcionários.
+# O seed cai nos dados de exemplo quando este arquivo não existe.
+prisma/dados-locais.json
+
+# logs de execução local
+*.log
+
+# Cookie de sessão gravado pelo projeto `setup` do Playwright — é uma credencial
+# válida, ainda que só contra o teste.db.
+e2e/.sessao.json
