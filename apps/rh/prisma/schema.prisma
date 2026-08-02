@@ -40,6 +40,8 @@ model Obra {
 
   funcionarios Funcionario[]
   eventos      Evento[]
+  documentos   Documento[]
+  auditorias   Auditoria[]
 
   @@index([cliente])
 }
@@ -118,6 +120,8 @@ model Funcionario {
   eventos          Evento[]
   entregasUniforme EntregaUniforme[]
   treinamentos     TreinamentoParticipante[]
+  exames           Exame[]
+  documentos       Documento[]
 
   @@index([obraId])
   @@index([cargoId])
@@ -210,6 +214,116 @@ model TreinamentoParticipante {
 
   @@unique([treinamentoId, funcionarioId])
   @@index([funcionarioId])
+}
+
+/// Exame ocupacional (ASO) de um funcionário — um registro por exame realizado.
+model Exame {
+  id            String    @id @default(cuid())
+  tipo          String // ADMISSIONAL | PERIODICO | RETORNO_TRABALHO | DEMISSIONAL | MUDANCA_FUNCAO
+  realizadoEm   DateTime
+  validadeEm    DateTime?
+  resultado     String // APTO | INAPTO | APTO_COM_RESTRICAO
+  restricoes    String?
+  arquivo       String?
+  registradoPor String?
+  criadoEm      DateTime  @default(now())
+
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+
+  @@index([funcionarioId, realizadoEm])
+  @@index([validadeEm])
+}
+
+/// Documento regulatório (PGR, PCMSO...) da empresa/obra OU documento pessoal de admissão
+/// de um funcionário (RG, CTPS...) — o mesmo model cobre os dois porque a mecânica é
+/// idêntica: um arquivo, uma categoria, um prazo de validade opcional. Exatamente um dos
+/// dois vínculos (`obraId` ou `funcionarioId`) é preenchido; nenhum dos dois é documento
+/// "solto" — todo documento pertence à empresa como um todo (nenhum vínculo), a uma obra
+/// ou a uma pessoa.
+///
+/// "Versionado" aqui é histórico por título: reenviar o mesmo documento cria uma linha
+/// nova com `versao` maior, a antiga continua consultável — não sobrescreve.
+model Documento {
+  id            String    @id @default(cuid())
+  categoria     String
+  titulo        String
+  versao        Int       @default(1)
+  vigenteDesde  DateTime?
+  validoAte     DateTime?
+  arquivo       String?
+  observacao    String?
+  registradoPor String?
+  criadoEm      DateTime  @default(now())
+
+  obra          Obra?        @relation(fields: [obraId], references: [id])
+  obraId        String?
+  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String?
+
+  @@index([categoria])
+  @@index([obraId])
+  @@index([funcionarioId])
+  @@index([validoAte])
+}
+
+/// Uma auditoria realizada — o checklist em si vive nos itens.
+model Auditoria {
+  id            String   @id @default(cuid())
+  titulo        String
+  norma         String?
+  realizadaEm   DateTime
+  responsavel   String?
+  registradoPor String?
+  criadoEm      DateTime @default(now())
+
+  obra   Obra?   @relation(fields: [obraId], references: [id])
+  obraId String?
+
+  itens AuditoriaItem[]
+
+  @@index([realizadaEm])
+  @@index([obraId])
+}
+
+/// Um item do checklist de uma auditoria. Item reprovado pode virar uma Não Conformidade
+/// — a ligação é opcional e no sentido NaoConformidade -> AuditoriaItem, não o contrário,
+/// porque um item pode ser criado e nunca reprovar.
+model AuditoriaItem {
+  id        String   @id @default(cuid())
+  descricao String
+  situacao  String // CONFORME | NAO_CONFORME | NAO_SE_APLICA
+  evidencia String?
+  criadoEm  DateTime @default(now())
+
+  auditoria       Auditoria        @relation(fields: [auditoriaId], references: [id], onDelete: Cascade)
+  auditoriaId     String
+  naoConformidade NaoConformidade?
+
+  @@index([auditoriaId])
+}
+
+/// Pendência de segurança do trabalho — nascida de uma auditoria reprovada ou registrada
+/// direto, para o que for percebido fora de uma auditoria formal.
+model NaoConformidade {
+  id              String    @id @default(cuid())
+  titulo          String
+  descricao       String
+  gravidade       String // BAIXA | MEDIA | ALTA
+  responsavel     String?
+  prazo           DateTime?
+  status          String    @default("ABERTA") // ABERTA | EM_ANDAMENTO | RESOLVIDA
+  evidenciaAntes  String?
+  evidenciaDepois String?
+  registradoPor   String?
+  criadoEm        DateTime  @default(now())
+  resolvidoEm     DateTime?
+
+  auditoriaItem   AuditoriaItem? @relation(fields: [auditoriaItemId], references: [id])
+  auditoriaItemId String?        @unique
+
+  @@index([status])
+  @@index([gravidade])
 }
 
 /// Linha do tempo do funcionário — a fonte da verdade sobre o que aconteceu e quando.
