@@ -117,6 +117,7 @@ model Funcionario {
   dependentes      Dependente[]
   eventos          Evento[]
   entregasUniforme EntregaUniforme[]
+  treinamentos     TreinamentoParticipante[]
 
   @@index([obraId])
   @@index([cargoId])
@@ -167,6 +168,48 @@ model EntregaUniforme {
   funcionarioId String
 
   @@index([funcionarioId, entregueEm])
+}
+
+/// Uma turma de treinamento — uma sessão, ministrada uma vez, para um grupo de
+/// funcionários. `validadeEm` é digitado por quem registra a turma, não calculado a
+/// partir de `norma`: os prazos de reciclagem de cada NR variam e mudam por norma
+/// regulamentadora, e cravar esse número no código arriscaria informar um prazo errado
+/// para uma obrigação de segurança do trabalho. Turma sem validade (ex.: integração) é
+/// válida — o alerta de reciclagem simplesmente não se aplica a ela.
+model Treinamento {
+  id            String    @id @default(cuid())
+  norma         String // NR_10 | NR_18 | NR_33 | NR_35 | OUTRA
+  descricao     String
+  instrutor     String?
+  cargaHoraria  Int?
+  realizadoEm   DateTime
+  validadeEm    DateTime?
+  registradoPor String?
+  criadoEm      DateTime  @default(now())
+
+  participantes TreinamentoParticipante[]
+
+  @@index([validadeEm])
+  @@index([norma])
+}
+
+/// Quem participou de uma turma — e o certificado dessa pessoa, se já foi anexado.
+///
+/// Certificado é por participante (cada um recebe o seu, com o próprio nome), não por
+/// turma. Gravado como data URI em texto pelo mesmo motivo de `EntregaUniforme.assinatura`:
+/// este app não tem armazenamento de arquivo próprio, só SQLite.
+model TreinamentoParticipante {
+  id          String   @id @default(cuid())
+  certificado String?
+  criadoEm    DateTime @default(now())
+
+  treinamento   Treinamento @relation(fields: [treinamentoId], references: [id], onDelete: Cascade)
+  treinamentoId String
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+
+  @@unique([treinamentoId, funcionarioId])
+  @@index([funcionarioId])
 }
 
 /// Linha do tempo do funcionário — a fonte da verdade sobre o que aconteceu e quando.

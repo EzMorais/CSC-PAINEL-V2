@@ -77,6 +77,24 @@ export const ROTULO_PECA_UNIFORME: Record<PecaUniforme, string> = {
   OUTRO: 'Outro',
 }
 
+export const NORMA_TREINAMENTO = {
+  NR_10: 'NR_10',
+  NR_18: 'NR_18',
+  NR_33: 'NR_33',
+  NR_35: 'NR_35',
+  OUTRA: 'OUTRA',
+} as const
+
+export type NormaTreinamento = (typeof NORMA_TREINAMENTO)[keyof typeof NORMA_TREINAMENTO]
+
+export const ROTULO_NORMA_TREINAMENTO: Record<NormaTreinamento, string> = {
+  NR_10: 'NR-10 — Segurança em eletricidade',
+  NR_18: 'NR-18 — Construção civil',
+  NR_33: 'NR-33 — Espaço confinado',
+  NR_35: 'NR-35 — Trabalho em altura',
+  OUTRA: 'Outra',
+}
+
 export const MOTIVO_ENTREGA_UNIFORME = {
   ADMISSAO: 'ADMISSAO',
   REPOSICAO: 'REPOSICAO',
