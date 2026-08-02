@@ -191,6 +191,80 @@ rode o passo do seed de novo.
 
 ---
 
+## Primeira experiência — o que fazer depois de instalar
+
+Guia rápido pra quem nunca usou nenhum dos três sistemas: o que você vê na primeira tela e
+o que fazer com isso, sem precisar entender nada de programação.
+
+### Painel de Locação — controle de equipamento alugado por obra
+
+**Pra que serve:** saber quais máquinas/equipamentos estão alugados, em qual obra, desde
+quando e até quando — e avisar sozinho quando um aluguel está vencendo.
+
+1. Faça login. O painel aparece **vazio** — isso é esperado, é um banco novo.
+2. Vá em **Importar** e envie a planilha `dados/EXEMPLO_Maquinas_Alugadas.xlsx` (gerada no
+   passo 4 da instalação). O sistema mostra uma prévia do que vai entrar antes de confirmar —
+   confira e clique em confirmar.
+3. Vá em **Locações**: agora a lista aparece com todos os equipamentos importados.
+4. Repare que a coluna de situação (Ativa / Vencendo / Vencida / Devolvida) **não é algo que
+   alguém digitou** — o sistema calcula sozinho a partir da data de fim. Se o prazo passar,
+   o item vira "Vencida" automaticamente, sem ninguém precisar atualizar nada.
+5. Clique em **Devolver** num equipamento: ele não some da lista, só muda de situação e ganha
+   uma linha no histórico — a data de início original continua registrada, então dá pra saber
+   quanto tempo aquele equipamento ficou na obra.
+6. Se aparecer o aviso **"obra a confirmar"** ou **"possível duplicata"** em algum item, não é
+   erro do sistema: é a planilha original tendo informação ambígua (mesma aba usada por duas
+   obras, ou mesmo equipamento aparecendo duas vezes). Use a seleção múltipla da lista pra
+   reclassificar.
+7. **Obras** e **Fornecedores**, no menu, são os cadastros de apoio — quem usa a locação.
+
+### RH — cadastro de funcionários e segurança do trabalho (SST)
+
+**Pra que serve:** substituir planilha de RH por um cadastro único, com histórico de cada
+funcionário e controle do que a lei exige (uniforme entregue, treinamento em dia).
+
+1. Faça login. O **Dashboard** mostra quantos funcionários estão ativos, afastados, em férias,
+   e se falta obra/cargo no cadastro de alguém.
+2. Vá em **Funcionários** — o seed já cadastrou 14 funcionários fictícios pra você explorar.
+   Clique num nome: você vê o cadastro completo (dados pessoais, contrato, endereço) e, ao
+   lado, a **linha do tempo** — tudo que já aconteceu com essa pessoa (admissão, mudança de
+   obra, férias, advertência), em ordem.
+3. Clique em **Novo funcionário** pra ver o formulário de cadastro. Se o cargo da pessoa ainda
+   não existir na lista, tem um botão **"+"** do lado do campo Cargo pra criar um novo sem
+   precisar sair da tela.
+4. Vá em **Uniformes** → **Nova entrega**: escolha um funcionário, o tamanho já vem preenchido
+   do cadastro dele. Desenhe uma assinatura no quadro (é assim que o sistema registra que a
+   pessoa recebeu a peça) e salve. Ela aparece no histórico embaixo.
+5. Vá em **Treinamentos** → **Nova turma**: cadastre um treinamento (ex.: NR-35), escolha quem
+   participou marcando os funcionários na lista, e salve. Depois, abra a turma criada pra
+   anexar o certificado de cada participante (um arquivo PDF ou foto por pessoa).
+6. Se o treinamento tiver data de validade e ela já tiver passado, ele aparece destacado em
+   vermelho no topo da tela de Treinamentos, no painel de "reciclagem vencida" — é o sistema
+   avisando que alguém precisa refazer o curso.
+7. As outras seções do menu (EPIs, Exames, Documentos, Auditorias, Não Conformidades,
+   Relatórios, Configurações) ainda mostram "em construção" — não é erro, é honesto: elas
+   ainda não foram implementadas, e o sistema avisa em vez de fingir que existem.
+
+### Frota — controle de veículos
+
+**Pra que serve:** substituir a planilha de controle de frota, mantendo o mesmo formato de
+saída que a diretoria já recebe.
+
+1. Faça login. Vá em **Veículos** pra ver o cadastro — cada um mostra um "hodômetro" visual
+   (uma régua) indicando quão perto está da próxima revisão.
+2. Em **Manutenções**, registre um problema ou serviço — dá pra anexar foto ou PDF do
+   orçamento; no celular a câmera abre direto.
+3. Em **Abastecimento**, lance um abastecimento à mão ou importe o CSV que o posto exporta.
+4. Em **Alertas**, veja o que precisa de atenção agora (seguro vencendo, revisão atrasada) e o
+   que só precisa ser acompanhado.
+5. O botão de gerar planilha (na tela principal) exporta um `.xlsx` no formato exato que a
+   diretoria já recebia da planilha antiga — com uma aba a mais pra abastecimento e dashboard.
+
+Mais detalhes de uso (backup, importar planilha existente, rodar como serviço do Windows)
+estão em [`apps/frota/README.md`](apps/frota/README.md).
+
+---
+
 ## Para quem for mexer no código
 
 Cada sistema tem seu próprio README com mais detalhes técnicos (estrutura de pastas, decisões
