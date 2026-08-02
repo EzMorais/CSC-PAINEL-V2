@@ -25,6 +25,9 @@ export type MaterialSeed = {
   unidade: string
   estoqueMinimo: number
   localizacao: string | null
+  /** Só em EPI: número do Certificado de Aprovação e dias até vencer (negativo = já vencido). */
+  ca?: string
+  caVenceEmDias?: number
 }
 
 export type MovimentacaoSeed = {
@@ -78,8 +81,12 @@ export const DADOS_EXEMPLO: DadosSeed = {
     { nome: 'Tubo PVC esgoto 100mm',         categoria: 'HIDRAULICA',        unidade: 'PC',  estoqueMinimo: 12, localizacao: 'Prateleira D1' },
     { nome: 'Tinta acrílica branca 18L',     categoria: 'PINTURA',           unidade: 'UN',  estoqueMinimo: 4,  localizacao: 'Prateleira E1' },
     { nome: 'Manta asfáltica 4mm',           categoria: 'IMPERMEABILIZACAO', unidade: 'RL',  estoqueMinimo: 6,  localizacao: 'Prateleira E2' },
-    { nome: 'Capacete de segurança branco',  categoria: 'EPI',               unidade: 'UN',  estoqueMinimo: 20, localizacao: 'Armário EPI' },
-    { nome: 'Luva de raspa',                 categoria: 'EPI',               unidade: 'PAR', estoqueMinimo: 30, localizacao: 'Armário EPI' },
+    { nome: 'Capacete de segurança branco',  categoria: 'EPI',               unidade: 'UN',  estoqueMinimo: 20, localizacao: 'Armário EPI', ca: '31469', caVenceEmDias: 420 },
+    { nome: 'Luva de raspa',                 categoria: 'EPI',               unidade: 'PAR', estoqueMinimo: 30, localizacao: 'Armário EPI', ca: '28451', caVenceEmDias: 180 },
+    // CA já vencido de propósito: o alerta de "entregue com certificado fora da validade"
+    // ficaria sempre zerado — e portanto não conferível — se todo EPI viesse em dia.
+    { nome: 'Óculos de proteção incolor',    categoria: 'EPI',               unidade: 'UN',  estoqueMinimo: 25, localizacao: 'Armário EPI', ca: '19632', caVenceEmDias: -45 },
+    { nome: 'Bota de segurança couro',       categoria: 'EPI',               unidade: 'PAR', estoqueMinimo: 15, localizacao: 'Armário EPI', ca: '37542', caVenceEmDias: 600 },
     { nome: 'Disco de corte 7"',             categoria: 'CONSUMIVEL',        unidade: 'UN',  estoqueMinimo: 25, localizacao: 'Prateleira F1' },
     { nome: 'Furadeira de impacto 1/2"',     categoria: 'FERRAMENTA',        unidade: 'UN',  estoqueMinimo: 0,  localizacao: 'Armário ferramentas' },
   ],
@@ -101,6 +108,8 @@ export const DADOS_EXEMPLO: DadosSeed = {
     { material: 'Manta asfáltica 4mm',          tipo: 'ENTRADA', quantidade: 18,  valorUnitario: 245.00, obraCodigo: null, fornecedorNome: 'CONSTRUMAIS MATERIAIS',  documento: 'NF 10301', haDias: 25 },
     { material: 'Capacete de segurança branco', tipo: 'ENTRADA', quantidade: 60,  valorUnitario: 21.90, obraCodigo: null, fornecedorNome: 'SEGURANÇA TOTAL EPI',     documento: 'NF 553',   haDias: 22 },
     { material: 'Luva de raspa',                tipo: 'ENTRADA', quantidade: 100, valorUnitario: 9.80,  obraCodigo: null, fornecedorNome: 'SEGURANÇA TOTAL EPI',     documento: 'NF 553',   haDias: 22 },
+    { material: 'Óculos de proteção incolor',   tipo: 'ENTRADA', quantidade: 50,  valorUnitario: 14.30, obraCodigo: null, fornecedorNome: 'SEGURANÇA TOTAL EPI',     documento: 'NF 553',   haDias: 22 },
+    { material: 'Bota de segurança couro',      tipo: 'ENTRADA', quantidade: 40,  valorUnitario: 129.90, obraCodigo: null, fornecedorNome: 'SEGURANÇA TOTAL EPI',    documento: 'NF 553',   haDias: 22 },
     { material: 'Disco de corte 7"',            tipo: 'ENTRADA', quantidade: 80,  valorUnitario: 7.50,  obraCodigo: null, fornecedorNome: 'FERRO E AÇO DISTRIBUIDORA', documento: 'NF 4460', haDias: 20 },
     { material: 'Furadeira de impacto 1/2"',    tipo: 'ENTRADA', quantidade: 4,   valorUnitario: 459.00, obraCodigo: null, fornecedorNome: 'FERRO E AÇO DISTRIBUIDORA', documento: 'NF 4460', haDias: 20 },
 

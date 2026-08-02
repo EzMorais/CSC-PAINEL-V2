@@ -22,6 +22,9 @@ export function FormMaterial({ id, codigo, valores = {} }: Props) {
   const router = useRouter()
   const [erro, setErro] = useState<string | null>(null)
   const [pendente, iniciar] = useTransition()
+  // Controlada: os campos de CA só existem quando o material é EPI.
+  const [categoria, setCategoria] = useState(valores.categoria ?? CATEGORIA_MATERIAL.OUTRO)
+  const ehEpi = categoria === CATEGORIA_MATERIAL.EPI
 
   // onSubmit + preventDefault, não `action={fn}`: o form action do React 19 reseta os
   // campos assim que a função retorna, inclusive quando ela falha na validação — o que
@@ -62,7 +65,7 @@ export function FormMaterial({ id, codigo, valores = {} }: Props) {
           <label htmlFor="categoria" className="mb-1 block text-sm font-medium">Categoria *</label>
           <select
             id="categoria" name="categoria" required
-            defaultValue={valores.categoria ?? CATEGORIA_MATERIAL.OUTRO} className={CAMPO}
+            value={categoria} onChange={(e) => setCategoria(e.target.value)} className={CAMPO}
           >
             {Object.values(CATEGORIA_MATERIAL).map((c) => (
               <option key={c} value={c}>{ROTULO_CATEGORIA_MATERIAL[c]}</option>
@@ -96,6 +99,23 @@ export function FormMaterial({ id, codigo, valores = {} }: Props) {
             placeholder="Ex.: Prateleira A3" className={CAMPO}
           />
         </div>
+
+        {ehEpi && (
+          <>
+            <div>
+              <label htmlFor="ca" className="mb-1 block text-sm font-medium">CA (Certificado de Aprovação)</label>
+              <input id="ca" name="ca" defaultValue={valores.ca ?? ''} placeholder="Ex.: 31469" className={CAMPO} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Vai junto na ficha de entrega enviada ao RH — a NR-6 exige o número do CA no
+                documento.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="validadeCA" className="mb-1 block text-sm font-medium">Validade do CA</label>
+              <input id="validadeCA" name="validadeCA" type="date" defaultValue={valores.validadeCA ?? ''} className={CAMPO} />
+            </div>
+          </>
+        )}
 
         <div className="sm:col-span-2">
           <label htmlFor="observacao" className="mb-1 block text-sm font-medium">Observação</label>

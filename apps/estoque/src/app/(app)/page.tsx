@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Package, PackageX, TriangleAlert, Wallet, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
+import { Package, PackageX, TriangleAlert, Wallet, ArrowDownToLine, ArrowUpFromLine, ShoppingCart } from 'lucide-react'
 import { KpiCard } from '@/components/dashboard/kpi-card'
 import { SeloSituacao, SeloMovimentacao } from '@/components/selo'
 import { consumoPorObra, indicadores, materiaisParaRepor, movimentacoesRecentes } from '@/queries/dashboard'
+import { contarSolicitacoesAbertas } from '@/queries/solicitacoes'
 import { SINAL_MOVIMENTACAO, type TipoMovimentacao } from '@/lib/dominio/constantes'
 import { brl, dataBR } from '@/lib/dominio/formato'
 
@@ -10,11 +11,12 @@ export const metadata = { title: 'Dashboard — Almoxarifado' }
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardEstoquePage() {
-  const [kpis, repor, recentes, obras] = await Promise.all([
+  const [kpis, repor, recentes, obras, solicitacoesAbertas] = await Promise.all([
     indicadores(),
     materiaisParaRepor(),
     movimentacoesRecentes(),
     consumoPorObra(),
+    contarSolicitacoesAbertas(),
   ])
 
   const precisaComprar = kpis.semEstoque + kpis.abaixoDoMinimo
@@ -55,6 +57,11 @@ export default async function DashboardEstoquePage() {
           href="/materiais" icone={<Package className="size-4 text-muted-foreground" />}
         />
         <KpiCard rotulo="Obras ativas" valor={String(kpis.obrasAtivas)} href="/obras" />
+        <KpiCard
+          rotulo="Compras em aberto" valor={String(solicitacoesAbertas)}
+          detalhe={precisaComprar > 0 ? 'Há itens faltando — monte um pedido' : undefined}
+          href="/solicitacoes" icone={<ShoppingCart className="size-4 text-muted-foreground" />}
+        />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">

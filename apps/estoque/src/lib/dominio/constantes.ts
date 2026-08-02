@@ -53,6 +53,17 @@ export const EXIGE_OBRA: TipoMovimentacao[] = [MOVIMENTACAO.SAIDA, MOVIMENTACAO.
 /** Só a entrada tem preço: o material já foi pago quando entrou. */
 export const EXIGE_FORNECEDOR: TipoMovimentacao[] = [MOVIMENTACAO.ENTRADA]
 
+/**
+ * EPI sai para uma PESSOA, não para uma obra.
+ *
+ * A NR-6 obriga a empresa a provar a quem entregou cada equipamento — "saiu 20 capacetes
+ * para a obra EX-1001" não prova nada se um deles faltar no acidente. Por isso, quando o
+ * material é da categoria EPI, a saída pede o funcionário e vira uma ficha no RH.
+ */
+export function exigeFuncionario(tipo: TipoMovimentacao, categoria: string): boolean {
+  return tipo === MOVIMENTACAO.SAIDA && categoria === 'EPI'
+}
+
 export const CATEGORIA_MATERIAL = {
   CIMENTO_ARGAMASSA: 'CIMENTO_ARGAMASSA',
   AGREGADO: 'AGREGADO',
@@ -121,6 +132,29 @@ export const TOM_SITUACAO_SALDO: Record<SituacaoSaldo, 'ativa' | 'atencao' | 've
  * zerado é digno de alerta, senão todo item sem mínimo definido viveria em "abaixo do
  * mínimo" e o alerta perderia o sentido por excesso de ruído.
  */
+export const STATUS_SOLICITACAO = {
+  RASCUNHO: 'RASCUNHO',
+  ENVIADA: 'ENVIADA',
+  ATENDIDA: 'ATENDIDA',
+  CANCELADA: 'CANCELADA',
+} as const
+
+export type StatusSolicitacao = (typeof STATUS_SOLICITACAO)[keyof typeof STATUS_SOLICITACAO]
+
+export const ROTULO_STATUS_SOLICITACAO: Record<StatusSolicitacao, string> = {
+  RASCUNHO: 'Rascunho',
+  ENVIADA: 'Enviada ao comprador',
+  ATENDIDA: 'Atendida',
+  CANCELADA: 'Cancelada',
+}
+
+export const TOM_STATUS_SOLICITACAO: Record<StatusSolicitacao, 'ativa' | 'atencao' | 'vencida' | 'devolvida'> = {
+  RASCUNHO: 'devolvida',
+  ENVIADA: 'atencao',
+  ATENDIDA: 'ativa',
+  CANCELADA: 'vencida',
+}
+
 export function situacaoDoSaldo(saldo: number, estoqueMinimo: number): SituacaoSaldo {
   if (saldo <= 0) return SITUACAO_SALDO.ZERADO
   if (estoqueMinimo > 0 && saldo < estoqueMinimo) return SITUACAO_SALDO.ABAIXO

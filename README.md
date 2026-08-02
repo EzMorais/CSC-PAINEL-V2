@@ -2,15 +2,36 @@
 
 Monorepo com três sistemas web internos, cada um numa pasta dentro de `apps/`:
 
-| Pasta | Sistema | Para que serve |
-|---|---|---|
-| [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | Controle de equipamentos alugados por obra |
-| [`apps/rh`](apps/rh) | RH | Cadastro de funcionários, documentos, treinamentos |
-| [`apps/frota`](apps/frota) | Frota | Controle de veículos, manutenções e abastecimento |
+| Pasta | Sistema | Porta | Para que serve |
+|---|---|---|---|
+| [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3000 | Controle de equipamentos alugados por obra |
+| [`apps/rh`](apps/rh) | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
+| [`apps/estoque`](apps/estoque) | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
+| [`apps/frota`](apps/frota) | Frota | 3000 | Veículos, manutenções e abastecimento |
 
-Cada sistema é independente: roda separado, com seu próprio banco de dados e seu próprio
-login. Todos são Next.js + TypeScript, com Prisma (ou Drizzle, no caso do Frota) sobre
-SQLite.
+Cada sistema roda separado, com seu próprio banco de dados. Todos são Next.js + TypeScript,
+com Prisma (ou Drizzle, no caso do Frota) sobre SQLite.
+
+**O login é único**: entrar em um deles vale para os outros — todos assinam o mesmo cookie
+de sessão, e cookie não separa por porta. Para isso funcionar, os arquivos `.env` precisam
+ter o **mesmo `AUTH_SECRET`** (o instalador automático já cuida disso).
+
+## Como o Almoxarifado e o RH conversam
+
+Uma integração de verdade, não só telas parecidas: **quando um EPI sai do estoque, ele sai
+para uma pessoa, não para uma obra** — e vira automaticamente a ficha de entrega no RH, que
+é o documento exigido pela NR-6.
+
+- O Almoxarifado busca a lista de funcionários no RH e pede quem recebeu o equipamento.
+- A ficha vai para o RH com o número do CA e a validade do certificado.
+- Se o RH estiver desligado na hora, **a saída do material acontece do mesmo jeito** e a
+  ficha fica marcada como pendente, com um botão de reenviar na tela de Movimentações.
+  Travar o almoxarife porque outro sistema caiu seria pior; gravar em silêncio e perder a
+  ficha, pior ainda.
+- O reenvio é seguro: o RH reconhece uma ficha já recebida e não duplica.
+
+Os dois se autenticam por um token assinado com o mesmo `AUTH_SECRET` — nenhuma senha ou
+configuração a mais para manter.
 
 Repositório **privado** — contém a operação de uma empresa real.
 
@@ -204,7 +225,35 @@ dois poderem rodar ao mesmo tempo).
 > em vez de gerar um novo para o RH. Não é obrigatório — sem isso cada sistema pede login
 > separado, e funciona normalmente.
 
-### Passo 6 — Frota
+### Passo 6 — Almoxarifado
+
+Numa janela de terminal dentro de `apps/estoque`:
+
+```bash
+npm install
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Repare que **não tem** o passo de criar o `.env` com um segredo novo. Aqui ele precisa ser
+**o mesmo do RH** — é isso que permite os dois conversarem. Copie o arquivo `.env` da pasta
+`apps/rh` para dentro de `apps/estoque` antes de rodar os comandos acima:
+
+```bash
+copy ..\rh\.env .env
+```
+
+Abra **http://localhost:3003**. Login: o mesmo dos outros (`admin@siqueiracampos.com.br` /
+`locacao2026`).
+
+> **Por que o mesmo segredo:** quando um EPI sai do estoque, o sistema busca a lista de
+> funcionários no RH e manda a ficha de entrega para lá. Os dois se reconhecem por um token
+> assinado com o `AUTH_SECRET`. Se forem diferentes, a entrega de EPI para de funcionar com
+> uma mensagem de "token inválido" — nada mais quebra, mas essa parte para.
+
+### Passo 7 — Frota
 
 O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
 no terminal:
@@ -313,9 +362,45 @@ funcionário e controle do que a lei exige (uniforme entregue, treinamento em di
 6. Se o treinamento tiver data de validade e ela já tiver passado, ele aparece destacado em
    vermelho no topo da tela de Treinamentos, no painel de "reciclagem vencida" — é o sistema
    avisando que alguém precisa refazer o curso.
-7. As outras seções do menu (EPIs, Exames, Documentos, Auditorias, Não Conformidades,
-   Relatórios, Configurações) ainda mostram "em construção" — não é erro, é honesto: elas
-   ainda não foram implementadas, e o sistema avisa em vez de fingir que existem.
+7. Em **Exames** registre o ASO de cada funcionário (admissional, periódico, demissional),
+   com resultado e validade — o que estiver vencendo aparece destacado no topo.
+8. Em **Documentos** há duas coisas: os documentos da empresa/obra (PGR, PCMSO, LTCAT…),
+   com versionamento, e um **checklist de admissão por funcionário** — escolha alguém no
+   seletor e vá anexando RG, CPF, CTPS, comprovante de residência etc.
+9. Em **Auditorias** monte um checklist de campo; um item marcado como "não conforme" abre
+   uma **Não Conformidade** já vinculada à auditoria de origem, com prazo e responsável.
+10. Em **EPIs** você vê as fichas de entrega — mas repare que **não dá para lançar uma aqui**.
+    Quem entrega EPI é o Almoxarifado, e a ficha chega sozinha de lá (veja abaixo). Isso é
+    de propósito: com dois lugares para lançar, o mesmo capacete acabaria registrado duas
+    vezes, ou sairia do estoque sem nunca virar ficha.
+11. Em **Configurações** ficam os cargos (com o grau de risco, que é o que puxa exigência de
+    EPI e exame) e os usuários do sistema.
+
+### Almoxarifado — controle de materiais
+
+**Pra que serve:** saber o que tem em estoque, quanto cada obra consumiu, o que precisa
+comprar — e, no caso de EPI, para qual pessoa cada equipamento foi entregue.
+
+1. Faça login. O **Dashboard** mostra quanto vale o estoque, o que precisa ser comprado e as
+   últimas movimentações.
+2. Vá em **Materiais**: o seed já cadastrou 18 itens (cimento, areia, vergalhão, EPIs…).
+   Clique num deles para ver o **extrato** — cada entrada e saída que formou o saldo atual.
+3. Repare que **não existe um campo "saldo" para editar**. O saldo é a soma do histórico. Se
+   a prateleira estiver diferente do sistema, use **Conferir contagem física** na tela do
+   material: você digita quanto contou, e o sistema calcula e lança o ajuste sozinho.
+4. Em **Movimentações** → **Nova movimentação**, experimente lançar uma saída maior do que o
+   saldo: o sistema recusa e explica o que fazer. Saldo negativo não existe na prateleira.
+5. Agora escolha um material da categoria **EPI** (capacete, luva, óculos, bota) e o tipo
+   **Saída**. O formulário muda: some o campo de obra e aparece **"funcionário que recebeu"**,
+   com a lista vinda do RH. Isso é a NR-6 — a empresa precisa provar a quem entregou.
+6. Salve e vá no RH, em **EPIs**: a ficha já está lá, com o número do CA e a validade. Você
+   não digitou nada duas vezes.
+7. Se o RH estiver desligado na hora, a saída acontece do mesmo jeito e aparece um aviso
+   amarelo em Movimentações com o botão **Reenviar agora** — a ficha não se perde.
+8. Em **Compras** → **Nova solicitação** → **Gerar sugestão**: o sistema junta tudo que está
+   abaixo do mínimo e sugere quanto comprar. Dá para editar, salvar, e então enviar o pedido
+   pronto pelo **Gmail**, **Outlook** ou pelo app de e-mail do computador — os botões abrem o
+   e-mail já escrito, com os itens e as quantidades.
 
 ### Frota — controle de veículos
 

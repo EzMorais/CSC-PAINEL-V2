@@ -13,6 +13,15 @@ const opcional = z.string().trim().optional().transform((v) => (v ? v : undefine
 const categorias = Object.values(CATEGORIA_MATERIAL) as [string, ...string[]]
 const unidades = [...UNIDADE] as [string, ...string[]]
 
+const dataCalendario = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de validade do CA inválida.')
+  .transform((v) => {
+    const [a, m, d] = v.split('-').map(Number)
+    return new Date(Date.UTC(a, m - 1, d))
+  })
+
 const esquema = z.object({
   nome: z.string().trim().min(2, 'Informe o nome do material.'),
   categoria: z.enum(categorias),
@@ -20,9 +29,14 @@ const esquema = z.object({
   estoqueMinimo: z.union([z.coerce.number().nonnegative('Mínimo não pode ser negativo.'), z.literal('')]).optional(),
   localizacao: opcional,
   observacao: opcional,
+  ca: opcional,
+  validadeCA: z.union([dataCalendario, z.literal('')]).optional(),
 })
 
 function paraBanco(d: z.infer<typeof esquema>) {
+  // CA só é gravado em EPI: um saco de cimento com número de Certificado de Aprovação
+  // preenchido é dado errado que depois aparece na ficha de entrega de outro material.
+  const ehEpi = d.categoria === 'EPI'
   return {
     nome: d.nome,
     categoria: d.categoria,
@@ -30,6 +44,8 @@ function paraBanco(d: z.infer<typeof esquema>) {
     estoqueMinimo: typeof d.estoqueMinimo === 'number' ? d.estoqueMinimo : 0,
     localizacao: d.localizacao ?? null,
     observacao: d.observacao ?? null,
+    ca: ehEpi ? (d.ca ?? null) : null,
+    validadeCA: ehEpi && d.validadeCA instanceof Date ? d.validadeCA : null,
   }
 }
 

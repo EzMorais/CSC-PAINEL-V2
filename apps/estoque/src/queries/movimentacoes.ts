@@ -45,6 +45,25 @@ export async function listarObras() {
 
 export type ObraListada = Awaited<ReturnType<typeof listarObras>>[number]
 
+/** Saídas de EPI cuja ficha ainda não foi aceita pelo RH. */
+export async function listarFichasPendentes() {
+  const movimentacoes = await prisma.movimentacao.findMany({
+    where: { funcionarioId: { not: null }, sincronizadoEm: null },
+    orderBy: { ocorridoEm: 'desc' },
+    include: { material: { select: { nome: true, unidade: true } } },
+  })
+
+  return movimentacoes.map((m) => ({
+    id: m.id,
+    funcionarioNome: m.funcionarioNome,
+    materialNome: m.material.nome,
+    quantidade: m.quantidade,
+    unidade: m.material.unidade,
+    ocorridoEm: m.ocorridoEm,
+    erroSincronizacao: m.erroSincronizacao,
+  }))
+}
+
 export async function listarFornecedores() {
   return prisma.fornecedor.findMany({ orderBy: { nome: 'asc' } })
 }

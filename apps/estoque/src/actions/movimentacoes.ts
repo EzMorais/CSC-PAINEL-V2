@@ -5,8 +5,10 @@ import { prisma } from '@/lib/prisma'
 import { exigirSessao } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { saldoDoMaterial } from '@/queries/saldos'
+import { enviarFichaEpi } from '@/lib/cliente-rh'
 import {
-  MOVIMENTACAO, SINAL_MOVIMENTACAO, EXIGE_OBRA, ROTULO_MOVIMENTACAO, type TipoMovimentacao,
+  MOVIMENTACAO, SINAL_MOVIMENTACAO, EXIGE_OBRA, ROTULO_MOVIMENTACAO, exigeFuncionario,
+  type TipoMovimentacao,
 } from '@/lib/dominio/constantes'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
@@ -34,6 +36,8 @@ const esquema = z.object({
   valorUnitario: z.union([z.coerce.number().nonnegative('Valor não pode ser negativo.'), z.literal('')]).optional(),
   obraId: opcional,
   fornecedorId: opcional,
+  funcionarioId: opcional,
+  funcionarioNome: opcional,
   documento: opcional,
   observacao: opcional,
   ocorridoEm: dataCalendario,
@@ -49,17 +53,26 @@ export async function registrarMovimentacao(entrada: unknown): Promise<Resultado
   const d = parsed.data
   const tipo = d.tipo as TipoMovimentacao
 
-  if (EXIGE_OBRA.includes(tipo) && !d.obraId) {
-    return { ok: false, erro: `${ROTULO_MOVIMENTACAO[tipo]} precisa da obra de destino.` }
-  }
-
   try {
     const material = await prisma.material.findUnique({
       where: { id: d.materialId },
-      select: { id: true, nome: true, unidade: true, ativo: true },
+      select: { id: true, codigo: true, nome: true, unidade: true, ativo: true, categoria: true, ca: true, validadeCA: true },
     })
     if (!material) return { ok: false, erro: 'Material não encontrado.' }
     if (!material.ativo) return { ok: false, erro: 'Este material está inativo — reative o cadastro antes de movimentar.' }
+
+    // Quem é o destino depende da CATEGORIA, não só do tipo: EPI sai para uma pessoa, o
+    // resto sai para uma obra. Por isso as duas checagens vêm só agora, depois de carregar
+    // o material — checar a obra antes disso recusaria toda entrega de EPI, já que o
+    // formulário nem mostra o campo de obra nesse caso.
+    const precisaFuncionario = exigeFuncionario(tipo, material.categoria)
+
+    if (precisaFuncionario && !d.funcionarioId) {
+      return { ok: false, erro: 'Saída de EPI precisa do funcionário que recebeu — é a ficha exigida pela NR-6.' }
+    }
+    if (!precisaFuncionario && EXIGE_OBRA.includes(tipo) && !d.obraId) {
+      return { ok: false, erro: `${ROTULO_MOVIMENTACAO[tipo]} precisa da obra de destino.` }
+    }
 
     // Saída que deixaria o saldo negativo é recusada. Um saldo negativo não existe no
     // mundo físico: significa que a prateleira e o sistema discordam, e deixar passar
@@ -88,6 +101,8 @@ export async function registrarMovimentacao(entrada: unknown): Promise<Resultado
         // alguma coisa a ver com a quebra.
         obraId: EXIGE_OBRA.includes(tipo) ? (d.obraId ?? null) : null,
         fornecedorId: tipo === MOVIMENTACAO.ENTRADA ? (d.fornecedorId ?? null) : null,
+        funcionarioId: precisaFuncionario ? (d.funcionarioId ?? null) : null,
+        funcionarioNome: precisaFuncionario ? (d.funcionarioNome ?? null) : null,
         documento: d.documento ?? null,
         observacao: d.observacao ?? null,
         ocorridoEm: d.ocorridoEm,
@@ -95,10 +110,62 @@ export async function registrarMovimentacao(entrada: unknown): Promise<Resultado
       },
     })
 
+    // A saída já está gravada. Se o envio da ficha falhar, o material saiu do mesmo jeito —
+    // o que não pode é a falha passar despercebida, e por isso ela fica marcada na própria
+    // movimentação e aparece na tela como pendente, para reenvio.
+    if (precisaFuncionario) {
+      await sincronizarFicha(movimentacao.id)
+    }
+
     revalidarTelas('/', '/materiais', `/materiais/${d.materialId}`, '/movimentacoes', '/relatorios')
     return { ok: true, dados: { id: movimentacao.id } }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao registrar a movimentação.' }
+  }
+}
+
+/**
+ * Envia (ou reenvia) ao RH a ficha de uma saída de EPI.
+ *
+ * Nunca lança: é chamada logo depois de uma gravação que já deu certo, e deixar uma exceção
+ * subir daqui faria a movimentação parecer que falhou — o almoxarife lançaria de novo e o
+ * material sairia duas vezes do saldo por causa de um sistema vizinho fora do ar.
+ */
+export async function sincronizarFicha(movimentacaoId: string): Promise<Resultado<{ pendente: boolean }>> {
+  try {
+    const mov = await prisma.movimentacao.findUnique({
+      where: { id: movimentacaoId },
+      include: { material: { select: { codigo: true, nome: true, unidade: true, ca: true, validadeCA: true } } },
+    })
+    if (!mov) return { ok: false, erro: 'Movimentação não encontrada.' }
+    if (!mov.funcionarioId) return { ok: false, erro: 'Esta movimentação não é uma entrega de EPI.' }
+    if (mov.sincronizadoEm) return { ok: true, dados: { pendente: false } }
+
+    const envio = await enviarFichaEpi({
+      movimentacaoId: mov.id,
+      funcionarioId: mov.funcionarioId,
+      materialCodigo: mov.material.codigo,
+      materialNome: mov.material.nome,
+      unidade: mov.material.unidade,
+      quantidade: mov.quantidade,
+      ca: mov.material.ca,
+      validadeCA: mov.material.validadeCA?.toISOString() ?? null,
+      entregueEm: mov.ocorridoEm.toISOString(),
+      entreguePor: mov.registradoPor,
+      observacao: mov.observacao,
+    })
+
+    await prisma.movimentacao.update({
+      where: { id: mov.id },
+      data: envio.ok
+        ? { sincronizadoEm: new Date(), erroSincronizacao: null }
+        : { erroSincronizacao: envio.erro },
+    })
+
+    revalidarTelas('/movimentacoes', `/materiais/${mov.materialId}`)
+    return envio.ok ? { ok: true, dados: { pendente: false } } : { ok: false, erro: envio.erro }
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao sincronizar a ficha.' }
   }
 }
 

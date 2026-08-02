@@ -87,7 +87,15 @@ async function main() {
 
   // Códigos seguem o mesmo formato que a aplicação gera (MAT-0001), para o cadastro criado
   // pelo seed e o criado pela tela não parecerem vir de sistemas diferentes.
-  let numero = 1
+  //
+  // A numeração continua de onde o cadastro parou, em vez de recomeçar do 1: rodar o seed
+  // de novo depois de acrescentar materiais novos à lista — que é exatamente o que acontece
+  // quando o módulo cresce — colidiria com os códigos já gravados.
+  const ultimoCodigo = await prisma.material.findFirst({
+    orderBy: { codigo: 'desc' },
+    select: { codigo: true },
+  })
+  let numero = ultimoCodigo ? Number(ultimoCodigo.codigo.replace(/\D/g, '')) + 1 : 1
   let materiaisCriados = 0
   let materiaisExistentes = 0
   for (const m of dados.materiais) {
@@ -96,8 +104,14 @@ async function main() {
       materiaisExistentes++
       continue
     }
+    const { ca, caVenceEmDias, ...campos } = m
     await prisma.material.create({
-      data: { ...m, codigo: `MAT-${String(numero).padStart(4, '0')}` },
+      data: {
+        ...campos,
+        codigo: `MAT-${String(numero).padStart(4, '0')}`,
+        ca: ca ?? null,
+        validadeCA: caVenceEmDias != null ? haDias(-caVenceEmDias) : null,
+      },
     })
     numero++
     materiaisCriados++

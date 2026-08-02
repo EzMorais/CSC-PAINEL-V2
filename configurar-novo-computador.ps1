@@ -158,9 +158,13 @@ function Preparar-App($pasta, $porta, $gerarPlanilhaExemplo) {
   }
 }
 
-Write-Titulo "5/6 - Preparando o Painel de Locacao e o RH"
+Write-Titulo "5/6 - Preparando o Painel de Locacao, o RH e o Almoxarifado"
 Preparar-App 'painel-locacao' 3000 $true
 Preparar-App 'rh' 3002 $false
+# O Almoxarifado conversa com o RH pela API de integracao, e os dois so se reconhecem se o
+# AUTH_SECRET for o mesmo -- que e o que este script garante, usando um valor unico para
+# todos os modulos.
+Preparar-App 'estoque' 3003 $false
 
 Write-Titulo "6/6 - Frota"
 $instaladorFrota = Join-Path $raiz 'apps\frota\instalar.bat'
@@ -181,10 +185,16 @@ Write-Host ""
 Write-Host "Para USAR cada sistema, abra um terminal na pasta dele e rode 'npm run dev':" -ForegroundColor White
 Write-Host "  apps\painel-locacao  -> http://localhost:3000" -ForegroundColor White
 Write-Host "  apps\rh              -> http://localhost:3002" -ForegroundColor White
+Write-Host "  apps\estoque         -> http://localhost:3003" -ForegroundColor White
 Write-Host "  apps\frota           -> de duplo clique em iniciar.bat dentro da pasta" -ForegroundColor White
 Write-Host ""
-Write-Host "Login do Painel de Locacao e do RH: admin@siqueiracampos.com.br / locacao2026" -ForegroundColor White
-Write-Host "Login da Frota:                     admin@siqueiracampos.com.br / frota2026" -ForegroundColor White
+Write-Host "Entrega de EPI: o Almoxarifado precisa do RH LIGADO para buscar a lista de" -ForegroundColor White
+Write-Host "funcionarios e mandar a ficha. Se o RH estiver desligado na hora, a saida do" -ForegroundColor White
+Write-Host "material acontece do mesmo jeito e a ficha fica marcada como pendente, para" -ForegroundColor White
+Write-Host "reenviar depois na tela de Movimentacoes." -ForegroundColor White
+Write-Host ""
+Write-Host "Login do Painel, do RH e do Almoxarifado: admin@siqueiracampos.com.br / locacao2026" -ForegroundColor White
+Write-Host "Login da Frota:                           admin@siqueiracampos.com.br / frota2026" -ForegroundColor White
 Write-Host ""
 Write-Host "Mais detalhes e solucao de problemas: README.md e COMECE-AQUI.md na pasta do projeto." -ForegroundColor White
 Write-Host ""

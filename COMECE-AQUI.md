@@ -1,16 +1,22 @@
 # Como rodar este projeto em outro computador
 
 Guia para quem nunca usou terminal nem instalou um projeto de programação antes.
-O repositório tem **três sistemas independentes**, cada um numa pasta dentro de `apps/`:
+O repositório tem **quatro sistemas**, cada um numa pasta dentro de `apps/`:
 
-| Pasta | Sistema | Para que serve |
-|---|---|---|
-| `apps/painel-locacao` | Painel de Locação | Controle de equipamentos alugados por obra |
-| `apps/rh` | RH | Cadastro de funcionários, documentos, treinamentos |
-| `apps/frota` | Frota | Controle de veículos, manutenções e abastecimento |
+| Pasta | Sistema | Porta | Para que serve |
+|---|---|---|---|
+| `apps/painel-locacao` | Painel de Locação | 3000 | Equipamentos alugados por obra |
+| `apps/rh` | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
+| `apps/estoque` | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
+| `apps/frota` | Frota | 3000 | Veículos, manutenções e abastecimento |
 
-Você não precisa instalar os três — só o(s) que for usar. Cada um roda separado, com seu
-próprio banco de dados e seu próprio login.
+Cada um roda separado, com seu próprio banco de dados. O login é único: entrar em um vale
+para os outros.
+
+> **Almoxarifado e RH andam juntos.** Quando um EPI sai do estoque para um funcionário, a
+> ficha de entrega aparece sozinha no RH. Para isso funcionar, os dois precisam do **mesmo
+> `AUTH_SECRET`** no arquivo `.env` — o instalador automático já cuida disso; se instalar à
+> mão, copie o `.env` do RH para a pasta do estoque.
 
 > **Num computador totalmente novo, sem nada instalado?** Tem um caminho ainda mais direto:
 > baixe **[github.com/EzMorais/VISUAL-TT](https://github.com/EzMorais/VISUAL-TT)** (público,
@@ -206,7 +212,26 @@ dois poderem rodar ao mesmo tempo).
 
 ---
 
-## Passo 6 — Frota
+## Passo 6 — Almoxarifado
+
+Numa janela de terminal dentro de `apps/estoque`. Aqui **não** se cria um segredo novo: ele
+precisa ser o mesmo do RH, senão a entrega de EPI não consegue falar com o RH.
+
+```bash
+copy ..\rh\.env .env
+npm install
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Abra **http://localhost:3003**. Login: o mesmo dos outros
+(`admin@siqueiracampos.com.br` / `locacao2026`).
+
+---
+
+## Passo 7 — Frota
 
 O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
 no terminal:

@@ -33,7 +33,9 @@ export async function opcoes() {
     prisma.material.findMany({
       where: { ativo: true },
       orderBy: { nome: 'asc' },
-      select: { id: true, codigo: true, nome: true, unidade: true },
+      // `categoria` vai junto porque o formulário muda de forma quando o material é EPI:
+      // passa a pedir o funcionário que recebeu, em vez da obra.
+      select: { id: true, codigo: true, nome: true, unidade: true, categoria: true, ca: true },
     }),
     prisma.obra.findMany({
       where: { ativa: true },

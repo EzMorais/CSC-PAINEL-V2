@@ -122,6 +122,7 @@ model Funcionario {
   treinamentos     TreinamentoParticipante[]
   exames           Exame[]
   documentos       Documento[]
+  entregasEpi      EntregaEpi[]
 
   @@index([obraId])
   @@index([cargoId])
@@ -214,6 +215,41 @@ model TreinamentoParticipante {
 
   @@unique([treinamentoId, funcionarioId])
   @@index([funcionarioId])
+}
+
+/// Ficha de entrega de EPI — o documento que a NR-6 exige da empresa.
+///
+/// Quem cria estas linhas é o Almoxarifado (`apps/estoque`), pela API de integração,
+/// quando um EPI sai do estoque para um funcionário. O RH não lança entrega de EPI por
+/// conta própria de propósito: se lançasse, o mesmo capacete poderia sair do estoque e ser
+/// registrado aqui como duas entregas, ou sair sem nunca aparecer na ficha. Uma origem só
+/// significa que a ficha e o saldo do almoxarifado contam sempre a mesma história.
+///
+/// `movimentacaoId` é o id da movimentação no banco do almoxarifado — bancos separados não
+/// permitem chave estrangeira. É único aqui porque é ele que torna a integração
+/// idempotente: se o almoxarifado reenviar a mesma entrega (porque a primeira tentativa
+/// caiu na rede), a segunda encontra a linha já gravada em vez de duplicar a ficha.
+model EntregaEpi {
+  id             String    @id @default(cuid())
+  movimentacaoId String    @unique
+  materialCodigo String
+  materialNome   String
+  ca             String?
+  validadeCA     DateTime?
+  quantidade     Float
+  unidade        String
+  entregueEm     DateTime
+  observacao     String?
+  /// Nome de quem entregou, copiado do almoxarifado. Texto, não relação: o registro tem de
+  /// sobreviver à exclusão do usuário que o criou, e ele nem é usuário deste banco.
+  entreguePor    String?
+  recebidoEm     DateTime  @default(now())
+
+  funcionario   Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+  funcionarioId String
+
+  @@index([funcionarioId, entregueEm])
+  @@index([entregueEm])
 }
 
 /// Exame ocupacional (ASO) de um funcionário — um registro por exame realizado.

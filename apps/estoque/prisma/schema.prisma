@@ -79,7 +79,16 @@ model Material {
   criadoEm      DateTime @default(now())
   atualizadoEm  DateTime @updatedAt
 
-  movimentacoes Movimentacao[]
+  /// Certificado de Aprovação — só faz sentido em material de categoria EPI.
+  ///
+  /// Mora aqui e não na entrega porque o CA é do equipamento, não do ato de entregar. A
+  /// NR-6 exige o número do CA na ficha de cada entrega, e a ficha copia daqui: assim o
+  /// almoxarife digita uma vez, no cadastro, em vez de a cada entrega — que é onde erraria.
+  ca         String?
+  validadeCA DateTime?
+
+  movimentacoes    Movimentacao[]
+  itensSolicitacao ItemSolicitacao[]
 
   @@index([categoria])
   @@index([nome])
@@ -113,6 +122,25 @@ model Movimentacao {
   /// sobreviver à exclusão do usuário que o criou.
   registradoPor String?
 
+  /// Quem recebeu, quando é entrega de EPI.
+  ///
+  /// `funcionarioId` é o id no banco do RH — bancos separados não permitem chave
+  /// estrangeira, então é só um texto. `funcionarioNome` é copiado junto de propósito: sem
+  /// ele, exibir o extrato exigiria uma chamada ao RH a cada linha, e o extrato de uma
+  /// entrega ficaria ilegível se o RH estivesse fora do ar ou se o cadastro fosse apagado.
+  funcionarioId   String?
+  funcionarioNome String?
+
+  /// Confirmação de que a ficha chegou ao RH.
+  ///
+  /// A entrega de EPI tem de existir no RH — é a ficha que a NR-6 exige. Mas travar a
+  /// saída do material quando o RH está fora do ar impediria o almoxarife de trabalhar por
+  /// causa de outro sistema, e gravar a saída fingindo que sincronizou esconderia uma ficha
+  /// faltando. Então a saída acontece, e o que não sincronizou fica visível aqui para ser
+  /// reenviado.
+  sincronizadoEm    DateTime?
+  erroSincronizacao String?
+
   material     Material    @relation(fields: [materialId], references: [id], onDelete: Cascade)
   materialId   String
   obra         Obra?       @relation(fields: [obraId], references: [id])
@@ -124,4 +152,48 @@ model Movimentacao {
   @@index([obraId])
   @@index([tipo])
   @@index([ocorridoEm])
+  @@index([funcionarioId])
+}
+
+/// Pedido de compra nascido do que está abaixo do mínimo.
+///
+/// Não vira entrada sozinho: comprar é decisão de gente, e o sistema só junta a lista e
+/// sugere quantidade. A entrada continua sendo lançada quando o material efetivamente
+/// chega, e é ela que muda o saldo — a solicitação é o documento do pedido, não do
+/// recebimento.
+model SolicitacaoCompra {
+  id            String    @id @default(cuid())
+  numero        String    @unique
+  status        String    @default("RASCUNHO") // RASCUNHO | ENVIADA | ATENDIDA | CANCELADA
+  observacao    String?
+  criadoEm      DateTime  @default(now())
+  enviadaEm     DateTime?
+  atendidaEm    DateTime?
+  registradoPor String?
+
+  itens ItemSolicitacao[]
+
+  @@index([status])
+}
+
+/// Um item pedido.
+///
+/// `saldoNaEpoca` e `minimoNaEpoca` são fotografias do momento em que o pedido foi feito,
+/// não relações vivas: seis meses depois, quem lê o pedido precisa entender por que aquela
+/// quantidade foi pedida, e o saldo de hoje não explica a decisão de ontem.
+model ItemSolicitacao {
+  id            String  @id @default(cuid())
+  quantidade    Float
+  saldoNaEpoca  Float
+  minimoNaEpoca Float
+  precoEstimado Float?
+  observacao    String?
+
+  solicitacao   SolicitacaoCompra @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  solicitacaoId String
+  material      Material          @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  materialId    String
+
+  @@unique([solicitacaoId, materialId])
+  @@index([materialId])
 }

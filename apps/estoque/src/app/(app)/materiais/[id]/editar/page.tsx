@@ -22,6 +22,8 @@ export default async function EditarMaterialPage({ params }: Props) {
     estoqueMinimo: material.estoqueMinimo ? String(material.estoqueMinimo) : '',
     localizacao: material.localizacao ?? '',
     observacao: material.observacao ?? '',
+    ca: material.ca ?? '',
+    validadeCA: material.validadeCA ? material.validadeCA.toISOString().slice(0, 10) : '',
   }
 
   return (
