@@ -13,7 +13,7 @@ import { SignJWT, jwtVerify } from 'jose'
  * O token é de vida curta e traz quem chamou. Não substitui a sessão do usuário: ele diz
  * "este pedido veio do Almoxarifado", não "este pedido é do fulano".
  */
-const EMISSOR_VALIDO = ['estoque', 'rh', 'painel-locacao'] as const
+const EMISSOR_VALIDO = ['estoque', 'rh', 'painel-locacao', 'alojamentos'] as const
 export type ModuloEmissor = (typeof EMISSOR_VALIDO)[number]
 
 const VALIDADE_SEGUNDOS = 60

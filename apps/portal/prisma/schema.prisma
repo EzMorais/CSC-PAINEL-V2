@@ -44,7 +44,7 @@ model Usuario {
 /// cargo novo para cada combinação.
 model AcessoModulo {
   id     String @id @default(cuid())
-  /// PAINEL | RH | ESTOQUE | FROTA
+  /// PAINEL | RH | ESTOQUE | ALOJAMENTOS | FROTA
   modulo String
 
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

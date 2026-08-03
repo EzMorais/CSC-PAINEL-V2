@@ -2,14 +2,20 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, UserRound, X } from 'lucide-react'
 import { criarFuncionario, editarFuncionario } from '@/actions/funcionarios'
 import { criarCargo } from '@/actions/cargos'
-import { STATUS, TIPO_CONTRATO, ROTULO_STATUS, RISCO_CARGO, type Status } from '@/lib/dominio/constantes'
+import { criarDepartamento } from '@/actions/departamentos'
+import { fotoParaDataUri } from '@/lib/imagem-cliente'
+import {
+  STATUS, TIPO_CONTRATO, ROTULO_STATUS, RISCO_CARGO,
+  NIVEL_OBRA, ROTULO_NIVEL_OBRA, type Status, type NivelObra,
+} from '@/lib/dominio/constantes'
 
 export type Opcoes = {
   obras: Array<{ id: string; codigo: string; descricao: string }>
   cargos: Array<{ id: string; nome: string }>
+  departamentos: Array<{ id: string; nome: string; paiId: string | null }>
 }
 
 export type ValoresFuncionario = Partial<Record<string, string>>
@@ -84,6 +90,26 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
   const selectCargoRef = useRef<HTMLSelectElement>(null)
   const cargosTotais = [...opcoes.cargos, ...cargosExtra]
 
+  // Mesma mecânica do cargo, para setor. Ver os comentários acima.
+  const [departamentosExtra, setDepartamentosExtra] = useState<Opcoes['departamentos']>([])
+  const [criandoDepartamento, setCriandoDepartamento] = useState(false)
+  const [nomeDepartamento, setNomeDepartamento] = useState('')
+  const [ramoDepartamento, setRamoDepartamento] = useState('')
+  const [erroDepartamento, setErroDepartamento] = useState<string | null>(null)
+  const [pendenteDepartamento, iniciarDepartamento] = useTransition()
+  const [departamentoParaSelecionar, setDepartamentoParaSelecionar] = useState<string | null>(null)
+  const selectDepartamentoRef = useRef<HTMLSelectElement>(null)
+
+  const departamentosTotais = [...opcoes.departamentos, ...departamentosExtra]
+  const ramos = departamentosTotais.filter((d) => d.paiId === null)
+  const setoresPorRamo = ramos.map((r) => ({
+    ramo: r,
+    setores: departamentosTotais.filter((d) => d.paiId === r.id),
+  }))
+
+  const [foto, setFoto] = useState(valores.foto ?? '')
+  const [erroFoto, setErroFoto] = useState<string | null>(null)
+
   // Setar `select.value` logo após `setCargosExtra` não funciona: o setState é
   // assíncrono, então nesse instante a <option> nova ainda não existe no DOM, e o
   // navegador ignora silenciosamente um valor sem opção correspondente — o select fica
@@ -94,6 +120,13 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
       setCargoParaSelecionar(null)
     }
   }, [cargoParaSelecionar, cargosExtra])
+
+  useEffect(() => {
+    if (departamentoParaSelecionar && selectDepartamentoRef.current) {
+      selectDepartamentoRef.current.value = departamentoParaSelecionar
+      setDepartamentoParaSelecionar(null)
+    }
+  }, [departamentoParaSelecionar, departamentosExtra])
 
   // Não é um <form> aninhado dentro do <form> principal de propósito: HTML não permite
   // form dentro de form (o navegador ignora o de dentro), e o clique em "Criar cargo"
@@ -112,9 +145,32 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
     })
   }
 
+  function adicionarDepartamento() {
+    setErroDepartamento(null)
+    iniciarDepartamento(async () => {
+      const r = await criarDepartamento({ nome: nomeDepartamento, paiId: ramoDepartamento })
+      if (!r.ok) return setErroDepartamento(r.erro)
+      setDepartamentosExtra((atuais) => [...atuais, { ...r.dados, paiId: r.dados.paiId }])
+      setDepartamentoParaSelecionar(r.dados.id)
+      setCriandoDepartamento(false)
+      setNomeDepartamento('')
+    })
+  }
+
+  function escolherFoto(arquivo: File | null) {
+    if (!arquivo) return
+    setErroFoto(null)
+    fotoParaDataUri(arquivo)
+      .then(setFoto)
+      .catch((e) => setErroFoto(e instanceof Error ? e.message : 'Não foi possível ler a imagem.'))
+  }
+
   function enviar(fd: FormData) {
     setErro(null)
-    const dados = Object.fromEntries(fd.entries())
+    // A foto não é um campo do formulário: ela vive no estado porque precisa ser reduzida
+    // e convertida para texto ANTES do envio — um <input type="file"> mandaria o arquivo
+    // cru, que este app não tem onde guardar.
+    const dados = { ...Object.fromEntries(fd.entries()), foto }
 
     iniciar(async () => {
       // Os dois ramos são tratados separados porque só a criação devolve um id — juntar
@@ -176,6 +232,39 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
         não-controlados (defaultValue), então o valor mora no DOM, não no estado.
       */}
       <div className={aba === 'pessoais' ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
+        <div className="sm:col-span-2">
+          <span className="mb-1 block text-sm font-medium">Foto</span>
+          <div className="flex items-center gap-4">
+            <span className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-muted">
+              {foto ? (
+                // eslint-disable-next-line @next/next/no-img-element -- data URI vinda do banco; next/image não otimiza nem serve para base64 local
+                <img src={foto} alt="Foto do funcionário" className="size-full object-cover" />
+              ) : (
+                <UserRound className="size-8 text-muted-foreground" />
+              )}
+            </span>
+            <div className="min-w-0 space-y-2">
+              <input
+                type="file" accept="image/*" data-testid="foto-funcionario"
+                onChange={(e) => escolherFoto(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border
+                           file:border-border file:bg-background file:px-3 file:py-1.5 file:text-sm"
+              />
+              {foto && (
+                <button
+                  type="button" onClick={() => setFoto('')}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-3.5" /> Remover foto
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                A imagem é reduzida automaticamente antes de salvar.
+              </p>
+              {erroFoto && <p role="alert" className="text-xs text-destructive">{erroFoto}</p>}
+            </div>
+          </div>
+        </div>
         <Campo nome="nome" rotulo="Nome completo" valor={valores.nome} obrigatorio />
         <Campo nome="cpf" rotulo="CPF" valor={valores.cpf} obrigatorio dica="Os dígitos verificadores são conferidos." />
         <Campo nome="rg" rotulo="RG" valor={valores.rg} />
@@ -280,6 +369,78 @@ export function FormFuncionario({ id, matricula, valores = {}, opcoes }: Props) 
               </div>
             </div>
           )}
+        </Campo>
+        <Campo nome="departamentoId" rotulo="Setor">
+          <div className="flex gap-2">
+            <select
+              ref={selectDepartamentoRef} id="departamentoId" name="departamentoId"
+              defaultValue={valores.departamentoId ?? ''} className={CAMPO}
+            >
+              <option value="">— sem setor —</option>
+              {setoresPorRamo.map(({ ramo, setores }) => (
+                <optgroup key={ramo.id} label={ramo.nome}>
+                  {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <button
+              type="button" onClick={() => setCriandoDepartamento((v) => !v)}
+              title="Novo setor" aria-label="Novo setor"
+              className="grid size-9 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+
+          {criandoDepartamento && (
+            <div className="mt-2 space-y-2 rounded-md border border-border bg-muted/30 p-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  data-testid="novo-setor-nome"
+                  value={nomeDepartamento} onChange={(e) => setNomeDepartamento(e.target.value)}
+                  placeholder="Nome do setor" autoFocus className={CAMPO}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarDepartamento() } }}
+                />
+                <select
+                  data-testid="novo-setor-ramo"
+                  value={ramoDepartamento} onChange={(e) => setRamoDepartamento(e.target.value)}
+                  className={CAMPO}
+                >
+                  <option value="">— escolha o ramo —</option>
+                  {ramos.map((r) => <option key={r.id} value={r.id}>{r.nome}</option>)}
+                </select>
+              </div>
+              {erroDepartamento && <p role="alert" className="text-xs text-destructive">{erroDepartamento}</p>}
+              <div className="flex gap-2">
+                <button
+                  data-testid="criar-setor"
+                  type="button" onClick={adicionarDepartamento}
+                  disabled={pendenteDepartamento || !nomeDepartamento.trim() || !ramoDepartamento}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {pendenteDepartamento ? 'Criando…' : 'Criar setor'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCriandoDepartamento(false); setErroDepartamento(null); setNomeDepartamento('') }}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </Campo>
+        <Campo
+          nome="nivelObra" rotulo="Nível na obra"
+          dica="Só para quem trabalha em canteiro — é o que o módulo de Alojamentos usa."
+        >
+          <select id="nivelObra" name="nivelObra" defaultValue={valores.nivelObra ?? ''} className={CAMPO}>
+            <option value="">— não se aplica —</option>
+            {NIVEL_OBRA.map((n) => (
+              <option key={n} value={n}>{ROTULO_NIVEL_OBRA[n as NivelObra]}</option>
+            ))}
+          </select>
         </Campo>
         <Campo nome="salario" rotulo="Salário" tipo="number" valor={valores.salario} dica="Use ponto para centavos." />
       </div>

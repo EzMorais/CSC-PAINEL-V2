@@ -64,11 +64,14 @@ export type FuncionarioDetalhe = NonNullable<Awaited<ReturnType<typeof obterFunc
 
 /** Listas para os selects do formulário. */
 export async function opcoes() {
-  const [obras, cargos] = await Promise.all([
+  const [obras, cargos, departamentos] = await Promise.all([
     prisma.obra.findMany({ where: { ativa: true }, orderBy: { codigo: 'asc' }, select: { id: true, codigo: true, descricao: true } }),
     prisma.cargo.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' }, select: { id: true, nome: true } }),
+    // Ramos e setores juntos, numa consulta só: a tela agrupa por `paiId` e precisa dos dois
+    // para montar os <optgroup>.
+    prisma.departamento.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' }, select: { id: true, nome: true, paiId: true } }),
   ])
-  return { obras, cargos }
+  return { obras, cargos, departamentos }
 }
 
 /**

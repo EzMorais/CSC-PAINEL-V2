@@ -48,6 +48,29 @@ model Cargo {
   funcionarios Funcionario[]
 }
 
+/// O organograma da empresa: dois níveis, ramo e setor.
+///
+/// Ramo (Administrativo, Engenharia) tem `paiId` nulo; setor aponta para o ramo. A regra de
+/// só dois níveis mora em `actions/departamentos.ts`, não aqui — o banco aceitaria uma
+/// árvore de qualquer profundidade, e a validação na action é onde o erro vira mensagem.
+///
+/// Não confundir com `Cargo` (a profissão: Pedreiro, Eletricista) nem com o cargo de
+/// SISTEMA do Portal (ADMIN, GERENTE — quem pode o quê). São três coisas diferentes.
+model Departamento {
+  id       String   @id @default(cuid())
+  nome     String   @unique
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  pai    Departamento?  @relation("Hierarquia", fields: [paiId], references: [id])
+  paiId  String?
+  filhos Departamento[] @relation("Hierarquia")
+
+  funcionarios Funcionario[]
+
+  @@index([paiId])
+}
+
 model Funcionario {
   id        String @id @default(cuid())
   matricula String @unique
@@ -60,6 +83,11 @@ model Funcionario {
   sexo           String?
   estadoCivil    String?
   nomeMae        String?
+  /// Foto 3x4 como data URI (data:image/...;base64,...) — mesmo padrão de
+  /// `EntregaUniforme.assinatura` e `Exame.arquivo`: este app não tem armazenamento de
+  /// arquivo (disco, S3), só SQLite. A tela reduz a imagem antes de gravar, porque a foto
+  /// aparece em toda listagem e uma foto de celular inteira pesaria em cada consulta.
+  foto           String?
 
   // ── contato ───────────────────────────────────────────────────────────────
   telefone String?
@@ -106,6 +134,15 @@ model Funcionario {
   cargo   Cargo?  @relation(fields: [cargoId], references: [id])
   cargoId String?
 
+  /// Onde a pessoa está no organograma — vale para todo mundo, obra e escritório.
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id])
+  departamentoId String?
+
+  /// A escada da obra: GERENTE_DE_OBRAS … SERVENTE_AJUDANTE. Ver `NIVEL_OBRA` em
+  /// `lib/dominio/constantes.ts`. Fica vazio para quem é do escritório — é um campo de
+  /// canteiro, e é por ele que o módulo de Alojamentos encontra quem mora em alojamento.
+  nivelObra      String?
+
   dependentes      Dependente[]
   eventos          Evento[]
   entregasUniforme EntregaUniforme[]
@@ -116,6 +153,7 @@ model Funcionario {
 
   @@index([obraId])
   @@index([cargoId])
+  @@index([departamentoId])
   @@index([status])
   @@index([nome])
 }

@@ -46,6 +46,7 @@ export const MODULO = {
   PAINEL: 'PAINEL',
   RH: 'RH',
   ESTOQUE: 'ESTOQUE',
+  ALOJAMENTOS: 'ALOJAMENTOS',
   FROTA: 'FROTA',
 } as const
 
@@ -55,6 +56,7 @@ export const ROTULO_MODULO: Record<Modulo, string> = {
   PAINEL: 'Painel de Locação',
   RH: 'RH e SST',
   ESTOQUE: 'Almoxarifado',
+  ALOJAMENTOS: 'Alojamentos',
   FROTA: 'Frota',
 }
 
@@ -68,6 +70,7 @@ export const URL_MODULO: Record<Modulo, string> = {
   PAINEL: process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3001',
   RH: process.env.NEXT_PUBLIC_URL_RH ?? 'http://localhost:3002',
   ESTOQUE: process.env.NEXT_PUBLIC_URL_ESTOQUE ?? 'http://localhost:3003',
+  ALOJAMENTOS: process.env.NEXT_PUBLIC_URL_ALOJAMENTOS ?? 'http://localhost:3005',
   FROTA: process.env.NEXT_PUBLIC_URL_FROTA ?? 'http://localhost:3000',
 }
 

@@ -57,6 +57,45 @@ export const PARENTESCO = ['FILHO', 'CONJUGE', 'OUTRO'] as const
 export const RISCO_CARGO = ['NORMAL', 'INSALUBRE', 'PERICULOSO'] as const
 
 /**
+ * A escada de comando da obra, do topo para a base.
+ *
+ * A ORDEM do array é a hierarquia — quem ordena por nível usa `NIVEL_OBRA.indexOf(x)`, e
+ * por isso não existe uma coluna `ordem` separada para alguém esquecer de atualizar.
+ *
+ * É lista fixa em código, não tabela no banco, porque a escada de um canteiro não muda: em
+ * dez anos ela é a mesma. Cadastro editável aqui só criaria uma tela de manutenção para
+ * algo que ninguém vai manter, e abriria espaço para variações escritas de outro jeito.
+ *
+ * Não confundir com `Cargo` (a profissão: Pedreiro, Eletricista, Soldador) — uma pessoa é
+ * Pedreiro DE PROFISSÃO e Oficial DE NÍVEL; são eixos diferentes.
+ */
+export const NIVEL_OBRA = [
+  'GERENTE_DE_OBRAS',
+  'ENGENHEIRO',
+  'MESTRE_DE_OBRAS',
+  'ENCARREGADO',
+  'OFICIAL',
+  'MEIO_OFICIAL',
+  'SERVENTE_AJUDANTE',
+] as const
+
+export type NivelObra = (typeof NIVEL_OBRA)[number]
+
+export const ROTULO_NIVEL_OBRA: Record<NivelObra, string> = {
+  GERENTE_DE_OBRAS: 'Gerente de obras',
+  ENGENHEIRO: 'Engenheiro(a)',
+  MESTRE_DE_OBRAS: 'Mestre de obras',
+  ENCARREGADO: 'Encarregado(a)',
+  OFICIAL: 'Oficial',
+  MEIO_OFICIAL: 'Meio-oficial',
+  SERVENTE_AJUDANTE: 'Servente / Ajudante',
+}
+
+/** Os dois ramos do organograma. Todo setor pendura em um deles. */
+export const RAMO_DEPARTAMENTO = ['Administrativo', 'Engenharia'] as const
+export type RamoDepartamento = (typeof RAMO_DEPARTAMENTO)[number]
+
+/**
  * Sufixo `_UNIFORME` de propósito: EPIs (`/epis`, ainda não implementado) vai precisar dos
  * seus próprios "peça"/"motivo de entrega" para `EntregaEpi`, com valores diferentes destes
  * (CA, validade). Nomes genéricos aqui colidiriam com aquele módulo mais tarde.

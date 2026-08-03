@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { DADOS_EXEMPLO, type DadosSeed } from './dados-exemplo'
 import { apenasDigitos, cpfValido } from '../src/lib/dominio/cpf'
-import { EVENTO } from '../src/lib/dominio/constantes'
+import { EVENTO, NIVEL_OBRA } from '../src/lib/dominio/constantes'
 
 // Mesma razão do Painel de Locação: rodando via `tsx`, o carregamento automático do .env
 // depende do Prisma Client já ter inicializado, o que não é garantido em checkout limpo.
@@ -33,6 +33,61 @@ function haDias(dias: number): Date {
   return new Date(hoje - dias * 86_400_000)
 }
 
+/** O organograma da empresa: dois ramos e os setores de cada um. */
+const ORGANOGRAMA: Record<string, string[]> = {
+  Administrativo: [
+    'RH', 'Compras', 'Financeiro', 'Contabilidade', 'Estoque', 'Frota',
+    'Locações', 'TI', 'Jurídico', 'SST',
+  ],
+  Engenharia: [
+    'Obras', 'Planejamento', 'Produção', 'Projetos', 'Orçamentos',
+    'Topografia', 'Medições', 'Qualidade', 'Pós-Obra',
+  ],
+}
+
+/**
+ * Semeia ramos e setores. Ramo primeiro, porque o setor precisa do id do pai.
+ *
+ * `upsert` por nome: rodar o seed de novo não duplica nem apaga o que já existe.
+ */
+async function semearDepartamentos() {
+  let total = 0
+  for (const [ramo, setores] of Object.entries(ORGANOGRAMA)) {
+    const pai = await prisma.departamento.upsert({
+      where: { nome: ramo },
+      update: {},
+      create: { nome: ramo },
+    })
+    total++
+    for (const setor of setores) {
+      await prisma.departamento.upsert({
+        where: { nome: setor },
+        update: { paiId: pai.id },
+        create: { nome: setor, paiId: pai.id },
+      })
+      total++
+    }
+  }
+  console.log(`Departamentos: ${total}`)
+}
+
+/**
+ * Nível de obra a partir do nome do cargo, só para os dados de exemplo terem algo plausível.
+ *
+ * Não é regra de negócio: profissão e nível são eixos independentes (um Pedreiro pode ser
+ * Oficial ou Meio-oficial). Isto existe só para a tela não abrir com a coluna toda vazia.
+ */
+function nivelDoCargo(cargoNome: string | null | undefined): string | null {
+  if (!cargoNome) return null
+  const n = cargoNome.toLowerCase()
+  if (n.includes('mestre')) return 'MESTRE_DE_OBRAS'
+  if (n.includes('encarregado')) return 'ENCARREGADO'
+  if (n.includes('engenheiro')) return 'ENGENHEIRO'
+  if (n.includes('servente') || n.includes('ajudante')) return 'SERVENTE_AJUDANTE'
+  if (n.includes('auxiliar') || n.includes('técnico')) return null // escritório
+  return NIVEL_OBRA[4] // OFICIAL — pedreiro, carpinteiro, eletricista, soldador…
+}
+
 async function main() {
   const { dados, origem } = carregarDados()
   console.log(`Origem dos dados: ${origem}`)
@@ -51,9 +106,13 @@ async function main() {
   }
   console.log(`Cargos: ${dados.cargos.length}`)
 
+  await semearDepartamentos()
+
   // Índices por chave natural, para ligar funcionário → obra/cargo sem depender de ordem.
   const obras = new Map((await prisma.obra.findMany()).map((o) => [o.codigo, o.id]))
   const cargos = new Map((await prisma.cargo.findMany()).map((c) => [c.nome, c.id]))
+  const departamentos = new Map((await prisma.departamento.findMany()).map((d) => [d.nome, d.id]))
+  const idObras = departamentos.get('Obras') ?? null
 
   let criados = 0
   let pulados = 0
@@ -80,6 +139,10 @@ async function main() {
     const obraId = f.obraCodigo ? (obras.get(f.obraCodigo) ?? null) : null
     const cargoId = f.cargoNome ? (cargos.get(f.cargoNome) ?? null) : null
     const admitidoEm = haDias(f.admitidoHaDias)
+    const nivelObra = nivelDoCargo(f.cargoNome)
+    // Quem tem nível de obra está no setor Obras; quem não tem é escritório e fica sem
+    // setor definido, para o cadastro mostrar a pendência em vez de inventar um lotação.
+    const departamentoId = nivelObra ? idObras : null
 
     await prisma.funcionario.create({
       data: {
@@ -97,6 +160,8 @@ async function main() {
         tamanhoCalcado: f.tamanhoCalcado,
         obraId,
         cargoId,
+        departamentoId,
+        nivelObra,
         eventos: {
           create: {
             tipo: EVENTO.ADMISSAO,

@@ -1,4 +1,4 @@
-import { Building2, Users, Package, Truck, ArrowUpRight, Lock, ShieldCheck } from 'lucide-react'
+import { Building2, Users, Package, House, Truck, ArrowUpRight, Lock, ShieldCheck } from 'lucide-react'
 import { exigirSessao, temAcesso } from '@/lib/auth'
 import {
   MODULO, ROTULO_MODULO, URL_MODULO, ROTULO_CARGO, DESCRICAO_CARGO, TOM_CARGO,
@@ -23,6 +23,7 @@ const SISTEMAS: Array<{
   { modulo: MODULO.PAINEL,  descricao: 'Equipamentos alugados por obra, vencimentos e custo',  Icone: Building2 },
   { modulo: MODULO.RH,      descricao: 'Funcionários, treinamentos, exames, EPIs e documentos', Icone: Users },
   { modulo: MODULO.ESTOQUE, descricao: 'Materiais, entradas e saídas por obra, compras',        Icone: Package },
+  { modulo: MODULO.ALOJAMENTOS, descricao: 'Moradia dos funcionários, pedidos e programação',   Icone: House },
   { modulo: MODULO.FROTA,   descricao: 'Veículos, manutenções e abastecimento',                 Icone: Truck },
 ]
 

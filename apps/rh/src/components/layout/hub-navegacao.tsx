@@ -1,21 +1,23 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Building2, Users, Package, Check, X } from 'lucide-react'
+import { LayoutGrid, Building2, Users, Package, House, Check, X } from 'lucide-react'
 
 /** Mesmo host, portas diferentes — a sessão do Portal vale nos quatro. */
 const URL_PORTAL = process.env.NEXT_PUBLIC_URL_PORTAL ?? 'http://localhost:3004'
 const URL_PAINEL = process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3001'
 const URL_RH = process.env.NEXT_PUBLIC_URL_RH ?? 'http://localhost:3002'
 const URL_ESTOQUE = process.env.NEXT_PUBLIC_URL_ESTOQUE ?? 'http://localhost:3003'
+const URL_ALOJAMENTOS = process.env.NEXT_PUBLIC_URL_ALOJAMENTOS ?? 'http://localhost:3005'
 
-type Sistema = 'PORTAL' | 'PAINEL' | 'RH' | 'ESTOQUE'
+type Sistema = 'PORTAL' | 'PAINEL' | 'RH' | 'ESTOQUE' | 'ALOJAMENTOS'
 
 const ITENS: { chave: Sistema; rotulo: string; Icone: typeof LayoutGrid; url: string; modulo?: string }[] = [
   { chave: 'PORTAL', rotulo: 'Portal', Icone: LayoutGrid, url: URL_PORTAL },
   { chave: 'PAINEL', rotulo: 'Painel de Locação', Icone: Building2, url: URL_PAINEL, modulo: 'PAINEL' },
   { chave: 'RH', rotulo: 'RH e SST', Icone: Users, url: URL_RH, modulo: 'RH' },
   { chave: 'ESTOQUE', rotulo: 'Almoxarifado', Icone: Package, url: URL_ESTOQUE, modulo: 'ESTOQUE' },
+  { chave: 'ALOJAMENTOS', rotulo: 'Alojamentos', Icone: House, url: URL_ALOJAMENTOS, modulo: 'ALOJAMENTOS' },
 ]
 
 /**

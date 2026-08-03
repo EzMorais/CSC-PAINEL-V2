@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Os usuários não moram aqui — quem cadastra gente e confere senha é o Portal
+/// (`apps/portal`). Este módulo só lê o crachá de sessão que ele assina.
+
+/// Espelho enxuto do cadastro de obras, com o endereço que os outros módulos não têm.
+///
+/// Banco separado significa que não dá para apontar por chave estrangeira para a obra do
+/// Painel de Locação. O `codigo` é a chave natural que liga as bases — o mesmo combinado já
+/// usado entre RH, Almoxarifado e Painel.
+///
+/// Endereço e coordenadas vivem aqui e não lá porque só este módulo precisa deles hoje:
+/// mexer no cadastro dos outros três para atender um módulo novo seria arriscar o que já
+/// funciona. Se um dia a empresa quiser endereço de obra em todo lugar, o lugar certo é o
+/// Painel de Locação, que é onde as obras nascem.
+model Obra {
+  id        String   @id @default(cuid())
+  codigo    String   @unique
+  cliente   String
+  descricao String
+  endereco  String?
+  cidade    String?
+  uf        String?
+  /// Preenchidas pela geocodificação do Google a partir do endereço — ver `lib/geo.ts`.
+  lat       Float?
+  lng       Float?
+  ativa     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+
+  alocacoes  Alocacao[]
+  distancias DistanciaObra[]
+}
+
+model Alojamento {
+  id     String @id @default(cuid())
+  nome   String
+
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  uf          String?
+  lat         Float?
+  lng         Float?
+
+  /// Só informativa: a capacidade que vale é a soma dos quartos, calculada na consulta.
+  /// Serve para alojamento cadastrado às pressas, antes de alguém detalhar os quartos.
+  capacidadeTotal Int?
+
+  responsavelNome     String?
+  /// Telefone do responsável, com DDD. Guardado em texto porque é o que a integração de
+  /// WhatsApp vai usar como destino — ver `lib/whatsapp.ts`.
+  telefoneResponsavel String?
+
+  foto        String? // data URI, mesmo padrão da foto do funcionário no RH
+  observacoes String?
+  ativo       Boolean @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  quartos      Quarto[]
+  alocacoes    Alocacao[]
+  pedidos      Pedido[]
+  programacoes Programacao[]
+  distancias   DistanciaObra[]
+
+  @@index([ativo])
+}
+
+model Quarto {
+  id          String  @id @default(cuid())
+  numero      String
+  capacidade  Int     @default(1)
+  tipo        String? // MASCULINO | FEMININO | MISTO
+  observacoes String?
+  ativo       Boolean @default(true)
+
+  criadoEm DateTime @default(now())
+
+  alojamento   Alojamento @relation(fields: [alojamentoId], references: [id], onDelete: Cascade)
+  alojamentoId String
+  alocacoes    Alocacao[]
+
+  @@unique([alojamentoId, numero])
+}
+
+/// Quem mora onde, e desde quando.
+///
+/// O funcionário vem do RH e não tem chave estrangeira aqui: são bancos separados. Nome e
+/// matrícula são cópias do momento da alocação, mesmo padrão do Almoxarifado — a lista de
+/// moradores tem de continuar legível com o RH fora do ar, e continuar contando a história
+/// certa se a pessoa for renomeada ou desligada depois.
+model Alocacao {
+  id                   String  @id @default(cuid())
+  funcionarioId        String
+  funcionarioNome      String
+  funcionarioMatricula String
+  /// Cópia do código da obra do funcionário na hora da alocação, para o extrato não
+  /// depender do RH nem mudar sozinho quando a pessoa trocar de obra.
+  obraCodigo           String?
+
+  alojamento   Alojamento @relation(fields: [alojamentoId], references: [id])
+  alojamentoId String
+  quarto       Quarto?    @relation(fields: [quartoId], references: [id])
+  quartoId     String?
+  obra         Obra?      @relation(fields: [obraId], references: [id])
+  obraId       String?
+
+  dataEntrada DateTime
+  dataSaida   DateTime?
+  status      String    @default("ATIVA") // ATIVA | ENCERRADA
+  motivoSaida String?
+
+  /// Como a pessoa vai daqui até a obra. Carona e ônibus fretado são a realidade do
+  /// canteiro; sem isto, o módulo saberia onde ela dorme e nada sobre como ela chega.
+  transporteTipo String  @default("PROPRIO") // PROPRIO | CARONA | ONIBUS
+  caronaComNome  String?
+
+  rotaOnibus   RotaOnibus? @relation(fields: [rotaOnibusId], references: [id])
+  rotaOnibusId String?
+
+  observacoes   String?
+  registradoPor String?
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  pedidos Pedido[]
+
+  @@index([funcionarioId])
+  @@index([alojamentoId])
+  @@index([status])
+}
+
+/// Ônibus fretado: uma rota serve muita gente, então é entidade própria e não um campo
+/// repetido em cada alocação — trocar o horário de uma rota tem de valer para todos de uma
+/// vez, não exigir editar quarenta cadastros.
+model RotaOnibus {
+  id           String  @id @default(cuid())
+  nome         String
+  motorista    String?
+  /// Placa ou descrição livre. Sem ligação com o módulo de Frota: ele tem login próprio e
+  /// está fora desta integração.
+  veiculo      String?
+  horarioIda   String?
+  horarioVolta String?
+  capacidade   Int?
+  obraCodigo   String?
+  observacao   String?
+  ativo        Boolean @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  alocacoes Alocacao[]
+
+  @@index([obraCodigo])
+}
+
+/// Pedido de quem mora: material de limpeza, manutenção, ou algo pessoal.
+///
+/// Sem fluxo de aprovação de propósito. O Almoxarifado tem aprovação porque lá um
+/// lançamento mexe em saldo e em dinheiro; um pedido de vassoura não tem esse risco, e uma
+/// etapa a mais só faria o pedido demorar sem proteger nada.
+model Pedido {
+  id        String  @id @default(cuid())
+  tipo      String // LIMPEZA | MANUTENCAO | PESSOAL
+  titulo    String
+  descricao String?
+  status    String  @default("ABERTO") // ABERTO | EM_ANDAMENTO | ATENDIDO | CANCELADO
+  prioridade String @default("NORMAL") // BAIXA | NORMAL | ALTA
+
+  /// Quem pediu. Opcional: um pedido pode ser do alojamento inteiro (a pia quebrou), não
+  /// de uma pessoa.
+  alocacao        Alocacao? @relation(fields: [alocacaoId], references: [id])
+  alocacaoId      String?
+  funcionarioNome String?
+
+  atendidoPor        String?
+  atendidoEm         DateTime?
+  respostaObservacao String?
+
+  registradoPor String?
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  alojamento   Alojamento @relation(fields: [alojamentoId], references: [id])
+  alojamentoId String
+
+  @@index([status])
+  @@index([alojamentoId])
+  @@index([tipo])
+}
+
+/// A programação do dia: ônibus, limpeza, refeição, aviso.
+///
+/// `alojamentoId` nulo é aviso geral, para todos os alojamentos — é o caso do "amanhã não
+/// tem expediente", que não pertence a um prédio só.
+model Programacao {
+  id     String   @id @default(cuid())
+  /// Meia-noite UTC, mesma convenção de data de calendário usada no RH.
+  data   DateTime
+  tipo   String // ONIBUS | LIMPEZA | REFEICAO | MANUTENCAO | AVISO
+  titulo String
+
+  descricao       String?
+  /// Texto livre ("06:00", "após o almoço") — horário de canteiro raramente é um relógio.
+  horario         String?
+  responsavelNome String?
+
+  criadoPor    String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  alojamento   Alojamento? @relation(fields: [alojamentoId], references: [id])
+  alojamentoId String?
+
+  @@index([data])
+  @@index([alojamentoId])
+}
+
+/// Distância e tempo de alojamento até obra, guardados depois de calculados.
+///
+/// Por PAR, não por pessoa: vinte moradores do mesmo alojamento indo para a mesma obra
+/// fazem a mesma viagem, e recalcular por pessoa só queimaria cota da API do Google.
+model DistanciaObra {
+  id           String     @id @default(cuid())
+  alojamento   Alojamento @relation(fields: [alojamentoId], references: [id], onDelete: Cascade)
+  alojamentoId String
+  obra         Obra       @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obraId       String
+
+  distanciaKm Float
+  duracaoMin  Int
+  calculadoEm DateTime @default(now())
+
+  @@unique([alojamentoId, obraId])
+}

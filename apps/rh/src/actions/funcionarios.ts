@@ -6,7 +6,7 @@ import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { obterFuncionario } from '@/queries/funcionarios'
 import { apenasDigitos, cpfValido } from '@/lib/dominio/cpf'
-import { EVENTO, ROTULO_STATUS, STATUS, type Status } from '@/lib/dominio/constantes'
+import { EVENTO, NIVEL_OBRA, ROTULO_STATUS, STATUS, type Status } from '@/lib/dominio/constantes'
 import { dataBR } from '@/lib/dominio/formato'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
@@ -41,6 +41,15 @@ const esquema = z.object({
   sexo: opcional,
   estadoCivil: opcional,
   nomeMae: opcional,
+  /**
+   * Foto já convertida para data URI pela tela (`lib/imagem-cliente.ts`).
+   *
+   * A checagem do prefixo não é firula: sem ela, um nome de arquivo escapando do formulário
+   * viraria um `src` quebrado em toda listagem, e a causa só apareceria olhando o banco.
+   */
+  foto: z
+    .union([z.string().trim().startsWith('data:image/', 'Foto inválida — envie uma imagem.'), z.literal('')])
+    .optional(),
 
   telefone: opcional,
   email: z.union([z.string().trim().email('E-mail inválido.'), z.literal('')]).optional(),
@@ -55,6 +64,8 @@ const esquema = z.object({
 
   obraId: opcional,
   cargoId: opcional,
+  departamentoId: opcional,
+  nivelObra: z.union([z.enum(NIVEL_OBRA), z.literal('')]).optional(),
   salario: z.union([z.coerce.number().nonnegative('Salário não pode ser negativo.'), z.literal('')]).optional(),
 
   banco: opcional,
@@ -83,6 +94,7 @@ function paraBanco(d: z.infer<typeof esquema>) {
     sexo: d.sexo ?? null,
     estadoCivil: d.estadoCivil ?? null,
     nomeMae: d.nomeMae ?? null,
+    foto: d.foto || null,
     telefone: d.telefone ?? null,
     email: d.email || null,
     cep: d.cep ?? null,
@@ -94,6 +106,8 @@ function paraBanco(d: z.infer<typeof esquema>) {
     uf: d.uf ?? null,
     obraId: d.obraId ?? null,
     cargoId: d.cargoId ?? null,
+    departamentoId: d.departamentoId ?? null,
+    nivelObra: d.nivelObra || null,
     salario: typeof d.salario === 'number' ? d.salario : null,
     banco: d.banco ?? null,
     agencia: d.agencia ?? null,
