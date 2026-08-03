@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { exigirLancamento } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { PRIORIDADE_PEDIDO, STATUS_PEDIDO, TIPO_PEDIDO } from '@/lib/dominio/constantes'
+import { avisarGestaoDePedidoNovo, avisarMoradorDeStatus } from '@/lib/avisos-pedido'
 
 export type Resultado<T = void> = { ok: true; dados: T } | { ok: false; erro: string }
 
@@ -51,6 +52,11 @@ export async function criarPedido(entrada: unknown): Promise<Resultado<{ id: str
     })
 
     revalidarTelas('/', '/pedidos')
+
+    // Sem `await`: o pedido já está gravado, e um WhatsApp lento não pode segurar a tela de
+    // quem acabou de registrar. A falha, se houver, fica em MensagemWhatsapp.
+    void avisarGestaoDePedidoNovo(criado.id)
+
     return { ok: true, dados: { id: criado.id } }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao registrar o pedido.' }
@@ -89,6 +95,10 @@ export async function atualizarStatusPedido(id: string, entrada: unknown): Promi
       },
     })
     revalidarTelas('/', '/pedidos')
+
+    // Só avisa pedido que veio do WhatsApp — a checagem está dentro de `avisarMoradorDeStatus`.
+    void avisarMoradorDeStatus(id, d.status)
+
     return { ok: true, dados: undefined }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao atualizar o pedido.' }

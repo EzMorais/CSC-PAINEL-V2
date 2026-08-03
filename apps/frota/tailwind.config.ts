@@ -1,17 +1,61 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * A paleta vem de variáveis CSS, e não de valores fixos.
+ *
+ * É isso que permite o tema escuro sem reescrever componente nenhum: `bg-concreto` continua
+ * escrito igual em toda a interface, e o que muda é o valor de `--cor-concreto` quando a
+ * classe `dark` entra no <html>. A alternativa — pôr `dark:` em cada classe de cada tela —
+ * seriam centenas de edições e uma chance de esquecer alguma em cada uma.
+ *
+ * `<alpha-value>` é o que mantém `bg-sinal/12` funcionando: sem ele o Tailwind não consegue
+ * aplicar transparência sobre uma variável.
+ */
+const cor = (nome: string) => `rgb(var(${nome}) / <alpha-value>)`;
+
 export default {
   content: ['./src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        grafite:  { DEFAULT: '#12161C', 800: '#1B2129', 700: '#2A323C', 600: '#3D4650' },
-        concreto: { DEFAULT: '#F5F6F4', 100: '#EDEFEC', 200: '#E0E3DE', 300: '#CBD0C9' },
-        hivis:    { DEFAULT: '#D7E021', escuro: '#A8AF19', fraco: '#F4F7C9' },
-        sinal:    { DEFAULT: '#E4572E', fraco: '#FDEDE8' },
-        ambar:    { DEFAULT: '#E09B2D', fraco: '#FDF3E2' },
-        mata:     { DEFAULT: '#2D6A4F', fraco: '#E7F1EC' },
-        aco:      { DEFAULT: '#3E6C8F', fraco: '#E9F0F5' },
+        grafite: {
+          DEFAULT: cor('--cor-grafite'),
+          800: cor('--cor-grafite-800'),
+          700: cor('--cor-grafite-700'),
+          600: cor('--cor-grafite-600'),
+        },
+        concreto: {
+          DEFAULT: cor('--cor-concreto'),
+          100: cor('--cor-concreto-100'),
+          200: cor('--cor-concreto-200'),
+          300: cor('--cor-concreto-300'),
+        },
+        /** A superfície de cartões e menus — era `bg-white` fixo. */
+        superficie: cor('--cor-superficie'),
+        /**
+         * A barra lateral e o topo: escuros nos DOIS temas, de propósito.
+         *
+         * Eles já eram invertidos em relação ao corpo — fundo grafite, texto claro. Se
+         * usassem a paleta normal, o tema escuro os deixaria claros, e a única parte
+         * brilhante da tela seria justamente a moldura.
+         */
+        barra: {
+          DEFAULT: cor('--cor-barra'),
+          800: cor('--cor-barra-800'),
+          700: cor('--cor-barra-700'),
+          texto: cor('--cor-barra-texto'),
+          suave: cor('--cor-barra-suave'),
+        },
+        hivis: {
+          DEFAULT: cor('--cor-hivis'),
+          escuro: cor('--cor-hivis-escuro'),
+          fraco: cor('--cor-hivis-fraco'),
+        },
+        sinal: { DEFAULT: cor('--cor-sinal'), fraco: cor('--cor-sinal-fraco') },
+        ambar: { DEFAULT: cor('--cor-ambar'), fraco: cor('--cor-ambar-fraco') },
+        mata: { DEFAULT: cor('--cor-mata'), fraco: cor('--cor-mata-fraco') },
+        aco: { DEFAULT: cor('--cor-aco'), fraco: cor('--cor-aco-fraco') },
       },
       fontFamily: {
         cond: ['var(--fonte-cond)', 'Arial Narrow', 'sans-serif'],

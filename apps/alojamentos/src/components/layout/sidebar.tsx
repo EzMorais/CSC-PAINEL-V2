@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, House, BedDouble, ClipboardList, CalendarDays, Bus, Building2,
-  Menu, X, LogOut, ExternalLink,
+  MessageCircle, Menu, X, LogOut, ExternalLink,
 } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { Marca } from '@/components/marca/logo'
@@ -19,6 +19,7 @@ const ITENS = [
   { href: '/programacao',  rotulo: 'Programação',  Icone: CalendarDays },
   { href: '/rotas',        rotulo: 'Ônibus',       Icone: Bus },
   { href: '/obras',        rotulo: 'Obras',        Icone: Building2 },
+  { href: '/configuracoes/whatsapp', rotulo: 'WhatsApp', Icone: MessageCircle },
 ]
 
 /** Onde o RH responde. Mesmo host, outra porta — a sessão vale nos dois. */

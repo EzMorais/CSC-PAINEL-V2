@@ -38,6 +38,24 @@ export function SeloPrioridade({ prioridade }: { prioridade: string }) {
   return <span className={clsx('selo', estilosPrioridade[prioridade] ?? 'bg-concreto-200 text-grafite-600')}>{prioridade}</span>;
 }
 
+/**
+ * Selo com o nome do campo em cima do valor.
+ *
+ * Sem o rótulo, uma fila de selos ("QWY5H67  Aberto  Alta  Mecânica") obriga quem lê a
+ * deduzir o que é cada um pelo formato do valor — e "Alta"/"Mecânica" não têm formato que
+ * denuncie a que campo pertencem.
+ */
+export function CampoSelo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex flex-col gap-0.5">
+      <span className="text-[10px] font-medium uppercase leading-none tracking-wide text-grafite-600/70">
+        {rotulo}
+      </span>
+      {children}
+    </span>
+  )
+}
+
 export function Placa({ valor }: { valor: string }) {
   const vazia = !valor || valor === '-';
   return (

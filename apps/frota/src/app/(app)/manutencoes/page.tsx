@@ -1,7 +1,7 @@
 import { db, manutencoes as tManut, veiculos as tVeiculos, anexos as tAnexos } from '@/db';
 import { Cabecalho } from '@/components/Casca';
 import { Kpi } from '@/components/Kpi';
-import { SeloStatus, SeloPrioridade, Placa } from '@/components/Selo';
+import { SeloStatus, SeloPrioridade, Placa, CampoSelo } from '@/components/Selo';
 import { dataBr, brl, diasAteVencer } from '@/lib/frota';
 import { PainelManutencao, BotaoNovoProblema } from './painel';
 
@@ -93,11 +93,19 @@ export default async function PaginaManutencoes({
                 <li key={m.id} className="cartao p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Placa valor={m.placa} />
-                        <SeloStatus status={m.status} />
-                        <SeloPrioridade prioridade={m.prioridade} />
-                        <span className="selo bg-concreto-100 text-grafite-600">{m.categoria}</span>
+                      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+                        <CampoSelo rotulo="Placa">
+                          <Placa valor={m.placa} />
+                        </CampoSelo>
+                        <CampoSelo rotulo="Situação">
+                          <SeloStatus status={m.status} />
+                        </CampoSelo>
+                        <CampoSelo rotulo="Prioridade">
+                          <SeloPrioridade prioridade={m.prioridade} />
+                        </CampoSelo>
+                        <CampoSelo rotulo="Tipo de ocorrência">
+                          <span className="selo bg-concreto-100 text-grafite-600">{m.categoria}</span>
+                        </CampoSelo>
                       </div>
 
                       <p className="mt-2 text-sm font-medium leading-snug text-grafite">{m.problema}</p>

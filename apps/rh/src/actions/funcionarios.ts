@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { exigirLancamento } from '@/lib/auth'
+import { exigirLancamento, exigirAdministracao } from '@/lib/auth'
 import { revalidarTelas } from '@/lib/revalidar'
 import { obterFuncionario } from '@/queries/funcionarios'
 import { apenasDigitos, cpfValido } from '@/lib/dominio/cpf'
@@ -355,4 +355,104 @@ export async function removerDependente(id: string, funcionarioId: string): Prom
 export async function carregarFuncionario(id: string) {
   await exigirLancamento()
   return obterFuncionario(id)
+}
+
+export type Vinculos = {
+  entregasEpi: number
+  entregasUniforme: number
+  exames: number
+  treinamentos: number
+  documentos: number
+  eventos: number
+  dependentes: number
+  total: number
+}
+
+/** O que está pendurado no funcionário. A tela mostra antes de perguntar se apaga mesmo. */
+export async function vinculosDoFuncionario(id: string): Promise<Resultado<Vinculos>> {
+  await exigirLancamento()
+  try {
+    const [entregasEpi, entregasUniforme, exames, treinamentos, documentos, eventos, dependentes] =
+      await Promise.all([
+        prisma.entregaEpi.count({ where: { funcionarioId: id } }),
+        prisma.entregaUniforme.count({ where: { funcionarioId: id } }),
+        prisma.exame.count({ where: { funcionarioId: id } }),
+        prisma.treinamentoParticipante.count({ where: { funcionarioId: id } }),
+        prisma.documento.count({ where: { funcionarioId: id } }),
+        prisma.evento.count({ where: { funcionarioId: id } }),
+        prisma.dependente.count({ where: { funcionarioId: id } }),
+      ])
+
+    // Eventos e dependentes ficam fora do total: evento é gerado pelo próprio sistema a cada
+    // admissão e mudança de status, e dependente só existe por causa desta pessoa. Nenhum
+    // dos dois é prova exigida por lei — contá-los faria toda exclusão parecer perigosa e a
+    // trava perderia o sentido.
+    const total = entregasEpi + entregasUniforme + exames + treinamentos + documentos
+
+    return {
+      ok: true,
+      dados: { entregasEpi, entregasUniforme, exames, treinamentos, documentos, eventos, dependentes, total },
+    }
+  } catch (e) {
+    return { ok: false, erro: mensagem(e, 'Falha ao conferir os vínculos.') }
+  }
+}
+
+/**
+ * Apaga o funcionário de vez.
+ *
+ * Só o administrador, e só quem NÃO tem registro de EPI, uniforme, exame, treinamento ou
+ * documento. Não é zelo excessivo: ficha de entrega de EPI é a prova que a NR-6 exige, e
+ * ASO é o que a fiscalização pede. Apagar a pessoa apagaria a prova junto, e a empresa
+ * descobriria isso numa autuação, anos depois.
+ *
+ * Para quem tem histórico existe o desligamento (`status = DESLIGADO`), que é o que a
+ * situação real quase sempre pede: a pessoa saiu, e o que ela recebeu continua provado.
+ *
+ * Esta função serve ao outro caso, o que hoje não tem saída nenhuma: o cadastro criado
+ * errado — nome duplicado, CPF trocado, pessoa que nunca chegou a trabalhar.
+ */
+export async function excluirFuncionario(id: string): Promise<Resultado<{ nome: string }>> {
+  await exigirAdministracao()
+
+  try {
+    const funcionario = await prisma.funcionario.findUnique({
+      where: { id },
+      select: { nome: true },
+    })
+    if (!funcionario) return { ok: false, erro: 'Funcionário não encontrado.' }
+
+    const vinculos = await vinculosDoFuncionario(id)
+    if (!vinculos.ok) return vinculos
+    if (vinculos.dados.total > 0) {
+      const partes = [
+        vinculos.dados.entregasEpi && `${vinculos.dados.entregasEpi} entregas de EPI`,
+        vinculos.dados.entregasUniforme && `${vinculos.dados.entregasUniforme} entregas de uniforme`,
+        vinculos.dados.exames && `${vinculos.dados.exames} exames`,
+        vinculos.dados.treinamentos && `${vinculos.dados.treinamentos} treinamentos`,
+        vinculos.dados.documentos && `${vinculos.dados.documentos} documentos`,
+      ].filter(Boolean)
+
+      return {
+        ok: false,
+        erro:
+          `${funcionario.nome} tem ${partes.join(', ')}. Esses registros são a prova de que a ` +
+          'empresa entregou EPI e fez os exames — apagar a pessoa apagaria a prova junto. ' +
+          'Registre o desligamento em vez de excluir.',
+      }
+    }
+
+    // Numa transação: apagar a pessoa e deixar evento ou dependente órfão deixaria linhas
+    // apontando para um id que não existe mais, e a linha do tempo quebraria na próxima tela.
+    await prisma.$transaction([
+      prisma.evento.deleteMany({ where: { funcionarioId: id } }),
+      prisma.dependente.deleteMany({ where: { funcionarioId: id } }),
+      prisma.funcionario.delete({ where: { id } }),
+    ])
+
+    revalidarTelas('/funcionarios', '/')
+    return { ok: true, dados: { nome: funcionario.nome } }
+  } catch (e) {
+    return { ok: false, erro: mensagem(e, 'Falha ao excluir o funcionário.') }
+  }
 }

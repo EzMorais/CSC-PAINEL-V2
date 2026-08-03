@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { ProvedorTema } from '@/components/Tema';
 
 export const metadata: Metadata = {
   title: 'Frota — Siqueira Campos',
@@ -14,7 +15,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    // `suppressHydrationWarning` porque o next-themes escreve a classe do tema no <html>
+    // antes do React assumir — sem isto, todo carregamento avisa que o HTML não bate.
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         {/* Melhoria progressiva: se o servidor tiver internet, sobe para as fontes
             desenhadas. Sem rede, a stack nativa do Windows assume sem quebrar nada. */}
@@ -25,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <ProvedorTema>{children}</ProvedorTema>
+      </body>
     </html>
   );
 }

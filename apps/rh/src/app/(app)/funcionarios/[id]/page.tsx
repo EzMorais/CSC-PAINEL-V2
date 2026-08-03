@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { FormFuncionario } from '@/components/funcionarios/form-funcionario'
 import { Timeline } from '@/components/funcionarios/timeline'
+import { ExcluirFuncionario } from '@/components/funcionarios/excluir-funcionario'
+import { exigirSessao } from '@/lib/auth'
+import { podeAdministrar } from '@/lib/dominio/cargos'
 import { obterFuncionario, opcoes } from '@/queries/funcionarios'
 import { formatarCpf } from '@/lib/dominio/cpf'
 import { ROTULO_STATUS, type Status } from '@/lib/dominio/constantes'
@@ -25,8 +28,11 @@ function paraCampoData(d: Date | null): string {
 
 export default async function FuncionarioPage({ params }: Props) {
   const { id } = await params
-  const [funcionario, listas] = await Promise.all([obterFuncionario(id), opcoes()])
+  const [sessao, funcionario, listas] = await Promise.all([
+    exigirSessao(), obterFuncionario(id), opcoes(),
+  ])
   if (!funcionario) notFound()
+  const ehAdmin = podeAdministrar(sessao.cargo)
 
   const valores: Record<string, string> = {
     nome: funcionario.nome,
@@ -106,6 +112,17 @@ export default async function FuncionarioPage({ params }: Props) {
           />
         </aside>
       </div>
+
+      {ehAdmin && (
+        <section className="rounded-lg border border-border bg-card p-4">
+          <h2 className="text-sm font-medium">Excluir cadastro</h2>
+          <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
+            Para quem foi cadastrado por engano. Quem já recebeu EPI, fez exame ou treinamento
+            não pode ser apagado — nesse caso o certo é registrar o desligamento.
+          </p>
+          <ExcluirFuncionario id={funcionario.id} nome={funcionario.nome} />
+        </section>
+      )}
     </div>
   )
 }

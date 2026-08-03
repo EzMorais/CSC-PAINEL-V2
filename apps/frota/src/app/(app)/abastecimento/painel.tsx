@@ -134,7 +134,7 @@ export function PainelAbastecimento({
         </button>
 
         {menu && (
-          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-lg border border-concreto-200 bg-white py-1 shadow-lg">
+          <div className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-lg border border-concreto-200 bg-superficie py-1 shadow-lg">
             <button type="button" onMouseDown={() => setEditar(true)}
               className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-grafite hover:bg-concreto-100">
               <Pencil size={16} strokeWidth={1.75} /> Editar

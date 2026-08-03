@@ -29,7 +29,7 @@ function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-grafite/50 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-barra/60 p-0 sm:items-center sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) aoFechar(); }}
     >
       <div
@@ -37,9 +37,9 @@ function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-xl bg-white sm:rounded-xl"
+        className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-xl bg-superficie sm:rounded-xl"
       >
-        <div className="sticky top-0 border-b border-concreto-200 bg-white px-5 py-3.5">
+        <div className="sticky top-0 border-b border-concreto-200 bg-superficie px-5 py-3.5">
           <h2 className="font-cond text-lg font-semibold uppercase tracking-wide text-grafite">
             {titulo}
           </h2>
@@ -182,7 +182,7 @@ export function PainelVeiculo({ veiculo }: { veiculo: Veiculo }) {
         </button>
 
         {menu && (
-          <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-lg border border-concreto-200 bg-white py-1 shadow-lg">
+          <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-lg border border-concreto-200 bg-superficie py-1 shadow-lg">
             <button
               type="button"
               onMouseDown={() => setModal('motorista')}

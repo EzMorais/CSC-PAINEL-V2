@@ -43,6 +43,8 @@ export const TOM_CARGO: Record<Cargo, 'ativa' | 'atencao' | 'vencida' | 'devolvi
 }
 
 export const MODULO = {
+  CADASTROS: 'CADASTROS',
+  PROGRAMACAO: 'PROGRAMACAO',
   PAINEL: 'PAINEL',
   RH: 'RH',
   ESTOQUE: 'ESTOQUE',
@@ -53,6 +55,8 @@ export const MODULO = {
 export type Modulo = (typeof MODULO)[keyof typeof MODULO]
 
 export const ROTULO_MODULO: Record<Modulo, string> = {
+  CADASTROS: 'Cadastros',
+  PROGRAMACAO: 'Programação diária',
   PAINEL: 'Painel de Locação',
   RH: 'RH e SST',
   ESTOQUE: 'Almoxarifado',
@@ -65,8 +69,12 @@ export const ROTULO_MODULO: Record<Modulo, string> = {
  *
  * A Frota fica na 3000 por ser a única que já roda como serviço do Windows; o Painel de
  * Locação usa a 3001 quando as duas convivem no mesmo computador.
+ *
+ * Cadastros é caminho relativo por morar dentro do próprio Portal — não é outro servidor.
  */
 export const URL_MODULO: Record<Modulo, string> = {
+  CADASTROS: '/cadastros',
+  PROGRAMACAO: process.env.NEXT_PUBLIC_URL_PROGRAMACAO ?? 'http://localhost:3007',
   PAINEL: process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3001',
   RH: process.env.NEXT_PUBLIC_URL_RH ?? 'http://localhost:3002',
   ESTOQUE: process.env.NEXT_PUBLIC_URL_ESTOQUE ?? 'http://localhost:3003',
