@@ -54,6 +54,45 @@ model AcessoModulo {
   @@index([modulo])
 }
 
+/// Catálogo da empresa: obras, casas, veículos, máquinas, materiais.
+///
+/// Uma tabela só, com `tipo` separando, e não cinco tabelas: os campos são os mesmos —
+/// código, nome, um qualificador, um identificador físico — e o que muda de um tipo para o
+/// outro é só o RÓTULO na tela. Com cinco modelos, cadastrar um sexto tipo (andaime,
+/// ferramenta) exigiria migração, modelo, tela e ação novos; aqui é uma linha em
+/// `lib/dominio/cadastros.ts`.
+///
+/// Este catálogo é do Portal e não substitui os cadastros que cada módulo já tem — o
+/// Almoxarifado continua dono dos materiais que movimenta, a Frota dos veículos que
+/// abastece. Aqui fica a lista da empresa, para consulta e padronização de código e nome.
+model ItemCadastro {
+  id     String @id @default(cuid())
+  /// OBRA | CASA | VEICULO | MAQUINA | MATERIAL — ver lib/dominio/cadastros.ts
+  tipo   String
+  codigo String
+  nome   String
+  /// O que qualifica o item: cliente da obra, marca/modelo, categoria do material.
+  detalhe String?
+  /// O identificador no mundo físico: placa, número de série, patrimônio.
+  identificador String?
+  /// Onde o item está: endereço da casa, local da obra, obra onde a máquina opera.
+  local String?
+  /// Unidade de medida do material (SC, KG, UN) — vazio nos tipos onde não faz sentido.
+  unidade String?
+  /// Capacidade da casa, potência da máquina, metragem da obra.
+  quantidade Float?
+  observacao String?
+  ativo      Boolean @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  /// Código repetido DENTRO do mesmo tipo é erro; entre tipos não é — a obra "01" e o
+  /// material "01" não têm relação nenhuma.
+  @@unique([tipo, codigo])
+  @@index([tipo])
+}
+
 /// Registro de quem entrou e quando, para o Portal poder responder "quem mexeu nisso".
 ///
 /// Guarda o e-mail em texto, e não uma relação: o registro tem de sobreviver à exclusão do

@@ -32,6 +32,7 @@ const esquema = z.object({
     .default(TIPO_TRANSPORTE.PROPRIO),
   caronaComNome: opcional,
   rotaOnibusId: opcional,
+  telefone: opcional,
   observacoes: opcional,
 })
 
@@ -95,6 +96,7 @@ export async function criarAlocacao(entrada: unknown): Promise<Resultado<{ id: s
         transporteTipo: d.transporteTipo,
         caronaComNome: d.transporteTipo === TIPO_TRANSPORTE.CARONA ? d.caronaComNome ?? null : null,
         rotaOnibusId: d.transporteTipo === TIPO_TRANSPORTE.ONIBUS ? d.rotaOnibusId ?? null : null,
+        telefone: d.telefone ?? null,
         observacoes: d.observacoes ?? null,
         registradoPor: (await exigirLancamento()).nome,
       },
@@ -150,6 +152,33 @@ const esquemaTransporte = z.object({
   caronaComNome: opcional,
   rotaOnibusId: opcional,
 })
+
+/**
+ * Grava o WhatsApp de quem já está alocado.
+ *
+ * Separado do formulário de alocação porque a maioria dos moradores foi cadastrada antes de
+ * o WhatsApp existir no módulo — sem uma forma de preencher depois, o recurso só valeria
+ * para quem entrasse a partir de agora.
+ */
+export async function atualizarTelefone(id: string, telefone: string): Promise<Resultado> {
+  await exigirLancamento()
+
+  const limpo = telefone.trim()
+  // Só dígitos suficientes para um número brasileiro com DDD. Guardar meio número faria a
+  // mensagem que chegasse não casar com ninguém, sem nenhum aviso de que o cadastro é que
+  // estava incompleto.
+  if (limpo && limpo.replace(/\D/g, '').length < 10) {
+    return { ok: false, erro: 'Informe o número com DDD, ou deixe em branco.' }
+  }
+
+  try {
+    await prisma.alocacao.update({ where: { id }, data: { telefone: limpo || null } })
+    revalidarTelas('/moradores')
+    return { ok: true, dados: undefined }
+  } catch (e) {
+    return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao salvar o telefone.' }
+  }
+}
 
 export async function atualizarTransporte(id: string, entrada: unknown): Promise<Resultado> {
   await exigirLancamento()

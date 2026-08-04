@@ -37,3 +37,30 @@ export function linkWhatsapp(telefone: string | null | undefined, mensagem: stri
   if (!numero) return null
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`
 }
+
+/**
+ * As formas em que o MESMO celular brasileiro pode aparecer.
+ *
+ * O WhatsApp entrega números do Brasil ora com o nono dígito, ora sem — depende de quando a
+ * linha foi habilitada. Um cadastro digitado como "(62) 99999-1234" pode chegar como
+ * `556299991234` ou `5562999991234`, e comparar texto com texto erra a pessoa em metade dos
+ * casos. Por isso a busca é feita contra todas as variantes.
+ *
+ * Devolve lista vazia quando o número não dá para usar.
+ */
+export function variantesDoNumero(telefone: string | null | undefined): string[] {
+  const cheio = telefoneParaWhatsapp(telefone)
+  if (!cheio) return []
+
+  const semDdi = cheio.slice(DDI_BRASIL.length)
+  const ddd = semDdi.slice(0, 2)
+  const resto = semDdi.slice(2)
+
+  const restos = new Set<string>([resto])
+  // 9 dígitos começando com 9: existe a forma antiga, de 8, sem ele.
+  if (resto.length === 9 && resto.startsWith('9')) restos.add(resto.slice(1))
+  // 8 dígitos: existe a forma nova, com o 9 na frente.
+  if (resto.length === 8) restos.add(`9${resto}`)
+
+  return [...restos].map((r) => `${DDI_BRASIL}${ddd}${r}`)
+}

@@ -9,6 +9,74 @@
     --fonte-cond: 'Barlow Condensed', 'Archivo Narrow', 'Arial Narrow', 'Segoe UI', sans-serif;
     --fonte-corpo: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
     --fonte-dado: 'IBM Plex Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+    /* A paleta, em componentes RGB para o Tailwind poder aplicar transparência.
+       Os nomes seguem a metáfora original: `grafite` é a tinta, `concreto` é o fundo. */
+    --cor-grafite: 18 22 28;
+    --cor-grafite-800: 27 33 41;
+    --cor-grafite-700: 42 50 60;
+    --cor-grafite-600: 61 70 80;
+
+    --cor-concreto: 245 246 244;
+    --cor-concreto-100: 237 239 236;
+    --cor-concreto-200: 224 227 222;
+    --cor-concreto-300: 203 208 201;
+
+    --cor-superficie: 255 255 255;
+
+    /* Moldura: escura nos dois temas — ver o comentário em tailwind.config.ts. */
+    --cor-barra: 18 22 28;
+    --cor-barra-800: 27 33 41;
+    --cor-barra-700: 42 50 60;
+    --cor-barra-texto: 245 246 244;
+    --cor-barra-suave: 203 208 201;
+
+    --cor-hivis: 215 224 33;
+    --cor-hivis-escuro: 168 175 25;
+    --cor-hivis-fraco: 244 247 201;
+
+    --cor-sinal: 228 87 46;
+    --cor-sinal-fraco: 253 237 232;
+    --cor-ambar: 224 155 45;
+    --cor-ambar-fraco: 253 243 226;
+    --cor-mata: 45 106 79;
+    --cor-mata-fraco: 231 241 236;
+    --cor-aco: 62 108 143;
+    --cor-aco-fraco: 233 240 245;
+  }
+
+  /* No escuro, `grafite` e `concreto` trocam de papel: a tinta clareia e o fundo escurece.
+     É o que faz `text-grafite` e `bg-concreto`, escritos em toda a interface, continuarem
+     significando "cor do texto" e "cor do fundo" sem nenhuma edição de componente. */
+  .dark {
+    --cor-grafite: 232 235 238;
+    --cor-grafite-800: 208 213 219;
+    --cor-grafite-700: 176 183 192;
+    --cor-grafite-600: 148 157 168;
+
+    --cor-concreto: 16 19 24;
+    --cor-concreto-100: 26 31 38;
+    --cor-concreto-200: 42 50 60;
+    --cor-concreto-300: 58 68 80;
+
+    --cor-superficie: 24 29 36;
+
+    /* Amarelo de alta visibilidade sobre fundo escuro fica ofuscante; o "escuro" da
+       paleta clara vira o tom de destaque aqui. */
+    --cor-hivis: 190 199 30;
+    --cor-hivis-escuro: 215 224 33;
+    --cor-hivis-fraco: 48 52 18;
+
+    /* Os tons de estado clareiam para passar no contraste sobre fundo escuro, e os "fracos"
+       viram fundos escuros da mesma matiz em vez de pastéis quase brancos. */
+    --cor-sinal: 244 130 96;
+    --cor-sinal-fraco: 58 30 22;
+    --cor-ambar: 236 178 82;
+    --cor-ambar-fraco: 56 41 18;
+    --cor-mata: 106 178 141;
+    --cor-mata-fraco: 22 44 34;
+    --cor-aco: 122 170 208;
+    --cor-aco-fraco: 22 38 51;
   }
 
   html {

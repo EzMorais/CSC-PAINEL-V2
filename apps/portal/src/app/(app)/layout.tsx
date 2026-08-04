@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { lerSessao } from '@/lib/auth'
+import { lerSessao, temAcesso } from '@/lib/auth'
 import { Cabecalho } from '@/components/layout/cabecalho'
 import { HubNavegacao } from '@/components/layout/hub-navegacao'
-import { CARGO } from '@/lib/dominio/cargos'
+import { CARGO, MODULO } from '@/lib/dominio/cargos'
 
 /**
  * Porta de entrada de tudo que exige sessão.
@@ -20,6 +20,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       <Cabecalho
         usuario={{ nome: sessao.nome, email: sessao.email, cargo: sessao.cargo }}
         ehAdmin={sessao.cargo === CARGO.ADMIN}
+        veCadastros={temAcesso(sessao, MODULO.CADASTROS)}
       />
       <main>{children}</main>
       <HubNavegacao cargo={sessao.cargo} modulos={sessao.modulos} atual="PORTAL" />

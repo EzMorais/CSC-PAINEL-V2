@@ -26,7 +26,7 @@ export function Hodometro({ kmRevisao, kmAtual, kmProxima, compacto }: Props) {
   const proxima = !vencida && restante <= 2000;
 
   const corTrilho = vencida ? 'bg-sinal/25' : proxima ? 'bg-ambar/25' : 'bg-concreto-200';
-  const corBarra = vencida ? 'bg-sinal' : proxima ? 'bg-ambar' : 'bg-grafite-700';
+  const corBarra = vencida ? 'bg-sinal' : proxima ? 'bg-ambar' : 'bg-barra-700';
 
   return (
     <div className={clsx('w-full', compacto ? 'space-y-1' : 'space-y-1.5')}>
@@ -40,7 +40,7 @@ export function Hodometro({ kmRevisao, kmAtual, kmProxima, compacto }: Props) {
         <div
           className={clsx(
             'absolute top-1/2 h-3.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full',
-            vencida ? 'bg-sinal' : proxima ? 'bg-ambar' : 'bg-grafite'
+            vencida ? 'bg-sinal' : proxima ? 'bg-ambar' : 'bg-barra'
           )}
           style={{ left: `${pct}%` }}
           aria-hidden

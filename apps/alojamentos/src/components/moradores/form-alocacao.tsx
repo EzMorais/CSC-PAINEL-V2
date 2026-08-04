@@ -217,6 +217,18 @@ export function FormAlocacao({
         )}
 
         <div className="sm:col-span-2">
+          <label htmlFor="telefone" className="mb-1 block text-sm font-medium">WhatsApp do morador</label>
+          <input
+            id="telefone" name="telefone" type="tel" inputMode="tel"
+            placeholder="(62) 99999-1234" className={CAMPO}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            É por este número que a pessoa abre pedido pelo WhatsApp e recebe o aviso quando
+            ele andar. Sem ele, a mensagem que chegar não vai ser reconhecida.
+          </p>
+        </div>
+
+        <div className="sm:col-span-2">
           <label htmlFor="observacoes" className="mb-1 block text-sm font-medium">Observações</label>
           <textarea id="observacoes" name="observacoes" rows={2} className={CAMPO} />
         </div>

@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* next-themes escreve a classe `dark` no <html>; o `dark:` do Tailwind precisa
+   seguir a classe, não a preferência do sistema operacional. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: oklch(0.98 0.003 260);
+  --foreground: oklch(0.21 0.015 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.015 260);
+  --muted: oklch(0.96 0.005 260);
+  --muted-foreground: oklch(0.52 0.015 260);
+  --border: oklch(0.91 0.006 260);
+  --input: oklch(0.91 0.006 260);
+  /* Âmbar — cor de identidade dos Alojamentos. Cada módulo tem a sua; ver os outros
+     apps para RH (verde-azulado), Almoxarifado (terracota), Painel (índigo), Portal (azul). */
+  --ring: oklch(0.63 0.14 85);
+  --primary: oklch(0.63 0.14 85);
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.94 0.01 260);
+  --accent-foreground: oklch(0.21 0.015 260);
+  --destructive: oklch(0.58 0.20 27);
+  --destructive-foreground: oklch(0.99 0 0);
+}
+
+.dark {
+  --background: oklch(0.19 0.012 260);
+  --foreground: oklch(0.95 0.005 260);
+  --card: oklch(0.23 0.014 260);
+  --card-foreground: oklch(0.95 0.005 260);
+  --muted: oklch(0.27 0.014 260);
+  --muted-foreground: oklch(0.71 0.015 260);
+  --border: oklch(0.32 0.014 260);
+  --input: oklch(0.32 0.014 260);
+  --ring: oklch(0.74 0.13 85);
+  --primary: oklch(0.74 0.13 85);
+  --primary-foreground: oklch(0.17 0.02 85);
+  --accent: oklch(0.29 0.014 260);
+  --accent-foreground: oklch(0.95 0.005 260);
+  /* Mais claro que no tema claro: sobre fundo escuro o vermelho de 0.58 fica abaixo
+     do contraste mínimo para texto. */
+  --destructive: oklch(0.70 0.17 27);
+  --destructive-foreground: oklch(0.17 0.02 260);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-status-ativa: oklch(0.62 0.16 150);
+  --color-status-atencao: oklch(0.70 0.16 75);
+  --color-status-vencida: oklch(0.58 0.20 27);
+  --color-status-devolvida: oklch(0.55 0.02 260);
+  --color-status-perdido: oklch(0.50 0.22 320);
+}
+
+/* Números em tabela alinham por dígito, não por largura de glifo. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

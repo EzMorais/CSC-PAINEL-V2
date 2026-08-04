@@ -84,6 +84,26 @@
   --duration-fast: 120ms;
   --duration-base: 180ms;
   --duration-slow: 260ms;
+
+  /* Cores da marca (logo Siqueira Campos) — usadas só nas ilustrações e no cabeçalho da
+     home do Portal, não no resto do chrome (esse usa --primary/--accent acima). Convivem
+     de propósito com o sistema neutro+acento: são para elementos deliberadamente de
+     identidade visual, não para UI genérica (input, badge, foco). Ver DESIGN-SYSTEM.md.
+
+     `--marca-*` é cor de TEXTO e de borda: acompanha o tema, porque o azul-marinho da
+     logo desaparece sobre fundo escuro.
+
+     `--marca-*-fundo` é SUPERFÍCIE, sempre acompanhada de texto branco. Estas NÃO mudam
+     com o tema: clarear o fundo no modo escuro deixaria o branco por cima ilegível — o
+     contraste de um par fundo/texto não é o mesmo problema que o de um texto sobre a
+     página. */
+  --marca-azul: oklch(0.312 0.111 272.8);
+  --marca-vermelho: oklch(0.553 0.207 23.8);
+
+  --marca-azul-fundo: oklch(0.312 0.111 272.8);
+  --marca-azul-fundo-claro: oklch(0.400 0.130 272);
+  --marca-vermelho-fundo: oklch(0.553 0.207 23.8);
+  --marca-vermelho-fundo-claro: oklch(0.626 0.201 21.4);
 }
 
 .dark {
@@ -135,6 +155,11 @@
   --ic-neutro-2: oklch(0.28 0.007 260);
 
   --tile-shadow: 0 1px 3px oklch(0 0 0 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.10);
+
+  /* Só as cores de TEXTO clareiam — as de superfície ficam como no tema claro, para o
+     branco por cima continuar legível. */
+  --marca-azul: oklch(0.72 0.13 271);
+  --marca-vermelho: oklch(0.72 0.17 25);
 }
 
 @theme inline {
@@ -170,6 +195,13 @@
   --color-purple: var(--color-purple);
   --color-purple-soft: var(--color-purple-soft);
   --color-money: var(--money);
+
+  --color-marca-azul: var(--marca-azul);
+  --color-marca-vermelho: var(--marca-vermelho);
+  --color-marca-azul-fundo: var(--marca-azul-fundo);
+  --color-marca-azul-fundo-claro: var(--marca-azul-fundo-claro);
+  --color-marca-vermelho-fundo: var(--marca-vermelho-fundo);
+  --color-marca-vermelho-fundo-claro: var(--marca-vermelho-fundo-claro);
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);

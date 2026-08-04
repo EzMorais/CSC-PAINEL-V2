@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Uma frente de trabalho — cada coluna do quadro e da imagem.
+///
+/// Não é a mesma coisa que a Obra do RH ou do Almoxarifado: ali "obra" é o contrato, e aqui
+/// é para onde a turma vai amanhã de manhã. GALPÃO e MANUTENÇÃO aparecem no quadro e não
+/// são obra de cliente nenhum. Manter separado evita ter de inventar obras falsas no RH só
+/// para a programação fechar.
+model Frente {
+  id    String @id @default(cuid())
+  nome  String @unique
+  /// Cor do cabeçalho na imagem, em hexadecimal. É por ela que a turma acha a própria
+  /// coluna no print sem ler — no Excel de hoje cada frente tem a sua.
+  cor   String @default("#DDEBF7")
+  ordem Int    @default(0)
+  /// Quantas colunas a frente ocupa na imagem. MORELLI tem ~50 pessoas e ocupa duas no
+  /// print atual; uma coluna só deixaria a imagem alta demais para ler no celular.
+  colunas Int  @default(1)
+
+  /// Código da obra correspondente no RH, quando existe. Só informativo: serve para o
+  /// quadro sugerir a frente de quem já está lotado naquela obra.
+  obraCodigo String?
+
+  ativa    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  escalas  Escala[]
+  recursos Recurso[]
+
+  @@index([ordem])
+}
+
+/// A programação de um dia.
+///
+/// Uma linha por data — é assim que "copiar a de ontem" funciona e que o histórico responde
+/// "quem estava na TOYOTA no dia 31?", pergunta que hoje só o print no WhatsApp responde.
+model Programacao {
+  id   String   @id @default(cuid())
+  /// Meia-noite UTC, mesma convenção de data de calendário dos outros módulos.
+  data DateTime @unique
+
+  /// RASCUNHO | PUBLICADA — publicada é a que já foi para o grupo.
+  status      String    @default("RASCUNHO")
+  publicadaEm DateTime?
+  publicadaPor String?
+
+  observacao String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  escalas  Escala[]
+  recursos Recurso[]
+
+  @@index([data])
+}
+
+/// Uma pessoa numa frente, num dia.
+model Escala {
+  programacaoId String
+  programacao   Programacao @relation(fields: [programacaoId], references: [id], onDelete: Cascade)
+  frenteId      String
+  frente        Frente      @relation(fields: [frenteId], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid())
+
+  /// Id no RH quando a pessoa está cadastrada lá; nulo quando foi digitada à mão.
+  ///
+  /// Avulso existe porque o RH tem 11 pessoas cadastradas e a programação move ~150. Exigir
+  /// cadastro prévio faria o quadro nascer inutilizável, e o chefe voltaria para o Excel.
+  funcionarioId String?
+  /// Cópia do nome. Não é redundância: o print de um dia passado tem de continuar dizendo o
+  /// que dizia, mesmo que a pessoa saia do RH depois.
+  nome          String
+  /// A sigla que aparece depois do nome na imagem: PD, SO, ENG, MOT…
+  funcaoSigla   String?
+
+  /// Posição dentro da coluna — é a ordem que sai na imagem.
+  ordem      Int     @default(0)
+  observacao String?
+
+  @@unique([programacaoId, frenteId, nome])
+  @@index([programacaoId])
+  @@index([frenteId])
+}
+
+/// Veículo, máquina ou aviso no pé de uma frente.
+///
+/// Os três no mesmo lugar porque na imagem ocupam a mesma faixa e o usuário os trata igual:
+/// o que vai embaixo da coluna. Separar em três tabelas obrigaria a intercalar três listas
+/// na hora de desenhar, para nenhum ganho.
+model Recurso {
+  programacaoId String
+  programacao   Programacao @relation(fields: [programacaoId], references: [id], onDelete: Cascade)
+  frenteId      String
+  frente        Frente      @relation(fields: [frenteId], references: [id], onDelete: Cascade)
+
+  id String @id @default(cuid())
+
+  /// VEICULO | MAQUINA | AVISO
+  tipo String @default("VEICULO")
+  /// Placa do veículo, quando tem. É por ela que o conflito com a Frota é detectado.
+  placa String?
+  /// O que aparece escrito: "DOBLO PXF 4H26", "BOB-CAT", "MANUTENÇÃO".
+  descricao String
+  /// Quem dirige. Texto livre: o motorista do dia nem sempre é o cadastrado na Frota.
+  motoristaNome String?
+  /// Pinta a faixa de amarelo na imagem, como o "MANUTENÇÃO" do print atual.
+  destaque Boolean @default(false)
+
+  ordem Int @default(0)
+
+  @@index([programacaoId])
+  @@index([frenteId])
+  @@index([placa])
+}
+
+/// As siglas de função que saem depois do nome.
+///
+/// Tabela própria, e não texto solto, para a lista do quadro oferecer sempre as mesmas: no
+/// Excel a mesma função aparece como "Tec. Seg.", "TST" e "STST" no mesmo dia, e ninguém
+/// consegue filtrar por função depois.
+model Funcao {
+  id    String  @id @default(cuid())
+  sigla String  @unique
+  nome  String
+  /// Nome do cargo no RH que corresponde a esta sigla, para o quadro preencher sozinho.
+  cargoRh String?
+  ordem Int     @default(0)
+  ativa Boolean @default(true)
+
+  @@index([ordem])
+}

@@ -61,6 +61,16 @@ model Alojamento {
   /// WhatsApp vai usar como destino — ver `lib/whatsapp.ts`.
   telefoneResponsavel String?
 
+  /// O grupo de WhatsApp deste alojamento, se houver.
+  ///
+  /// Guardar o identificador do grupo, e não o nome, porque o nome muda: alguém renomeia o
+  /// grupo e o vínculo se perderia calado, com os pedidos parando de chegar sem nenhum erro
+  /// apontando a causa. O identificador é atribuído na criação e não muda nunca.
+  ///
+  /// Único: dois alojamentos apontando para o mesmo grupo fariam o mesmo pedido cair em
+  /// dois lugares, e não haveria como saber qual é o certo.
+  grupoWhatsappId String? @unique
+
   foto        String? // data URI, mesmo padrão da foto do funcionário no RH
   observacoes String?
   ativo       Boolean @default(true)
@@ -129,16 +139,25 @@ model Alocacao {
   rotaOnibus   RotaOnibus? @relation(fields: [rotaOnibusId], references: [id])
   rotaOnibusId String?
 
+  /// WhatsApp do morador — é por ele que uma mensagem que chega vira pedido desta pessoa.
+  ///
+  /// Fica aqui e não vem do RH de propósito: o endereço de integração do RH exclui telefone
+  /// (junto com CPF e endereço), e afrouxar isso para o Alojamentos faria um endereço
+  /// pensado para identificar gente passar a devolver dado de contato de todo o quadro.
+  telefone String?
+
   observacoes   String?
   registradoPor String?
   criadoEm      DateTime @default(now())
   atualizadoEm  DateTime @updatedAt
 
-  pedidos Pedido[]
+  pedidos   Pedido[]
+  conversas ConversaWhatsapp[]
 
   @@index([funcionarioId])
   @@index([alojamentoId])
   @@index([status])
+  @@index([telefone])
 }
 
 /// Ônibus fretado: uma rota serve muita gente, então é entidade própria e não um campo
@@ -189,6 +208,20 @@ model Pedido {
   atendidoEm         DateTime?
   respostaObservacao String?
 
+  /// SISTEMA (alguém digitou na tela) | WHATSAPP (veio de mensagem).
+  ///
+  /// Guardado porque muda o que fazer depois: pedido vindo do WhatsApp tem para onde
+  /// responder, e a tela precisa saber disso para oferecer o aviso automático.
+  origem         String  @default("SISTEMA")
+  /// Número de quem mandou, já normalizado. Só em pedido vindo do WhatsApp.
+  telefoneOrigem String?
+  /// Grupo de onde veio, quando veio de um. O aviso de andamento volta para cá — é onde a
+  /// pessoa pediu, e onde o resto do alojamento vê que já está sendo tratado.
+  grupoOrigemId  String?
+  /// Nome que o WhatsApp mostra de quem escreveu. Vale para o caso comum de o número não
+  /// estar em nenhuma alocação: sem isto o pedido chegaria sem dizer de quem é.
+  nomeOrigem     String?
+
   registradoPor String?
   criadoEm      DateTime @default(now())
   atualizadoEm  DateTime @updatedAt
@@ -199,6 +232,67 @@ model Pedido {
   @@index([status])
   @@index([alojamentoId])
   @@index([tipo])
+  @@index([telefoneOrigem])
+}
+
+/// Onde cada número está no meio do diálogo do WhatsApp.
+///
+/// Uma linha por número, sobrescrita a cada passo — e não um histórico de estados: o que
+/// importa é "esta pessoa está escolhendo o tipo" ou "está descrevendo". O histórico de
+/// verdade é `MensagemWhatsapp`.
+///
+/// `expiraEm` existe porque conversa abandonada no meio é o caso comum: a pessoa manda
+/// "oi", se distrai, e volta no dia seguinte. Sem prazo, ela voltaria no passo 3 de uma
+/// conversa que não lembra ter começado.
+model ConversaWhatsapp {
+  id       String @id @default(cuid())
+  telefone String @unique
+
+  /// AGUARDANDO_TIPO | AGUARDANDO_DESCRICAO | AGUARDANDO_CONFIRMACAO
+  passo String
+
+  /// O que já foi coletado até aqui.
+  tipoEscolhido String?
+  descricao     String?
+
+  alocacao   Alocacao? @relation(fields: [alocacaoId], references: [id], onDelete: SetNull)
+  alocacaoId String?
+
+  expiraEm     DateTime
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([expiraEm])
+}
+
+/// O que entrou e o que saiu pelo WhatsApp.
+///
+/// Existe para responder "eu mandei e ninguém viu": sem registro, a conversa fica só no
+/// celular do morador e no do responsável, e não há como conferir. Guarda o texto porque é
+/// exatamente ele que a discussão questiona.
+model MensagemWhatsapp {
+  id       String  @id @default(cuid())
+  /// Quem escreveu (recebida) ou para quem foi (enviada). Em mensagem de grupo é o número
+  /// de quem escreveu, não o do grupo — quem é o grupo está em `grupoId`.
+  telefone String
+  /// Grupo em que a mensagem aconteceu. Nulo em conversa individual.
+  grupoId  String?
+  /// RECEBIDA | ENVIADA
+  direcao  String
+  texto    String
+  /// Id da mensagem no WhatsApp. Serve para não processar a mesma duas vezes quando o
+  /// aparelho reenvia — o que acontece toda vez que a conexão oscila.
+  externoId String?
+  /// Preenchido quando a mensagem gerou um pedido.
+  pedidoId String?
+  /// Motivo, quando o envio falhou. Nulo quando saiu.
+  erro String?
+
+  criadoEm DateTime @default(now())
+
+  @@unique([externoId, direcao])
+  @@index([telefone])
+  @@index([criadoEm])
 }
 
 /// A programação do dia: ônibus, limpeza, refeição, aviso.
