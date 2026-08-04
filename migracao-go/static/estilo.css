@@ -1,0 +1,212 @@
+/* Subconjunto mínimo de DESIGN-SYSTEM.md — o suficiente pra ler as telas com conforto.
+   Refinamento visual completo (tokens de tile, dark mode com toggle) fica pra depois;
+   aqui o objetivo é corretude de comportamento, não fidelidade pixel a pixel. */
+
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --fg: #1a1d21;
+  --muted: #6b7280;
+  --border: #e2e5e9;
+  --primary: #3457d5;
+  --primary-fg: #ffffff;
+  --danger: #c0392b;
+  --danger-soft: #fbeae8;
+  --success: #1a7f4e;
+  --sidebar: #16181c;
+  --sidebar-fg: #e6e8eb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+a { color: inherit; }
+
+.tela-centro {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.cartao-login {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.cartao-login h1 {
+  font-size: 1.25rem;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.cartao-login .sub {
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+form.formulario {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.campo { margin-bottom: 1rem; }
+
+.campo label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.campo input, .campo select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--fg);
+}
+
+button, .botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--card);
+  color: var(--fg);
+}
+
+button[type="submit"], .botao-primario {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.erro {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.cabecalho nav { display: flex; gap: 0.5rem; }
+
+.conteudo {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.selo {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--border);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.4rem;
+}
+
+.grade-sistemas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.grade-sistemas a {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  text-decoration: none;
+  background: var(--card);
+}
+
+.grade-sistemas .descricao {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.bloqueado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.2rem 0.4rem 0.2rem 0;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lista-usuarios { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; }
+.lista-usuarios > li { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; }
+.lista-usuarios > li:last-child { border-bottom: none; }
+.lista-usuarios .linha-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.lista-usuarios .linha-topo .nome { flex: 1; min-width: 10rem; }
+.lista-usuarios .linha-topo .email { color: var(--muted); font-size: 0.8rem; }
+
+.painel-edicao {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkbox-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.3rem;
+}
+
+.aviso { color: var(--success); font-size: 0.8rem; }
+
+.tabular { font-variant-numeric: tabular-nums; }

@@ -1,0 +1,181 @@
+package identidade
+
+import "siqueiracampos/servidor/templates/layout"
+
+func contem(lista []string, valor string) bool {
+	for _, v := range lista {
+		if v == valor {
+			return true
+		}
+	}
+	return false
+}
+
+templ Usuarios(
+	usuarios []LinhaUsuario,
+	criacao FormCriacao,
+	acessos []LinhaAcesso,
+	cargos []OpcaoCargo,
+	modulos []OpcaoModulo,
+	totalTexto string,
+) {
+	@layout.Base("Usuários — Portal Siqueira Campos") {
+		<header class="cabecalho">
+			<a href="/">Siqueira Campos</a>
+			<form method="POST" action="/sair">
+				<button type="submit" data-testid="sair" aria-label="Sair">Sair</button>
+			</form>
+		</header>
+		<main class="conteudo">
+			<h1>Usuários</h1>
+			<p>Um cadastro só para os quatro sistemas.</p>
+
+			<div class="card">
+				<p><strong>Cadastre a pessoa uma vez.</strong></p>
+				<p>
+					O cargo e os sistemas definidos aqui valem no Painel de Locação, no RH, no
+					Almoxarifado e na Frota. Mudanças de cargo passam a valer no
+					<strong>próximo login</strong> da pessoa.
+				</p>
+			</div>
+
+			<details open?={ criacao.Aberto }>
+				<summary data-testid="novo-usuario" class="botao botao-primario">+ Novo usuário</summary>
+				<form class="formulario" method="POST" action="/usuarios" style="margin-top:0.75rem">
+					<div class="campo">
+						<label for="nome">Nome completo *</label>
+						<input id="nome" name="nome" required?={ true } value={ criacao.Nome }/>
+					</div>
+					<div class="campo">
+						<label for="email">E-mail *</label>
+						<input id="email" name="email" type="email" required?={ true } value={ criacao.Email }/>
+					</div>
+					<div class="campo">
+						<label for="senha">Senha inicial *</label>
+						<input id="senha" name="senha" type="password" required?={ true } minlength="8"/>
+						<small>Mínimo 8 caracteres. A pessoa troca depois.</small>
+					</div>
+					<div class="campo">
+						<label for="telefone">Telefone</label>
+						<input id="telefone" name="telefone" value={ criacao.Telefone }/>
+					</div>
+					<div class="campo">
+						<label for="cargo">Cargo *</label>
+						<select id="cargo" name="cargo">
+							for _, c := range cargos {
+								<option value={ c.Valor } selected?={ c.Valor == criacao.Cargo }>{ c.Rotulo }</option>
+							}
+						</select>
+					</div>
+					<div class="campo">
+						<p>Sistemas que acessa</p>
+						for _, m := range modulos {
+							<label class="checkbox-linha">
+								<input type="checkbox" name="modulos" value={ m.Valor } checked?={ contem(criacao.Modulos, m.Valor) }/>
+								{ m.Rotulo }
+							</label>
+						}
+					</div>
+					if criacao.Erro != "" {
+						<p role="alert" data-testid="erro-usuario" class="erro">{ criacao.Erro }</p>
+					}
+					<button type="submit" data-testid="salvar-usuario">Criar usuário</button>
+				</form>
+			</details>
+
+			<h2 style="margin-top:1.5rem">{ totalTexto }</h2>
+			<ul class="lista-usuarios" data-testid="lista-usuarios">
+				for _, u := range usuarios {
+					<li>
+						<div class="linha-topo">
+							<span class="nome">
+								{ u.Nome }
+								if u.SouEu {
+									<small>(você)</small>
+								}
+								<br/>
+								<span class="email">{ u.Email }</span>
+							</span>
+							<span class="selo">{ u.RotuloCargo }</span>
+							<span class="email">{ u.SistemasTexto }</span>
+							if !u.Ativo {
+								<span style="color:var(--danger)">inativo</span>
+							}
+							if u.SouEu {
+								<button type="button" disabled?={ true } data-testid={ "editar-" + u.Email } title="Você não pode alterar o próprio acesso">Editar</button>
+							}
+						</div>
+						if !u.SouEu {
+							<details open?={ u.Aberta }>
+								<summary data-testid={ "editar-" + u.Email } class="botao">Editar</summary>
+								<div class="painel-edicao">
+									<form method="POST" action={ templ.URL("/usuarios/" + u.ID + "/editar") }>
+										<div class="campo">
+											<label>Cargo</label>
+											<select name="cargo">
+												for _, c := range cargos {
+													<option value={ c.Valor } selected?={ c.Valor == u.Cargo }>{ c.Rotulo }</option>
+												}
+											</select>
+										</div>
+										<div class="campo">
+											<p>Sistemas que acessa</p>
+											for _, m := range modulos {
+												<label class="checkbox-linha">
+													<input type="checkbox" name="modulos" value={ m.Valor } checked?={ contem(u.ModulosSelecionados, m.Valor) }/>
+													{ m.Rotulo }
+												</label>
+											}
+										</div>
+										<label class="checkbox-linha">
+											<input type="checkbox" name="ativo" value="1" checked?={ u.Ativo }/>
+											Usuário ativo
+										</label>
+										<button type="submit">Salvar</button>
+									</form>
+									<form method="POST" action={ templ.URL("/usuarios/" + u.ID + "/senha") } style="margin-top:0.75rem;border-top:1px solid var(--border);padding-top:0.75rem">
+										<label for={ "senha-" + u.ID }>Redefinir senha</label>
+										<input id={ "senha-" + u.ID } name="senha" type="password" placeholder="Nova senha (8+ caracteres)" minlength="8"/>
+										<button type="submit">Redefinir</button>
+									</form>
+									if u.Erro != "" {
+										<p role="alert" class="erro">{ u.Erro }</p>
+									}
+									if u.Mensagem != "" {
+										<p role="status" class="aviso">{ u.Mensagem }</p>
+									}
+								</div>
+							</details>
+						}
+					</li>
+				}
+			</ul>
+
+			<section class="card" style="margin-top:1.5rem">
+				<h2>Últimos acessos</h2>
+				<p>Inclui as tentativas que falharam — é onde uma senha sendo adivinhada apareceria.</p>
+				if len(acessos) == 0 {
+					<p>Nada registrado ainda.</p>
+				} else {
+					<ul data-testid="ultimos-acessos" style="list-style:none;padding:0">
+						for _, a := range acessos {
+							<li style="display:flex;justify-content:space-between;gap:0.5rem;padding:0.3rem 0;border-bottom:1px solid var(--border)">
+								if a.Sucesso {
+									<span>entrou · { a.NomeOuEmail }</span>
+								} else {
+									<span style="color:var(--danger)">
+										falhou · { a.NomeOuEmail }
+										if a.Motivo != "" {
+											<small>({ a.Motivo })</small>
+										}
+									</span>
+								}
+								<span class="tabular email">{ a.DataHora }</span>
+							</li>
+						}
+					</ul>
+				}
+			</section>
+		</main>
+	}
+}

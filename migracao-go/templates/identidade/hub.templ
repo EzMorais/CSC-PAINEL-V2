@@ -1,0 +1,80 @@
+package identidade
+
+import "siqueiracampos/servidor/templates/layout"
+
+type ItemSistema struct {
+	Modulo, Rotulo, Descricao, URL string
+}
+
+templ Hub(
+	nomePrimeiro string,
+	rotuloCargo string,
+	descricaoCargo string,
+	liberados []ItemSistema,
+	bloqueados []ItemSistema,
+	podeLancar bool,
+	podeAprovar bool,
+	ehAdmin bool,
+) {
+	@layout.Base("Portal — Siqueira Campos") {
+		<header class="cabecalho">
+			<span>Siqueira Campos</span>
+			<nav>
+				if ehAdmin {
+					<a href="/usuarios">Usuários</a>
+				}
+			</nav>
+			<form method="POST" action="/sair">
+				<button type="submit" data-testid="sair" aria-label="Sair">Sair</button>
+			</form>
+		</header>
+		<main class="conteudo">
+			<h1>Olá, { nomePrimeiro }</h1>
+			<p>
+				<span class="selo">{ rotuloCargo }</span>
+				{ descricaoCargo }
+			</p>
+
+			<section aria-label="Sistemas">
+				<h2>Seus sistemas</h2>
+				if len(liberados) == 0 {
+					<p>Você ainda não tem acesso a nenhum sistema. Peça ao administrador para liberar.</p>
+				} else {
+					<div class="grade-sistemas">
+						for _, s := range liberados {
+							<a href={ templ.URL(s.URL) } data-testid={ "sistema-" + s.Modulo }>
+								<span>{ s.Rotulo }</span>
+								<span class="descricao">{ s.Descricao }</span>
+							</a>
+						}
+					</div>
+				}
+			</section>
+
+			if len(bloqueados) > 0 {
+				<section aria-label="Sem acesso" style="margin-top:1.5rem">
+					<h2>Sem acesso</h2>
+					for _, s := range bloqueados {
+						<span class="bloqueado">{ s.Rotulo }</span>
+					}
+				</section>
+			}
+
+			<section class="card" style="margin-top:1.5rem">
+				<h2>O que o seu cargo permite</h2>
+				<ul>
+					<li>{ marca(podeLancar) } Lançar no dia a dia (cadastrar, movimentar, registrar)</li>
+					<li>{ marca(podeAprovar) } Aprovar o que outra pessoa lançou</li>
+					<li>{ marca(ehAdmin) } Cadastrar usuários e definir cargos</li>
+				</ul>
+			</section>
+		</main>
+	}
+}
+
+func marca(ativo bool) string {
+	if ativo {
+		return "✓"
+	}
+	return "—"
+}

@@ -1,0 +1,40 @@
+package identidade
+
+import "siqueiracampos/servidor/templates/layout"
+
+templ Entrar(destino string, erro string) {
+	@layout.Base("Entrar — Portal Siqueira Campos") {
+		<main class="tela-centro">
+			<div class="cartao-login">
+				<h1>Siqueira Campos</h1>
+				<p class="sub">Portal dos sistemas</p>
+				<form class="formulario" method="POST" action="/entrar">
+					<input type="hidden" name="destino" value={ destino }/>
+					<div class="campo">
+						<label for="email">E-mail</label>
+						<input
+							id="email"
+							name="email"
+							type="email"
+							required?={ true }
+							autofocus?={ true }
+							autocomplete="username"
+							placeholder="voce@siqueiracampos.com.br"
+						/>
+					</div>
+					<div class="campo">
+						<label for="senha">Senha</label>
+						<input id="senha" name="senha" type="password" required?={ true } autocomplete="current-password"/>
+					</div>
+					if erro != "" {
+						<p role="alert" data-testid="erro-login" class="erro">{ erro }</p>
+					}
+					<button type="submit">Entrar</button>
+				</form>
+				<p class="sub" style="margin-top:1rem">
+					Uma senha só para todos os sistemas: Painel de Locação, RH, Almoxarifado e Frota.
+				</p>
+			</div>
+		</main>
+	}
+}

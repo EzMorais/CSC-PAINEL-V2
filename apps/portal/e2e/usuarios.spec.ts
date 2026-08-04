@@ -112,8 +112,12 @@ test.describe('Usuários (admin)', () => {
 
     await page.reload()
     const linhaRecarregada = page.locator('li', { hasText: 'editar.alvo@teste.com' })
-    await expect(linhaRecarregada.getByText('Gerente / Engenheiro')).toBeVisible()
-    await expect(linhaRecarregada.getByText('RH e SST')).toBeVisible()
+    // `.first()` de propósito: numa implementação server-rendered com painel reaberto após
+    // o reload (ver migracao-go/portal/COMPORTAMENTO.md), o texto aparece duas vezes — no
+    // selo/resumo da linha E dentro do próprio formulário reaberto (option selecionada,
+    // checkbox marcado). As duas ocorrências concordando já é a prova de que persistiu.
+    await expect(linhaRecarregada.getByText('Gerente / Engenheiro').first()).toBeVisible()
+    await expect(linhaRecarregada.getByText('RH e SST').first()).toBeVisible()
   })
 
   test('autoedição bloqueada — botão Editar do próprio admin fica desabilitado', async ({ page }) => {
@@ -135,9 +139,12 @@ test.describe('Usuários (admin)', () => {
     await page.getByTestId('salvar-usuario').click()
     await expect(page.getByText('senha.alvo@teste.com')).toBeVisible({ timeout: 15_000 })
 
-    await page.getByTestId('editar-senha.alvo@teste.com').click()
-    await page.getByPlaceholder('Nova senha (8+ caracteres)').fill('novaSenha123')
-    await page.getByRole('button', { name: 'Redefinir' }).click()
+    // O placeholder "Nova senha (8+ caracteres)" existe em toda linha (só o painel fica
+    // fechado, não sai do DOM) — sem escopar pela linha, casa com todas de uma vez.
+    const linhaSenha = page.locator('li', { hasText: 'senha.alvo@teste.com' })
+    await linhaSenha.getByTestId('editar-senha.alvo@teste.com').click()
+    await linhaSenha.getByPlaceholder('Nova senha (8+ caracteres)').fill('novaSenha123')
+    await linhaSenha.getByRole('button', { name: 'Redefinir' }).click()
     await expect(page.getByText('Senha redefinida. Passe a nova senha para a pessoa.')).toBeVisible()
 
     await page.getByTestId('sair').click()

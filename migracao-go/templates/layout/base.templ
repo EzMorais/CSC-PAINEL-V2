@@ -1,0 +1,17 @@
+// Package layout tem a casca compartilhada entre todas as páginas — ver DESIGN-SYSTEM.md.
+package layout
+
+templ Base(titulo string) {
+	<!DOCTYPE html>
+	<html lang="pt-BR">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ titulo }</title>
+			<link rel="stylesheet" href="/estatico/estilo.css"/>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
