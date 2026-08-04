@@ -55,11 +55,34 @@ segundo módulo — o Portal não tem `Obra`.
 
 | Módulo | Comportamento mapeado | Testes de referência | Implementação Go | Next.js removido |
 |---|---|---|---|---|
-| **Portal** (`/` ou `/portal`) | ✅ [`portal/COMPORTAMENTO.md`](portal/COMPORTAMENTO.md) | ✅ `apps/portal/e2e/` — 20/20 passando contra o Next.js atual (2026-08-04) | ⬜ não iniciado | ⬜ |
-| Painel de Locação (`/painel`) | ⬜ | ⬜ | ⬜ | ⬜ |
+| **Portal** (`/` ou `/portal`) | ✅ [`portal/COMPORTAMENTO.md`](portal/COMPORTAMENTO.md) | ✅ `apps/portal/e2e/` — 20/20 contra o Next.js **e** contra o Go (`playwright.go.config.ts`) | ✅ `cmd/servidor`, `cmd/seed` — login, usuários, hub (2026-08-04) | ⬜ ainda convivendo — 4 apps Next.js seguem no ar |
+| **Painel de Locação** (`/painel`) | ✅ [`painel/COMPORTAMENTO.md`](painel/COMPORTAMENTO.md) | ✅ `apps/painel-locacao/e2e/*.go.spec.ts` — 18/18, duas vezes seguidas | ✅ CRUD/ciclo de vida completo + importador Excel (validado byte-exato contra a planilha real: 305/242/63/16/90/20) + exportadores Excel/PDF (2026-08-04) | ⬜ ainda convivendo |
 | RH e SST (`/rh`) | ⬜ | ⬜ | ⬜ | ⬜ |
 | Almoxarifado (`/almoxarifado`) | ⬜ | ⬜ | ⬜ | ⬜ |
 | Alojamentos (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+
+## Painel de Locação — adaptações conscientes (2026-08-04)
+
+A suíte de testes do Painel é NOVA (`*.go.spec.ts`), não uma cópia dos `.spec.ts` originais —
+mesmo motivo do Portal (COMPORTAMENTO.md documenta comportamento de negócio, não a árvore DOM
+exata). Três divergências deliberadas do Next.js, registradas para não serem confundidas com
+lacuna não percebida:
+
+- **Sem drawer/dialogs/tabs.** A interação vira navegação servidor-renderizada de verdade:
+  clicar numa locação abre uma página de detalhe própria (`/painel/locacoes/{id}`), e
+  Renovar/Transferir/Devolver são formulários `<details>` expansíveis na mesma página, não
+  modais. Histórico fica sempre visível, não atrás de aba. Zero JavaScript de estado — só uma
+  concessão pontual (recalcular "Fim" a partir de "Início" + período no formulário de nova
+  locação), justificada por evitar uma volta ao servidor pra uma soma de dias.
+- **Layout responsivo único**, não dois DOMs paralelos (tabela desktop + cards mobile) como o
+  Next.js. `e2e/responsivo.spec.ts` (275 linhas, testa especificamente essa dualidade) não foi
+  portado — o comportamento que ele protegia (nenhuma coluna estoura em 390px) não se aplica
+  à mesma forma nesta implementação.
+- **`aConfirmar` não é conferido byte-a-byte** no teste de importação: esse número depende de
+  quais obras compartilham aba no `dados-locais.json` real da empresa (privado, fora do
+  repo — nem o Next.js consegue reproduzi-lo sem ele). Os outros 5 números (305/242/63/16/
+  90+20) **batem exatamente**, provando que o parser está correto; `aConfirmar` fica 0 no
+  teste porque ele usa um mapeamento 1:1 aba→obra próprio, sem nenhuma aba compartilhada.
 
 ## Como os testes de referência funcionam
 

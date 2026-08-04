@@ -1,0 +1,103 @@
+package painel
+
+templ LocacaoDetalhe(d DetalheLocacao, obras []Opcao) {
+	@Pagina(d.Descricao) {
+		<p><a href="/painel/locacoes">← Voltar</a></p>
+		<div data-testid="drawer-locacao" class="card">
+			<header>
+				<h1>{ d.Descricao }</h1>
+				<p>{ d.ObraTexto } · { d.FornecedorTexto }
+					if d.TrCodigo != "" {
+						· Tr { d.TrCodigo }
+					}
+				</p>
+				<span class="selo" style={ "background:" + d.StatusCor }>{ d.StatusRotulo }</span>
+			</header>
+
+			<dl>
+				<dt>Período</dt><dd class="tabular">{ d.DataInicio } a { d.DataFim }</dd>
+				<dt>Valor total</dt><dd class="tabular money">{ d.ValorTotal }</dd>
+				<dt>Quantidade</dt><dd>{ d.Quantidade }</dd>
+				<dt>Estado</dt><dd>{ d.Estado }</dd>
+				if d.Observacoes != "" {
+					<dt>Observações</dt><dd>{ d.Observacoes }</dd>
+				}
+			</dl>
+
+			if d.Erro != "" {
+				<p role="alert" class="erro">{ d.Erro }</p>
+			}
+			if d.Mensagem != "" {
+				<p role="status" class="aviso">{ d.Mensagem }</p>
+			}
+
+			if !d.Devolvida {
+				<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0">
+					<details open?={ d.AbrirRenovar }>
+						<summary class="botao" data-testid="abrir-renovar">Renovar</summary>
+						<form method="POST" action={ templ.URL("/painel/locacoes/" + d.ID + "/renovar") } class="painel-edicao">
+							<div class="campo">
+								<label for="diasExtras">Dias a acrescentar</label>
+								<input id="diasExtras" name="diasExtras" type="number" min="1"/>
+							</div>
+							<button type="submit">Confirmar</button>
+						</form>
+					</details>
+
+					<details open?={ d.AbrirTransferir }>
+						<summary class="botao" data-testid="abrir-transferir">Transferir</summary>
+						<form method="POST" action={ templ.URL("/painel/locacoes/" + d.ID + "/transferir") } class="painel-edicao">
+							<div class="campo">
+								<label for="obraDestinoId">Obra de destino *</label>
+								<select id="obraDestinoId" name="obraDestinoId" required?={ true }>
+									for _, o := range obras {
+										if o.Valor != d.ObraID {
+											<option value={ o.Valor }>{ o.Rotulo }</option>
+										}
+									}
+								</select>
+							</div>
+							<div class="campo">
+								<label for="transfInicio">Início *</label>
+								<input id="transfInicio" name="dataInicio" type="date" required?={ true } value={ d.DataInicioISO }/>
+							</div>
+							<div class="campo">
+								<label for="transfFim">Fim *</label>
+								<input id="transfFim" name="dataFim" type="date" required?={ true }/>
+							</div>
+							<div class="campo">
+								<label for="transfMotivo">Motivo</label>
+								<input id="transfMotivo" name="motivo"/>
+							</div>
+							<button type="submit">Confirmar</button>
+						</form>
+					</details>
+
+					<details open?={ d.AbrirDevolver }>
+						<summary class="botao" data-testid="abrir-devolver">Devolver</summary>
+						<form method="POST" action={ templ.URL("/painel/locacoes/" + d.ID + "/devolver") } class="painel-edicao">
+							<div class="campo">
+								<label for="dataDevolucao">Data da devolução *</label>
+								<input id="dataDevolucao" name="dataDevolucao" type="date" required?={ true } value={ d.DataDevolucaoProposta }/>
+							</div>
+							<div class="campo">
+								<label for="devMotivo">Motivo</label>
+								<input id="devMotivo" name="motivo"/>
+							</div>
+							<button type="submit">Confirmar</button>
+						</form>
+					</details>
+				</div>
+			}
+
+			<section style="margin-top:1.5rem">
+				<h2>Histórico ({ len(d.Historico) })</h2>
+				<ul data-testid="historico" style="list-style:none;padding:0">
+					for _, h := range d.Historico {
+						<li style="padding:0.3rem 0;border-bottom:1px solid var(--border)">{ h }</li>
+					}
+				</ul>
+			</section>
+		</div>
+	}
+}

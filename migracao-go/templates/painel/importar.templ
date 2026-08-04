@@ -1,0 +1,70 @@
+package painel
+
+type PreviaView struct {
+	Caminho                                                        string
+	Total, Ativos, Devolvidos, Perdidos, AConfirmar, Duplicatas    string
+	FornecedoresNovos                                              []string
+	Ignoradas                                                      []string
+}
+
+type ResultadoImportacaoView struct {
+	Texto string
+}
+
+templ Importar(erro string, previa *PreviaView, resultado *ResultadoImportacaoView) {
+	@Pagina("Importar planilha") {
+		<h1>Importar planilha</h1>
+
+		<form class="formulario" method="POST" action="/painel/importar/upload" enctype="multipart/form-data">
+			<div class="campo">
+				<label for="planilha">Arquivo (.xlsx ou .xlsm)</label>
+				<input id="planilha" name="planilha" type="file" accept=".xlsx,.xlsm" required?={ true }/>
+			</div>
+			if erro != "" {
+				<p role="alert" class="erro">{ erro }</p>
+			}
+			<button type="submit">Analisar</button>
+		</form>
+
+		if resultado != nil {
+			<div class="card" style="margin-top:1rem" data-testid="importacao-concluida">
+				<p>{ resultado.Texto }</p>
+				<p><a href="/painel/locacoes">Ver locações</a></p>
+			</div>
+		} else if previa != nil {
+			<div class="card" style="margin-top:1rem">
+				<p><strong>Prévia — nada foi gravado ainda</strong></p>
+				<dl style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem">
+					<div data-testid="previa-ativos"><dt class="email">Ativos</dt><dd>{ previa.Ativos }</dd></div>
+					<div data-testid="previa-devolvidos"><dt class="email">Devolvidos</dt><dd>{ previa.Devolvidos }</dd></div>
+					<div data-testid="previa-perdidos"><dt class="email">Perdidos</dt><dd>{ previa.Perdidos }</dd></div>
+					<div data-testid="previa-aConfirmar"><dt class="email">Obra a confirmar</dt><dd>{ previa.AConfirmar }</dd></div>
+					<div data-testid="previa-possiveisDuplicatas"><dt class="email">Possíveis duplicatas</dt><dd>{ previa.Duplicatas }</dd></div>
+				</dl>
+
+				if len(previa.FornecedoresNovos) > 0 {
+					<p>Fornecedores que serão criados: { joinVirgula(previa.FornecedoresNovos) }</p>
+				}
+				if len(previa.Ignoradas) > 0 {
+					<p>Linhas não interpretadas: { joinVirgula(previa.Ignoradas) }</p>
+				}
+
+				<form method="POST" action="/painel/importar/confirmar">
+					<input type="hidden" name="caminho" value={ previa.Caminho }/>
+					<button type="submit">{ "Confirmar importação de " + previa.Total + " registros" }</button>
+				</form>
+			</div>
+		}
+	}
+}
+
+func joinVirgula(itens []string) string {
+	r := ""
+	for i, s := range itens {
+		if i > 0 {
+			r += ", "
+		}
+		r += s
+	}
+	return r
+}

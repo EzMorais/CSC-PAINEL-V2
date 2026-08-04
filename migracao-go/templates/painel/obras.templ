@@ -1,0 +1,82 @@
+package painel
+
+type LinhaObra struct {
+	ID, Cliente, Codigo, Descricao, Responsavel string
+	Ativa                                       bool
+	QtdLocacoes                                 int
+	Erro                                        string
+}
+
+type FormObra struct {
+	Aberto                                  bool
+	Erro                                    string
+	ID, Cliente, Codigo, Descricao, Responsavel string
+}
+
+templ Obras(linhas []LinhaObra, form FormObra) {
+	@Pagina("Obras") {
+		<h1>Obras</h1>
+
+		<details open?={ form.Aberto }>
+			<summary data-testid="nova-obra" class="botao botao-primario">+ Nova obra</summary>
+			<form class="formulario" method="POST" action="/painel/obras" style="margin-top:0.75rem">
+				<input type="hidden" name="id" value={ form.ID }/>
+				<div class="campo">
+					<label for="cliente">Cliente *</label>
+					<input id="cliente" name="cliente" required?={ true } value={ form.Cliente }/>
+				</div>
+				<div class="campo">
+					<label for="codigo">Código da obra *</label>
+					<input id="codigo" name="codigo" required?={ true } value={ form.Codigo }/>
+				</div>
+				<div class="campo">
+					<label for="obraDescricao">Descrição *</label>
+					<input id="obraDescricao" name="descricao" required?={ true } value={ form.Descricao }/>
+				</div>
+				<div class="campo">
+					<label for="responsavel">Responsável</label>
+					<input id="responsavel" name="responsavel" value={ form.Responsavel }/>
+				</div>
+				if form.Erro != "" {
+					<p role="alert" data-testid="erro-obra" class="erro">{ form.Erro }</p>
+				}
+				<button type="submit" data-testid="salvar-obra">Salvar</button>
+			</form>
+		</details>
+
+		<ul class="lista-usuarios" data-testid="lista-obras" style="margin-top:1rem">
+			for _, o := range linhas {
+				<li>
+					<div class="linha-topo">
+						<span class="nome">{ o.Cliente } · { o.Codigo }<br/><span class="email">{ o.Descricao }</span></span>
+						<span class="email">{ o.QtdLocacoes } locações</span>
+						if !o.Ativa {
+							<span style="color:var(--danger)">inativa</span>
+						}
+						<form method="POST" action={ templ.URL("/painel/obras/" + o.ID + "/alternar") } style="display:inline">
+							<input type="hidden" name="ativa" value={ ativaToggle(o.Ativa) }/>
+							<button type="submit" data-testid={ "alternar-obra-" + o.Codigo }>{ rotuloAlternar(o.Ativa) }</button>
+						</form>
+					</div>
+					if o.Erro != "" {
+						<p role="alert" class="erro">{ o.Erro }</p>
+					}
+				</li>
+			}
+		</ul>
+	}
+}
+
+func ativaToggle(ativa bool) string {
+	if ativa {
+		return "0"
+	}
+	return "1"
+}
+
+func rotuloAlternar(ativa bool) string {
+	if ativa {
+		return "Desativar"
+	}
+	return "Ativar"
+}

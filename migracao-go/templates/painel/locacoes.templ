@@ -1,0 +1,75 @@
+package painel
+
+templ Locacoes(
+	linhas []LinhaLocacao,
+	filtros FiltrosView,
+	obras []Opcao,
+	fornecedores []Opcao,
+	contagemTexto string,
+) {
+	@Pagina("Locações") {
+		<h1>Locações</h1>
+		<p><a href="/painel/locacoes/nova" class="botao botao-primario">+ Nova locação</a></p>
+
+		<form method="GET" action="/painel/locacoes" class="card" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end">
+			<div class="campo" style="margin:0">
+				<label for="busca">Busca</label>
+				<input id="busca" name="busca" value={ filtros.Busca }/>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="status">Status</label>
+				<select id="status" name="status">
+					<option value="" selected?={ filtros.Status == "" }>Em aberto</option>
+					<option value="ATIVA" selected?={ filtros.Status == "ATIVA" }>Ativa</option>
+					<option value="ATENCAO" selected?={ filtros.Status == "ATENCAO" }>Atenção</option>
+					<option value="VENCIDA" selected?={ filtros.Status == "VENCIDA" }>Vencida</option>
+					<option value="DEVOLVIDA" selected?={ filtros.Status == "DEVOLVIDA" }>Devolvida</option>
+					<option value="SEM_PRAZO" selected?={ filtros.Status == "SEM_PRAZO" }>Sem prazo</option>
+					<option value="TODAS" selected?={ filtros.Status == "TODAS" }>Todas</option>
+				</select>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="obraId">Obra</label>
+				<select id="obraId" name="obraId">
+					<option value="">Todas</option>
+					for _, o := range obras {
+						<option value={ o.Valor } selected?={ o.Valor == filtros.ObraID }>{ o.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="fornecedorId">Fornecedor</label>
+				<select id="fornecedorId" name="fornecedorId">
+					<option value="">Todos</option>
+					for _, f := range fornecedores {
+						<option value={ f.Valor } selected?={ f.Valor == filtros.FornecedorID }>{ f.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<button type="submit">Filtrar</button>
+		</form>
+
+		<h2 data-testid="contagem" style="margin-top:1rem">{ contagemTexto }</h2>
+
+		<div class="lista-usuarios" data-testid="tabela-locacoes">
+			if len(linhas) == 0 {
+				<p style="padding:1rem">Nenhuma locação encontrada.</p>
+			}
+			for _, l := range linhas {
+				<a href={ templ.URL("/painel/locacoes/" + l.ID) } class="linha-locacao">
+					<span class="nome">
+						{ l.Descricao }
+						if l.TrCodigo != "" {
+							<small> · Tr { l.TrCodigo }</small>
+						}
+						<br/>
+						<span class="email">{ l.ObraTexto } · { l.FornecedorTexto }</span>
+					</span>
+					<span class="selo" style={ "background:" + l.StatusCor }>{ l.StatusRotulo }</span>
+					<span class="tabular">{ l.DataInicio } a { l.DataFim }</span>
+					<span class="tabular money">{ l.ValorTotal }</span>
+				</a>
+			}
+		</div>
+	}
+}

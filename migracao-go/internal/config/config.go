@@ -13,6 +13,7 @@ type Config struct {
 	URLEstoque     string
 	URLAlojamentos string
 	URLFrota       string
+	PastaUploads   string
 }
 
 func Carregar() Config {
@@ -26,6 +27,7 @@ func Carregar() Config {
 		URLEstoque:     getenv("URL_ESTOQUE", "http://localhost:3003"),
 		URLAlojamentos: getenv("URL_ALOJAMENTOS", "http://localhost:3005"),
 		URLFrota:       getenv("URL_FROTA", "http://localhost:3000"),
+		PastaUploads:   getenv("PASTA_UPLOADS", "dados"),
 	}
 }
 

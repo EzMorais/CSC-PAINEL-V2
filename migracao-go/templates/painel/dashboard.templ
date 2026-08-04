@@ -1,0 +1,81 @@
+package painel
+
+type Kpis struct {
+	ValorEmLocacao, Ativos, VencemEm7Dias, Vencidos, Perdidos, AConfirmar string
+}
+
+type LinhaVencimento struct {
+	Descricao, ObraTexto, DataFim, Valor string
+}
+
+templ Dashboard(kpis Kpis, vencimentos []LinhaVencimento, porObra, porFornecedor []LinhaAgregadaView) {
+	@Pagina("Dashboard") {
+		<h1>Dashboard</h1>
+
+		<div class="grade-sistemas" data-testid="kpis">
+			<div class="card">
+				<p class="email">EM LOCAÇÃO</p>
+				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-valor">{ kpis.ValorEmLocacao }</p>
+			</div>
+			<div class="card">
+				<p class="email">ITENS ATIVOS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-ativos">{ kpis.Ativos }</p>
+			</div>
+			<div class="card">
+				<p class="email">VENCEM EM 7 DIAS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-vencem-7">{ kpis.VencemEm7Dias }</p>
+			</div>
+			<div class="card">
+				<p class="email">VENCIDOS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-vencidos">{ kpis.Vencidos }</p>
+			</div>
+			<div class="card">
+				<p class="email">ITENS PERDIDOS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-perdidos">{ kpis.Perdidos }</p>
+			</div>
+			<div class="card">
+				<p class="email">OBRA A CONFIRMAR</p>
+				<p style="font-size:1.4rem" data-testid="kpi-a-confirmar">{ kpis.AConfirmar }</p>
+			</div>
+		</div>
+
+		<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+			<section class="card">
+				<h2>Valor por obra</h2>
+				<ul data-testid="valor-por-obra" style="list-style:none;padding:0">
+					for _, l := range porObra {
+						<li style="display:flex;justify-content:space-between;padding:0.2rem 0">
+							<span>{ l.Nome }</span><span class="tabular money">{ l.Valor }</span>
+						</li>
+					}
+				</ul>
+			</section>
+			<section class="card">
+				<h2>Valor por fornecedor</h2>
+				<ul data-testid="valor-por-fornecedor" style="list-style:none;padding:0">
+					for _, l := range porFornecedor {
+						<li style="display:flex;justify-content:space-between;padding:0.2rem 0">
+							<span>{ l.Nome }</span><span class="tabular money">{ l.Valor }</span>
+						</li>
+					}
+				</ul>
+			</section>
+		</div>
+
+		<section class="card" style="margin-top:1rem">
+			<h2>Vencidos e vencendo em até 7 dias</h2>
+			<table data-testid="tabela-vencimentos" style="width:100%;border-collapse:collapse">
+				for _, v := range vencimentos {
+					<tr style="border-bottom:1px solid var(--border)">
+						<td style="padding:0.4rem 0">{ v.Descricao }</td>
+						<td>{ v.ObraTexto }</td>
+						<td class="tabular">{ v.DataFim }</td>
+						<td class="tabular money" style="text-align:right">{ v.Valor }</td>
+					</tr>
+				}
+			</table>
+		</section>
+	}
+}
+
+type LinhaAgregadaView struct{ Nome, Valor string }

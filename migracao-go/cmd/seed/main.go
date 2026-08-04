@@ -11,6 +11,7 @@ import (
 
 	"siqueiracampos/servidor/internal/config"
 	dominio "siqueiracampos/servidor/internal/domain/identidade"
+	painel "siqueiracampos/servidor/internal/domain/painel"
 	"siqueiracampos/servidor/internal/infrastructure/database"
 )
 
@@ -37,7 +38,11 @@ func main() {
 	// (que mantém uma única conexão persistente, ver conexao.go) está no ar deixa a
 	// conexão dele órfã; apagar as LINHAS é visto na próxima consulta normalmente.
 	if os.Getenv("SEED_RESET") == "1" {
-		for _, tabela := range []string{"registros_acesso", "acessos_modulo", "usuarios"} {
+		tabelas := []string{
+			"registros_acesso", "acessos_modulo", "usuarios",
+			"movimentacoes_locacao", "locacoes", "fornecedor_aliases", "fornecedores", "obras",
+		}
+		for _, tabela := range tabelas {
 			if _, err := db.ExecContext(ctx, "DELETE FROM "+tabela); err != nil {
 				log.Fatalf("resetar %s: %v", tabela, err)
 			}
@@ -47,6 +52,10 @@ func main() {
 
 	semearAdmin(ctx, usuarios)
 	semearExemplos(ctx, usuarios)
+
+	repoObras := database.NovoObraRepositorio(db)
+	repoFornecedores := database.NovoFornecedorRepositorio(db)
+	semearPainel(ctx, repoObras, repoFornecedores)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -120,4 +129,68 @@ func semearExemplos(ctx context.Context, usuarios *database.UsuarioRepositorio) 
 	} else {
 		log.Printf("Usuários de exemplo: já existiam.")
 	}
+}
+
+type obraExemplo struct {
+	cliente, codigo, descricao, responsavel, abaOrigem string
+}
+
+// Espelha prisma/dados-exemplo.ts do Painel Next.js — dados fictícios, não os reais da
+// empresa (esses vivem só em dados-locais.json, gitignored, fora deste repo). EX-1010-25A
+// e EX-1010-25B compartilham propositalmente o mesmo abaOrigem — é o que exercita
+// obraAConfirmar/reclassificação nos testes, ver COMPORTAMENTO.md §6.5.
+var obrasExemplo = []obraExemplo{
+	{"ALFA INDUSTRIAL", "EX-1001-25", "CONSTRUÇÃO DE GALPÃO", "ana", "EX-1001-25_ALFA"},
+	{"ALFA INDUSTRIAL", "EX-1002-25", "REDE DE DRENAGEM", "ana", "EX-1002-25_ALFA"},
+	{"BETA LOGÍSTICA", "EX-1010-25A", "PRÉDIO ADMINISTRATIVO", "bruno", "EX-1010-25_BETA"},
+	{"BETA LOGÍSTICA", "EX-1010-25B", "DOCA DE CARREGAMENTO", "bruno", "EX-1010-25_BETA"},
+	{"GAMA ALIMENTOS", "EX-1020-26", "AMPLIAÇÃO DA FÁBRICA", "carla", "EX-1020-26_GAMA"},
+	{"AVULSO", "AVULSO", "Controle avulso", "", "AVULSO"},
+}
+
+type fornecedorExemplo struct {
+	nome, telefone string
+	aliases        []string
+}
+
+var fornecedoresExemplo = []fornecedorExemplo{
+	{"MAQLOC LOCAÇÕES", "(11) 4000-0001", []string{"MAQLOC", "MAQ LOC"}},
+	{"LOK SOLUÇÕES", "(11) 4000-0002", []string{"LOK"}},
+	{"KAISEN", "", nil},
+}
+
+func semearPainel(ctx context.Context, obras *database.ObraRepositorio, fornecedores *database.FornecedorRepositorio) {
+	criadasObras := 0
+	for _, e := range obrasExemplo {
+		if existente, _ := obras.BuscarPorCodigo(ctx, e.codigo); existente != nil {
+			continue
+		}
+		var responsavel *string
+		if e.responsavel != "" {
+			responsavel = &e.responsavel
+		}
+		o := &painel.Obra{Cliente: e.cliente, Codigo: e.codigo, Descricao: e.descricao, Responsavel: responsavel, AbaOrigem: e.abaOrigem}
+		if err := obras.Criar(ctx, o); err != nil {
+			log.Fatalf("criar obra %s: %v", e.codigo, err)
+		}
+		criadasObras++
+	}
+
+	criadosFornecedores := 0
+	for _, e := range fornecedoresExemplo {
+		if existente, _ := fornecedores.BuscarPorNomeNormalizado(ctx, painel.NormalizarTexto(e.nome)); existente != nil {
+			continue
+		}
+		var telefone *string
+		if e.telefone != "" {
+			telefone = &e.telefone
+		}
+		f := &painel.Fornecedor{Nome: e.nome, Telefone: telefone, Aliases: e.aliases}
+		if err := fornecedores.Criar(ctx, f); err != nil {
+			log.Fatalf("criar fornecedor %s: %v", e.nome, err)
+		}
+		criadosFornecedores++
+	}
+
+	log.Printf("Painel de Locação: %d obras e %d fornecedores de exemplo criados (dados fictícios).", criadasObras, criadosFornecedores)
 }

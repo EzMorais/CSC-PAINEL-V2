@@ -1,0 +1,86 @@
+package painel
+
+templ LocacaoNova(f EntradaLocacaoForm, obras []Opcao, fornecedores []Opcao, periodos []Opcao, hoje string) {
+	@Pagina("Nova locação") {
+		<h1>Nova locação</h1>
+		<form class="formulario" method="POST" action="/painel/locacoes">
+			<div class="campo">
+				<label for="obraId">Obra *</label>
+				<select id="obraId" name="obraId" required?={ true }>
+					<option value=""></option>
+					for _, o := range obras {
+						<option value={ o.Valor } selected?={ o.Valor == f.ObraID }>{ o.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo">
+				<label for="descricao">Equipamento *</label>
+				<input id="descricao" name="descricao" required?={ true } value={ f.Descricao }/>
+			</div>
+			<div class="campo">
+				<label for="trCodigo">Código Tr</label>
+				<input id="trCodigo" name="trCodigo" value={ f.TrCodigo }/>
+			</div>
+			<div class="campo">
+				<label for="fornecedorId">Fornecedor</label>
+				<select id="fornecedorId" name="fornecedorId">
+					<option value=""></option>
+					for _, fo := range fornecedores {
+						<option value={ fo.Valor } selected?={ fo.Valor == f.FornecedorID }>{ fo.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo">
+				<label for="valorItem">Valor do item (R$)</label>
+				<input id="valorItem" name="valorItem" inputmode="decimal" value={ f.ValorItem }/>
+			</div>
+			<div class="campo">
+				<label for="dataInicio">Início *</label>
+				<input id="dataInicio" name="dataInicio" type="date" required?={ true } value={ valorOu(f.DataInicio, hoje) }/>
+			</div>
+			<div class="campo">
+				<label for="periodoRapido">Período rápido</label>
+				<select id="periodoRapido" name="periodoRapido" onchange="aplicarPeriodoRapido(this)">
+					<option value=""></option>
+					for _, p := range periodos {
+						<option value={ p.Valor }>{ p.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo">
+				<label for="dataFim">Fim *</label>
+				<input id="dataFim" name="dataFim" type="date" required?={ true } value={ f.DataFim }/>
+			</div>
+			<div class="campo">
+				<label for="observacoes">Observações</label>
+				<input id="observacoes" name="observacoes" value={ f.Observacoes }/>
+			</div>
+			if f.Erro != "" {
+				<p role="alert" class="erro">{ f.Erro }</p>
+			}
+			<button type="submit">Registrar locação</button>
+		</form>
+
+		<script>
+			// Única concessão a JS neste módulo: recalcula "Fim" a partir de "Início" + o
+			// período escolhido — evitar isto custaria uma volta ao servidor pra uma conta
+			// de data trivial. Nada de lógica de negócio acontece aqui, só soma de dias.
+			function aplicarPeriodoRapido(select) {
+				var dias = parseInt(select.value, 10)
+				if (!dias) return
+				var inicio = document.getElementById('dataInicio').value
+				if (!inicio) return
+				var d = new Date(inicio + 'T00:00:00Z')
+				d.setUTCDate(d.getUTCDate() + dias)
+				document.getElementById('dataFim').value = d.toISOString().slice(0, 10)
+			}
+		</script>
+	}
+}
+
+func valorOu(v, padrao string) string {
+	if v != "" {
+		return v
+	}
+	return padrao
+}
