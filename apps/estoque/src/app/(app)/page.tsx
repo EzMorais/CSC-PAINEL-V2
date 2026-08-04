@@ -34,33 +34,33 @@ export default async function DashboardEstoquePage() {
           tom={precisaComprar > 0 ? 'atencao' : 'ativa'}
           detalhe={precisaComprar > 0 ? `${kpis.semEstoque} sem estoque · ${kpis.abaixoDoMinimo} abaixo do mínimo` : 'Nenhum item em falta'}
           href="/materiais?situacao=ZERADO"
-          icone={<TriangleAlert className="size-4 text-muted-foreground" />}
+          icone={TriangleAlert}
         />
         <KpiCard
           rotulo="Valor em estoque" valor={brl(kpis.valorEmEstoque)}
           detalhe="Pelo último preço de compra"
-          icone={<Wallet className="size-4 text-muted-foreground" />}
+          icone={Wallet} moeda
         />
         <KpiCard
           rotulo="Entradas no mês" valor={String(kpis.entradasDoMes)}
-          icone={<ArrowDownToLine className="size-4 text-muted-foreground" />}
+          icone={ArrowDownToLine}
         />
         <KpiCard
           rotulo="Saídas no mês" valor={String(kpis.saidasDoMes)}
-          icone={<ArrowUpFromLine className="size-4 text-muted-foreground" />}
+          icone={ArrowUpFromLine}
         />
       </section>
 
       <section aria-label="Cadastro" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           rotulo="Materiais ativos" valor={String(kpis.totalMateriais)}
-          href="/materiais" icone={<Package className="size-4 text-muted-foreground" />}
+          href="/materiais" icone={Package}
         />
         <KpiCard rotulo="Obras ativas" valor={String(kpis.obrasAtivas)} href="/obras" />
         <KpiCard
           rotulo="Compras em aberto" valor={String(solicitacoesAbertas)}
           detalhe={precisaComprar > 0 ? 'Há itens faltando — monte um pedido' : undefined}
-          href="/solicitacoes" icone={<ShoppingCart className="size-4 text-muted-foreground" />}
+          href="/solicitacoes" icone={ShoppingCart}
         />
       </section>
 

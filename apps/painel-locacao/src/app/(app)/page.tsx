@@ -41,19 +41,19 @@ export default async function DashboardPage() {
 
       <section aria-label="Indicadores" data-testid="kpis" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard rotulo="Em locação" valor={brl(kpi.valorEmLocacao)} detalhe={`${kpi.ativos} itens ativos`}
-                 icone={<Wallet className="size-4 text-muted-foreground" />} />
+                 icone={Wallet} moeda />
         <KpiCard rotulo="Itens ativos" valor={String(kpi.ativos)} detalhe="em aberto" tom="ativa"
-                 href="/locacoes" icone={<Package className="size-4 text-muted-foreground" />} />
+                 href="/locacoes" icone={Package} />
         <KpiCard rotulo="Vencem em 7 dias" valor={String(kpi.vencemEm7Dias)} detalhe="exigem atenção" tom="atencao"
-                 href="/locacoes?status=ATENCAO" icone={<AlertTriangle className="size-4 text-muted-foreground" />} />
+                 href="/locacoes?status=ATENCAO" icone={AlertTriangle} />
         <KpiCard rotulo="Vencidos" valor={String(kpi.vencidos)} detalhe="prazo encerrado" tom="vencida"
-                 href="/locacoes?status=VENCIDA" icone={<CircleAlert className="size-4 text-muted-foreground" />} />
+                 href="/locacoes?status=VENCIDA" icone={CircleAlert} />
         {/* `perdidos` conta todos os itens perdidos, inclusive os de locações já
             encerradas — prejuízo consumado, pago ao locador. `perdidosEmAberto` é o
             que ainda dá para acertar. Mostrar só o segundo apagaria o custo do painel. */}
         <KpiCard rotulo="Itens perdidos" valor={String(kpi.perdidos)}
                  detalhe={`${kpi.perdidosEmAberto} ainda a acertar com o locador`} tom="perdido"
-                 href="/locacoes?estado=PERDIDO&status=TODAS" icone={<PackageX className="size-4 text-muted-foreground" />} />
+                 href="/locacoes?estado=PERDIDO&status=TODAS" icone={PackageX} />
       </section>
 
       {kpi.aConfirmar > 0 && (

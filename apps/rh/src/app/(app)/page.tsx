@@ -31,20 +31,20 @@ export default async function DashboardRh() {
       <section aria-label="Indicadores" data-testid="kpis" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           rotulo="Ativos" valor={String(kpis.ativos)} tom="ativa"
-          href="/funcionarios?status=ATIVO" icone={<Users className="size-4 text-muted-foreground" />}
+          href="/funcionarios?status=ATIVO" icone={Users}
         />
         <KpiCard
           rotulo="Afastados" valor={String(kpis.afastados)} tom="atencao"
-          href="/funcionarios?status=AFASTADO" icone={<UserMinus className="size-4 text-muted-foreground" />}
+          href="/funcionarios?status=AFASTADO" icone={UserMinus}
         />
         <KpiCard
           rotulo="Em férias" valor={String(kpis.ferias)} tom="atencao"
-          href="/funcionarios?status=FERIAS" icone={<Palmtree className="size-4 text-muted-foreground" />}
+          href="/funcionarios?status=FERIAS" icone={Palmtree}
         />
         <KpiCard
           rotulo="Admissões no mês" valor={String(kpis.admissoesDoMes)}
           detalhe={`${kpis.desligamentosDoMes} desligamento${kpis.desligamentosDoMes === 1 ? '' : 's'} no mês`}
-          icone={<UserPlus className="size-4 text-muted-foreground" />}
+          icone={UserPlus}
         />
       </section>
 
@@ -53,11 +53,11 @@ export default async function DashboardRh() {
           rotulo="Cadastros incompletos" valor={String(pendencias)}
           tom={pendencias > 0 ? 'vencida' : 'neutro'}
           detalhe={pendencias > 0 ? `${kpis.semObra} sem obra · ${kpis.semCargo} sem cargo` : 'Nenhuma pendência'}
-          icone={<BadgeAlert className="size-4 text-muted-foreground" />}
+          icone={BadgeAlert}
         />
         <KpiCard
           rotulo="Obras ativas" valor={String(kpis.totalObras)}
-          href="/obras" icone={<Building2 className="size-4 text-muted-foreground" />}
+          href="/obras" icone={Building2}
         />
         {/* `neutro`, não um tom de alerta: desligamento é fato consumado, não pendência. */}
         <KpiCard rotulo="Desligados" valor={String(kpis.desligados)} href="/funcionarios?status=DESLIGADO" />

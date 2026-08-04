@@ -37,14 +37,14 @@ export default async function TreinamentosPage({ searchParams }: Props) {
         <KpiCard
           rotulo="Reciclagem vencida" valor={String(contagem.vencidos)}
           tom={contagem.vencidos > 0 ? 'vencida' : 'neutro'}
-          icone={<AlertTriangle className="size-4 text-muted-foreground" />}
+          icone={AlertTriangle}
         />
         <KpiCard
           rotulo="Vencendo em 30 dias" valor={String(contagem.vencendo)}
           tom={contagem.vencendo > 0 ? 'atencao' : 'neutro'}
-          icone={<AlertTriangle className="size-4 text-muted-foreground" />}
+          icone={AlertTriangle}
         />
-        <KpiCard rotulo="Turmas registradas" valor={String(turmas.length)} icone={<GraduationCap className="size-4 text-muted-foreground" />} />
+        <KpiCard rotulo="Turmas registradas" valor={String(turmas.length)} icone={GraduationCap} />
       </section>
 
       {alertas.length > 0 && (

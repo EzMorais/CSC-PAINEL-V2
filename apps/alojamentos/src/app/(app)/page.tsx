@@ -42,29 +42,29 @@ export default async function PainelAlojamentos() {
         <KpiCard
           rotulo="Moradores" valor={String(kpis.ocupados)}
           detalhe={kpis.capacidade > 0 ? `de ${kpis.capacidade} vagas` : 'sem capacidade cadastrada'}
-          tom="ativa" href="/moradores" icone={<BedDouble className="size-4" />}
+          tom="ativa" href="/moradores" icone={BedDouble}
         />
         <KpiCard
           rotulo="Vagas livres" valor={String(kpis.vagas)}
           tom={kpis.vagas === 0 && kpis.capacidade > 0 ? 'atencao' : 'neutro'}
           detalhe={kpis.vagas === 0 && kpis.capacidade > 0 ? 'todos os alojamentos lotados' : undefined}
-          icone={<DoorOpen className="size-4" />}
+          icone={DoorOpen}
         />
         <KpiCard
           rotulo="Pedidos em aberto" valor={String(kpis.pedidosAbertos)}
           tom={kpis.pedidosAbertos > 0 ? 'atencao' : 'ativa'}
           detalhe={kpis.pedidosAbertos > 0 ? 'aguardando alguém resolver' : 'nada pendente'}
-          href="/pedidos" icone={<ClipboardList className="size-4" />}
+          href="/pedidos" icone={ClipboardList}
         />
         <KpiCard
           rotulo="Programação de hoje" valor={String(kpis.programacoesHoje)}
-          href="/programacao" icone={<CalendarDays className="size-4" />}
+          href="/programacao" icone={CalendarDays}
         />
       </section>
 
       <section aria-label="Cadastro" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard rotulo="Alojamentos" valor={String(kpis.totalAlojamentos)} href="/alojamentos" icone={<House className="size-4" />} />
-        <KpiCard rotulo="Rotas de ônibus" valor={String(kpis.rotas)} href="/rotas" icone={<Bus className="size-4" />} />
+        <KpiCard rotulo="Alojamentos" valor={String(kpis.totalAlojamentos)} href="/alojamentos" icone={House} />
+        <KpiCard rotulo="Rotas de ônibus" valor={String(kpis.rotas)} href="/rotas" icone={Bus} />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">

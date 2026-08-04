@@ -57,13 +57,13 @@ export default async function EpisPage({ searchParams }: Props) {
           rotulo="Sem nenhum EPI" valor={String(kpis.semNenhumEpi)}
           tom={kpis.semNenhumEpi > 0 ? 'atencao' : 'ativa'}
           detalhe={kpis.semNenhumEpi > 0 ? 'Funcionários na ativa que nunca receberam' : 'Todo mundo já recebeu'}
-          icone={<TriangleAlert className="size-4 text-muted-foreground" />}
+          icone={TriangleAlert}
         />
         <KpiCard
           rotulo="CA vencido na entrega" valor={String(kpis.comCaVencido)}
           tom={kpis.comCaVencido > 0 ? 'vencida' : 'neutro'}
           detalhe="Equipamento entregue com certificado fora da validade"
-          icone={<HardHat className="size-4 text-muted-foreground" />}
+          icone={HardHat}
         />
         <KpiCard rotulo="Entregas no mês" valor={String(kpis.doMes)} />
         <KpiCard rotulo="Total de entregas" valor={String(kpis.total)} />

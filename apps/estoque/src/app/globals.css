@@ -5,43 +5,135 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: oklch(0.98 0.003 260);
-  --foreground: oklch(0.21 0.015 260);
+  /* Neutro de verdade — croma quase zero, sem puxar pra azul. Base do sistema:
+     Anytype/Notion/Discord usam chrome neutro e deixam a cor só pro acento. */
+  --background: oklch(0.99 0.001 260);
+  --foreground: oklch(0.19 0.004 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.015 260);
-  --muted: oklch(0.96 0.005 260);
-  --muted-foreground: oklch(0.52 0.015 260);
-  --border: oklch(0.91 0.006 260);
-  --input: oklch(0.91 0.006 260);
+  --card-foreground: oklch(0.19 0.004 260);
+  --muted: oklch(0.96 0.002 260);
+  --muted-foreground: oklch(0.50 0.006 260);
+  --border: oklch(0.90 0.003 260);
+  --input: oklch(0.90 0.003 260);
+
   /* Terracota — cor de identidade do Almoxarifado. Cada módulo tem a sua; ver os
-     outros apps para RH (verde-azulado), Painel (índigo) e Portal (azul). */
-  --ring: oklch(0.58 0.15 45);
-  --primary: oklch(0.58 0.15 45);
+     outros apps para RH (verde-azulado), Painel (índigo), Portal (azul) e
+     Alojamentos (âmbar). Mais saturado que antes — a cor carrega a identidade, o
+     resto do chrome é neutro. */
+  --ring: oklch(0.60 0.17 45);
+  --primary: oklch(0.60 0.17 45);
   --primary-foreground: oklch(0.99 0 0);
-  --accent: oklch(0.94 0.01 260);
-  --accent-foreground: oklch(0.21 0.015 260);
+  --accent: oklch(0.94 0.004 260);
+  --accent-foreground: oklch(0.19 0.004 260);
   --destructive: oklch(0.58 0.20 27);
   --destructive-foreground: oklch(0.99 0 0);
+
+  /* Sidebar — SEMPRE escura, não muda com o tema. Fica fora do bloco .dark de propósito. */
+  --sidebar: oklch(0.15 0.006 260);
+  --sidebar-foreground: oklch(0.90 0.004 260);
+  --sidebar-muted-foreground: oklch(0.60 0.01 260);
+  --sidebar-accent: oklch(0.20 0.007 260);
+  --sidebar-accent-foreground: oklch(0.97 0.003 260);
+  --sidebar-border: oklch(0.24 0.008 260);
+
+  /* Semânticas genéricas — reutilizáveis em qualquer app, além dos status específicos
+     abaixo. */
+  --color-success: oklch(0.60 0.15 150);
+  --color-success-soft: oklch(0.95 0.03 150);
+  --color-warning: oklch(0.72 0.15 80);
+  --color-warning-soft: oklch(0.95 0.04 80);
+  --color-info: oklch(0.60 0.14 235);
+  --color-info-soft: oklch(0.95 0.025 235);
+  --color-purple: oklch(0.58 0.18 296);
+  --color-purple-soft: oklch(0.95 0.03 296);
+  --money: var(--color-success);
+
+  /* Ícone tiles "soft 3D minimal" — gradiente 140°, zero glow. */
+  --ic-blue-1: oklch(0.62 0.16 250);
+  --ic-blue-2: oklch(0.48 0.18 258);
+  --ic-blue-grad: linear-gradient(140deg, var(--ic-blue-1), var(--ic-blue-2));
+  --ic-purple-1: oklch(0.60 0.18 296);
+  --ic-purple-2: oklch(0.46 0.20 300);
+  --ic-purple-grad: linear-gradient(140deg, var(--ic-purple-1), var(--ic-purple-2));
+  --ic-cyan-1: oklch(0.72 0.12 210);
+  --ic-cyan-2: oklch(0.58 0.14 215);
+  --ic-cyan-grad: linear-gradient(140deg, var(--ic-cyan-1), var(--ic-cyan-2));
+  --ic-orange-1: oklch(0.68 0.16 55);
+  --ic-orange-2: oklch(0.56 0.18 45);
+  --ic-orange-grad: linear-gradient(140deg, var(--ic-orange-1), var(--ic-orange-2));
+  --ic-green-1: oklch(0.66 0.15 150);
+  --ic-green-2: oklch(0.52 0.16 155);
+  --ic-green-grad: linear-gradient(140deg, var(--ic-green-1), var(--ic-green-2));
+  --ic-red-1: oklch(0.62 0.19 25);
+  --ic-red-2: oklch(0.50 0.20 20);
+  --ic-red-grad: linear-gradient(140deg, var(--ic-red-1), var(--ic-red-2));
+  --ic-yellow-1: oklch(0.78 0.15 90);
+  --ic-yellow-2: oklch(0.66 0.16 80);
+  --ic-yellow-grad: linear-gradient(140deg, var(--ic-yellow-1), var(--ic-yellow-2));
+  --ic-pink-1: oklch(0.66 0.17 350);
+  --ic-pink-2: oklch(0.54 0.19 345);
+  --ic-pink-grad: linear-gradient(140deg, var(--ic-pink-1), var(--ic-pink-2));
+  --ic-neutro-1: oklch(0.80 0.004 260);
+  --ic-neutro-2: oklch(0.62 0.006 260);
+  --ic-neutro-grad: linear-gradient(140deg, var(--ic-neutro-1), var(--ic-neutro-2));
+
+  /* Sombra neutra do tile: drop shadow leve + highlight interno. Sem cor, sem glow. */
+  --tile-shadow: 0 1px 2px oklch(0 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.22);
+
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
 }
 
 .dark {
-  --background: oklch(0.19 0.012 260);
-  --foreground: oklch(0.95 0.005 260);
-  --card: oklch(0.23 0.014 260);
-  --card-foreground: oklch(0.95 0.005 260);
-  --muted: oklch(0.27 0.014 260);
-  --muted-foreground: oklch(0.71 0.015 260);
-  --border: oklch(0.32 0.014 260);
-  --input: oklch(0.32 0.014 260);
-  --ring: oklch(0.68 0.14 50);
-  --primary: oklch(0.68 0.14 50);
+  --background: oklch(0.17 0.005 260);
+  --foreground: oklch(0.93 0.004 260);
+  --card: oklch(0.21 0.006 260);
+  --card-foreground: oklch(0.93 0.004 260);
+  --muted: oklch(0.25 0.006 260);
+  --muted-foreground: oklch(0.68 0.008 260);
+  --border: oklch(0.30 0.007 260);
+  --input: oklch(0.30 0.007 260);
+  --ring: oklch(0.70 0.15 50);
+  --primary: oklch(0.70 0.15 50);
   --primary-foreground: oklch(0.17 0.02 50);
-  --accent: oklch(0.29 0.014 260);
-  --accent-foreground: oklch(0.95 0.005 260);
+  --accent: oklch(0.29 0.007 260);
+  --accent-foreground: oklch(0.93 0.004 260);
   /* Mais claro que no tema claro: sobre fundo escuro o vermelho de 0.58 fica abaixo
      do contraste mínimo para texto. */
   --destructive: oklch(0.70 0.17 27);
   --destructive-foreground: oklch(0.17 0.02 260);
+
+  --color-success: oklch(0.68 0.15 150);
+  --color-success-soft: oklch(0.28 0.05 150);
+  --color-warning: oklch(0.78 0.14 85);
+  --color-warning-soft: oklch(0.30 0.06 85);
+  --color-info: oklch(0.68 0.14 235);
+  --color-info-soft: oklch(0.28 0.045 235);
+  --color-purple: oklch(0.68 0.17 296);
+  --color-purple-soft: oklch(0.30 0.06 296);
+  --money: var(--color-success);
+
+  --ic-blue-1: oklch(0.66 0.15 250);
+  --ic-blue-2: oklch(0.52 0.17 258);
+  --ic-purple-1: oklch(0.64 0.17 296);
+  --ic-purple-2: oklch(0.50 0.19 300);
+  --ic-cyan-1: oklch(0.74 0.11 210);
+  --ic-cyan-2: oklch(0.60 0.13 215);
+  --ic-orange-1: oklch(0.70 0.15 55);
+  --ic-orange-2: oklch(0.58 0.17 45);
+  --ic-green-1: oklch(0.68 0.14 150);
+  --ic-green-2: oklch(0.54 0.15 155);
+  --ic-red-1: oklch(0.66 0.18 25);
+  --ic-red-2: oklch(0.54 0.19 20);
+  --ic-yellow-1: oklch(0.80 0.14 90);
+  --ic-yellow-2: oklch(0.68 0.15 80);
+  --ic-pink-1: oklch(0.68 0.16 350);
+  --ic-pink-2: oklch(0.56 0.18 345);
+  --ic-neutro-1: oklch(0.42 0.006 260);
+  --ic-neutro-2: oklch(0.28 0.007 260);
+
+  --tile-shadow: 0 1px 3px oklch(0 0 0 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.10);
 }
 
 @theme inline {
@@ -60,8 +152,26 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-warning: var(--color-warning);
+  --color-warning-soft: var(--color-warning-soft);
+  --color-info: var(--color-info);
+  --color-info-soft: var(--color-info-soft);
+  --color-purple: var(--color-purple);
+  --color-purple-soft: var(--color-purple-soft);
+  --color-money: var(--money);
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
@@ -81,4 +191,14 @@ body {
 /* Números em tabela alinham por dígito, não por largura de glifo. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Ícone tile "soft 3D minimal" — usado por IconTile (src/components/ui/icon-tile.tsx). */
+.ic-tile {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--tile-shadow);
+  color: white;
+  flex-shrink: 0;
 }

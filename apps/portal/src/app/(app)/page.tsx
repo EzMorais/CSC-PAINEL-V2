@@ -1,5 +1,6 @@
 import { Building2, Users, Package, House, Truck, ArrowUpRight, Lock, ShieldCheck } from 'lucide-react'
 import { exigirSessao, temAcesso } from '@/lib/auth'
+import { IconTile, type CorTile } from '@/components/ui/icon-tile'
 import {
   MODULO, ROTULO_MODULO, URL_MODULO, ROTULO_CARGO, DESCRICAO_CARGO, TOM_CARGO,
   podeAprovar, podeLancar, type Cargo, type Modulo,
@@ -15,16 +16,20 @@ const COR_TOM: Record<string, string> = {
   devolvida: 'bg-status-devolvida/15 text-status-devolvida',
 }
 
+/* Cada sistema com a cor de tile mais próxima da sua identidade — ver DESIGN-SYSTEM.md
+   §3: Painel=índigo→purple, RH=verde-azulado→cyan, Almoxarifado=terracota→orange,
+   Alojamentos=âmbar→yellow, Frota=azul→blue. */
 const SISTEMAS: Array<{
   modulo: Modulo
   descricao: string
   Icone: typeof Building2
+  cor: CorTile
 }> = [
-  { modulo: MODULO.PAINEL,  descricao: 'Equipamentos alugados por obra, vencimentos e custo',  Icone: Building2 },
-  { modulo: MODULO.RH,      descricao: 'Funcionários, treinamentos, exames, EPIs e documentos', Icone: Users },
-  { modulo: MODULO.ESTOQUE, descricao: 'Materiais, entradas e saídas por obra, compras',        Icone: Package },
-  { modulo: MODULO.ALOJAMENTOS, descricao: 'Moradia dos funcionários, pedidos e programação',   Icone: House },
-  { modulo: MODULO.FROTA,   descricao: 'Veículos, manutenções e abastecimento',                 Icone: Truck },
+  { modulo: MODULO.PAINEL,  descricao: 'Equipamentos alugados por obra, vencimentos e custo',  Icone: Building2, cor: 'purple' },
+  { modulo: MODULO.RH,      descricao: 'Funcionários, treinamentos, exames, EPIs e documentos', Icone: Users,     cor: 'cyan' },
+  { modulo: MODULO.ESTOQUE, descricao: 'Materiais, entradas e saídas por obra, compras',        Icone: Package,   cor: 'orange' },
+  { modulo: MODULO.ALOJAMENTOS, descricao: 'Moradia dos funcionários, pedidos e programação',   Icone: House,     cor: 'yellow' },
+  { modulo: MODULO.FROTA,   descricao: 'Veículos, manutenções e abastecimento',                 Icone: Truck,     cor: 'blue' },
 ]
 
 export default async function PortalPage() {
@@ -54,15 +59,14 @@ export default async function PortalPage() {
           </p>
         ) : (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {liberados.map(({ modulo, descricao, Icone }) => (
+            {liberados.map(({ modulo, descricao, Icone, cor }) => (
               <a
                 key={modulo} href={URL_MODULO[modulo]} data-testid={`sistema-${modulo}`}
-                className="group flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-sm
-                           transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md"
+                className="group flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-xs
+                           transition-[transform,box-shadow,background-color] duration-(--duration-fast)
+                           hover:-translate-y-0.5 hover:bg-accent hover:shadow-sm"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                  <Icone className="size-5" />
-                </span>
+                <IconTile icone={Icone} cor={cor} tamanho="lg" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1 font-medium">
                     {ROTULO_MODULO[modulo]}

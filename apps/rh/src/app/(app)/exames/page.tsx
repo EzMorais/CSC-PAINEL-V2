@@ -31,12 +31,12 @@ export default async function ExamesPage({ searchParams }: Props) {
         <KpiCard
           rotulo="ASO vencido" valor={String(alertas.vencidos)}
           tom={alertas.vencidos > 0 ? 'vencida' : 'neutro'}
-          icone={<Stethoscope className="size-4 text-muted-foreground" />}
+          icone={Stethoscope}
         />
         <KpiCard
           rotulo="Vencendo em 30 dias" valor={String(alertas.vencendo)}
           tom={alertas.vencendo > 0 ? 'atencao' : 'neutro'}
-          icone={<Stethoscope className="size-4 text-muted-foreground" />}
+          icone={Stethoscope}
         />
         <KpiCard rotulo="Exames registrados" valor={String(exames.length)} />
       </section>

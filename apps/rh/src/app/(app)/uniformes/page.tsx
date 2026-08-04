@@ -33,7 +33,7 @@ export default async function UniformesPage({ searchParams }: Props) {
           valor={String(semEntrega)}
           tom={semEntrega > 0 ? 'atencao' : 'neutro'}
           detalhe={semEntrega > 0 ? 'Ativos, afastados ou em férias sem nenhuma peça entregue' : 'Todo mundo já recebeu ao menos uma peça'}
-          icone={<Shirt className="size-4 text-muted-foreground" />}
+          icone={Shirt}
         />
       </section>
 

@@ -46,12 +46,12 @@ export default async function DocumentosPage({ searchParams }: Props) {
         <KpiCard
           rotulo="Documento vencido" valor={String(alertas.vencidos)}
           tom={alertas.vencidos > 0 ? 'vencida' : 'neutro'}
-          icone={<FileText className="size-4 text-muted-foreground" />}
+          icone={FileText}
         />
         <KpiCard
           rotulo="Vencendo em 30 dias" valor={String(alertas.vencendo)}
           tom={alertas.vencendo > 0 ? 'atencao' : 'neutro'}
-          icone={<FileText className="size-4 text-muted-foreground" />}
+          icone={FileText}
         />
         <KpiCard rotulo="Documentos da empresa" valor={String(documentos.length)} />
       </section>

@@ -31,12 +31,12 @@ export default async function NaoConformidadesPage({ searchParams }: Props) {
         <KpiCard
           rotulo="Em aberto" valor={String(abertas)}
           tom={abertas > 0 ? 'atencao' : 'neutro'}
-          icone={<AlertTriangle className="size-4 text-muted-foreground" />}
+          icone={AlertTriangle}
         />
         <KpiCard
           rotulo="Com prazo vencido" valor={String(vencidas)}
           tom={vencidas > 0 ? 'vencida' : 'neutro'}
-          icone={<AlertTriangle className="size-4 text-muted-foreground" />}
+          icone={AlertTriangle}
         />
       </section>
 
