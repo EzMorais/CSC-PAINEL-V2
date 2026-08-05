@@ -1,0 +1,18 @@
+package layout
+
+// Header — barra superior visível só no mobile (≤720px, ver DESIGN-SYSTEM.md §11), com o
+// botão que abre o drawer da sidebar e o toggle de tema. No desktop o toggle equivalente vive
+// dentro da própria Sidebar (ver sidebar.templ) — mesmo padrão de
+// apps/rh/src/components/layout/sidebar.tsx (header só aparece em `lg:hidden`).
+templ Header() {
+	<header class="cabecalho-mobile somente-mobile">
+		<button type="button" class="botao-icone" data-abrir-menu aria-label="Abrir menu" aria-expanded="false">
+			@IconeMenu("icone")
+		</button>
+		<span class="marca-texto-mobile">Siqueira Campos</span>
+		<button type="button" class="botao-icone" data-alternar-tema aria-label="Alternar tema">
+			@IconeLua("icone icone-tema-escuro")
+			@IconeSol("icone icone-tema-claro")
+		</button>
+	</header>
+}

@@ -47,14 +47,14 @@ func Locacoes(
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Locações</h1><p><a href=\"/painel/locacoes/nova\" class=\"botao botao-primario\">+ Nova locação</a></p><form method=\"GET\" action=\"/painel/locacoes\" class=\"card\" style=\"display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end\"><div class=\"campo\" style=\"margin:0\"><label for=\"busca\">Busca</label> <input id=\"busca\" name=\"busca\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Locações</h1><p style=\"display:flex;gap:0.5rem;flex-wrap:wrap\"><a href=\"/painel/locacoes/nova\" class=\"botao botao-primario\">+ Nova locação</a> <a href=\"/painel/export/xlsx\" class=\"botao botao-secundario\">Exportar Excel</a> <a href=\"/painel/export/pdf\" class=\"botao botao-secundario\">Exportar PDF</a></p><form method=\"GET\" action=\"/painel/locacoes\" class=\"card\" style=\"display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end\"><div class=\"campo\" style=\"margin:0\"><label for=\"busca\">Busca</label> <input id=\"busca\" name=\"busca\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(filtros.Busca)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 17, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 21, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -142,7 +142,7 @@ func Locacoes(
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Valor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 36, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 40, Col: 29}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 				if templ_7745c5c3_Err != nil {
@@ -165,7 +165,7 @@ func Locacoes(
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(o.Rotulo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 36, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 40, Col: 82}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -188,7 +188,7 @@ func Locacoes(
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(f.Valor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 45, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 49, Col: 29}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -211,7 +211,7 @@ func Locacoes(
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(f.Rotulo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 45, Col: 88}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 49, Col: 88}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -229,7 +229,7 @@ func Locacoes(
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(contagemTexto)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 52, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 56, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -253,7 +253,7 @@ func Locacoes(
 				var templ_7745c5c3_Var9 templ.SafeURL
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/painel/locacoes/" + l.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 59, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 63, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -266,7 +266,7 @@ func Locacoes(
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(l.Descricao)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 61, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 65, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -284,7 +284,7 @@ func Locacoes(
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(l.TrCodigo)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 63, Col: 33}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 67, Col: 33}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
@@ -302,7 +302,7 @@ func Locacoes(
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(l.ObraTexto)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 66, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 70, Col: 39}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -315,7 +315,7 @@ func Locacoes(
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(l.FornecedorTexto)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 66, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 70, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -328,7 +328,7 @@ func Locacoes(
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background:" + l.StatusCor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 68, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 72, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -341,7 +341,7 @@ func Locacoes(
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(l.StatusRotulo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 68, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 72, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -354,7 +354,7 @@ func Locacoes(
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(l.DataInicio)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 69, Col: 41}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 73, Col: 41}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -367,7 +367,7 @@ func Locacoes(
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(l.DataFim)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 69, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 73, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -380,7 +380,7 @@ func Locacoes(
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(l.ValorTotal)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 70, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/painel/locacoes.templ`, Line: 74, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {

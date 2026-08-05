@@ -167,9 +167,18 @@ func main() {
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 
+	// Injeta sessão + URLs de navegação cruzada no context.Context de toda requisição — é o
+	// que permite templates/layout/base.templ montar a sidebar sem que nenhum handler ou
+	// template-folha precise passar esses dados por parâmetro. Ver ARQUITETURA.md e o adendo
+	// de layout em DESIGN-SYSTEM.md.
+	handler := middleware.ComContextoDeRequisicao(sessoes, middleware.Navegacao{
+		URLRH:          cfg.URLRH,
+		URLAlojamentos: cfg.URLAlojamentos,
+	}, mux)
+
 	servidor := &http.Server{
 		Addr:         ":" + cfg.Porta,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second, // exportação de relatório grande pode passar dos 10s padrão
 	}

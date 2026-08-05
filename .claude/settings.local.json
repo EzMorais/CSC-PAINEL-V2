@@ -14,7 +14,12 @@
       "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
       "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(go version)",
+      "PowerShell(Get-Command winget -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command choco -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command scoop -ErrorAction SilentlyContinue)",
+      "PowerShell(winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements)"
     ]
   }
 }

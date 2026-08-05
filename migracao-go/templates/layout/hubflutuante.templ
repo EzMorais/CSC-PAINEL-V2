@@ -1,0 +1,53 @@
+package layout
+
+import (
+	"siqueiracampos/servidor/internal/domain/identidade"
+	"siqueiracampos/servidor/internal/middleware"
+)
+
+// HubFlutuante — botão flutuante (canto inferior direito) pra trocar de sistema sem passar
+// pelo Hub, mesmo padrão de apps/rh/src/components/layout/hub-navegacao.tsx. Frota fica de
+// fora de propósito (mesma lista de referência do componente React). Os links internos
+// (Portal/Painel/Almoxarifado) usam `data-nav` — o mesmo script que marca o item ativo na
+// sidebar (static/app.js, por prefixo de `location.pathname`) já cobre esses também.
+templ HubFlutuante(sess identidade.Sessao, nav middleware.Navegacao) {
+	<div class="hub-flutuante" data-hub-flutuante>
+		<div class="hub-flutuante-menu" data-hub-flutuante-menu>
+			<p class="hub-flutuante-titulo">Sistemas Siqueira Campos</p>
+			<a href="/" class="hub-flutuante-item" data-nav>
+				@IconeGrade("icone")
+				Portal
+			</a>
+			if identidade.TemAcesso(sess, identidade.ModuloPainel) {
+				<a href="/painel" class="hub-flutuante-item" data-nav>
+					@IconePredio("icone")
+					Painel de Locação
+				</a>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloEstoque) {
+				<a href="/almoxarifado" class="hub-flutuante-item" data-nav>
+					@IconePacote("icone")
+					Almoxarifado
+				</a>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloRH) {
+				<a href={ templ.URL(nav.URLRH) } class="hub-flutuante-item">
+					@IconeUsuarios("icone")
+					RH e SST
+					@IconeLinkExterno("icone icone-externo")
+				</a>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloAlojamentos) {
+				<a href={ templ.URL(nav.URLAlojamentos) } class="hub-flutuante-item">
+					@IconeCasa("icone")
+					Alojamentos
+					@IconeLinkExterno("icone icone-externo")
+				</a>
+			}
+		</div>
+		<button type="button" class="hub-flutuante-botao" data-hub-flutuante-botao aria-label="Abrir navegação rápida" aria-expanded="false" data-testid="hub-navegacao-botao">
+			@IconeGrade("icone")
+			@IconeX("icone icone-fechar")
+		</button>
+	</div>
+}

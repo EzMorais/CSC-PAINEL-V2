@@ -1,7 +1,5 @@
 package identidade
 
-import "siqueiracampos/servidor/templates/layout"
-
 func contem(lista []string, valor string) bool {
 	for _, v := range lista {
 		if v == valor {
@@ -19,15 +17,8 @@ templ Usuarios(
 	modulos []OpcaoModulo,
 	totalTexto string,
 ) {
-	@layout.Base("Usuários — Portal Siqueira Campos") {
-		<header class="cabecalho">
-			<a href="/">Siqueira Campos</a>
-			<form method="POST" action="/sair">
-				<button type="submit" data-testid="sair" aria-label="Sair">Sair</button>
-			</form>
-		</header>
-		<main class="conteudo">
-			<h1>Usuários</h1>
+	@Pagina("Usuários") {
+		<h1>Usuários</h1>
 			<p>Um cadastro só para os quatro sistemas.</p>
 
 			<div class="card">
@@ -176,6 +167,5 @@ templ Usuarios(
 					</ul>
 				}
 			</section>
-		</main>
 	}
 }

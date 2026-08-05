@@ -1,6 +1,12 @@
 // Package layout tem a casca compartilhada entre todas as páginas — ver DESIGN-SYSTEM.md.
 package layout
 
+import "siqueiracampos/servidor/internal/middleware"
+
+// Base é o único lugar que decide se a sidebar aparece: lê a sessão do context.Context (posta
+// lá por middleware.ComContextoDeRequisicao em cmd/servidor/main.go), sem que `Pagina()` de
+// nenhum módulo nem nenhum template-folha precise passar isso por parâmetro. Sem sessão
+// (página de login), `{ children... }` renderiza puro — cobre `entrar.templ`.
 templ Base(titulo string) {
 	<!DOCTYPE html>
 	<html lang="pt-BR">
@@ -8,10 +14,25 @@ templ Base(titulo string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ titulo }</title>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+			<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"/>
 			<link rel="stylesheet" href="/estatico/estilo.css"/>
+			<script src="/estatico/app.js"></script>
 		</head>
 		<body>
-			{ children... }
+			if sess := middleware.SessaoDoContexto(ctx); sess != nil {
+				@Sidebar(*sess)
+				<div class="area-principal">
+					@Header()
+					<main class="conteudo">
+						{ children... }
+					</main>
+				</div>
+				@HubFlutuante(*sess, middleware.NavegacaoDoContexto(ctx))
+			} else {
+				{ children... }
+			}
 		</body>
 	</html>
 }
