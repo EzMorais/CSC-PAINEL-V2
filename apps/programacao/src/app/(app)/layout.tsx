@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { CalendarDays, Columns3, LogOut } from 'lucide-react'
+import { CalendarDays, Columns3, LogOut, Users, Truck } from 'lucide-react'
 import { lerSessao } from '@/lib/auth'
 import { Marca } from '@/components/marca/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { HubNavegacao } from '@/components/layout/hub-navegacao'
 import { sair } from '@/actions/auth'
 
 /**
@@ -42,6 +43,18 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
             >
               <Columns3 className="size-4" /> Clientes
             </Link>
+            <Link
+              href="/funcionarios"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Users className="size-4" /> Funcionários
+            </Link>
+            <Link
+              href="/veiculos"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Truck className="size-4" /> Veículos
+            </Link>
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
@@ -63,6 +76,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       </header>
 
       <main>{children}</main>
+
+      <HubNavegacao cargo={sessao.cargo} modulos={sessao.modulos} atual="PROGRAMACAO" />
     </div>
   )
 }

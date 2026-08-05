@@ -28,31 +28,63 @@ const FRENTES = [
 ]
 
 /**
- * As siglas que aparecem na planilha atual.
+ * Cor de cada grupo de função — pinta o card no quadro e na imagem gerada.
+ *
+ * Vermelho para gestão/técnica/liderança, azul para apoio operacional, amarelo para
+ * alvenaria e construção civil, roxo para instalações e acabamento, laranja para montagem e
+ * estrutura metálica, cinza para operação de equipamento, verde para motorista e frota.
+ * Editável depois por sigla — isto aqui é só o ponto de partida.
+ */
+const COR_GRUPO = {
+  VERMELHO: '#8B0000',
+  AZUL: '#1B4F91',
+  AMARELO: '#C9A227',
+  ROXO: '#6A3FA0',
+  LARANJA: '#C1560C',
+  CINZA: '#55606B',
+  VERDE: '#1B6B34',
+}
+
+/**
+ * As siglas que aparecem na planilha atual de funcionários.
  *
  * `cargoRh` liga a sigla ao nome do cargo no RH, para o quadro preencher a função sozinho
  * ao trazer alguém cadastrado. Onde ficou vazio é porque o cargo ainda não existe no RH —
- * o vínculo se faz na tela de Funções quando existir.
+ * o vínculo se faz ao cadastrar a pessoa lá.
  */
 const FUNCOES = [
-  { sigla: 'ENG',     nome: 'Engenheiro',                 ordem: 1,  cargoRh: 'Engenheiro Civil' },
-  { sigla: 'EO',      nome: 'Encarregado de obra',        ordem: 2,  cargoRh: 'Encarregado' },
-  { sigla: 'MT',      nome: 'Mestre de obras',            ordem: 3,  cargoRh: 'Mestre de Obras' },
-  { sigla: 'PD',      nome: 'Pedreiro',                   ordem: 4,  cargoRh: 'Pedreiro' },
-  { sigla: '1/2 PD',  nome: 'Meio pedreiro',              ordem: 5,  cargoRh: null },
-  { sigla: 'SO',      nome: 'Servente de obra',           ordem: 6,  cargoRh: 'Servente' },
-  { sigla: 'CP',      nome: 'Carpinteiro',                ordem: 7,  cargoRh: 'Carpinteiro' },
-  { sigla: 'PINTOR',  nome: 'Pintor',                     ordem: 8,  cargoRh: 'Pintor' },
-  { sigla: 'ELETRICA',nome: 'Eletricista',                ordem: 9,  cargoRh: 'Eletricista' },
-  { sigla: 'GESSO',   nome: 'Gesseiro',                   ordem: 10, cargoRh: null },
-  { sigla: 'BLOCO',   nome: 'Bloco / alvenaria',          ordem: 11, cargoRh: null },
-  { sigla: 'MOT',     nome: 'Motorista',                  ordem: 12, cargoRh: 'Motorista' },
-  { sigla: 'OP',      nome: 'Operador de máquina',        ordem: 13, cargoRh: 'Operador de Máquinas' },
-  { sigla: 'TST',     nome: 'Técnico de segurança',       ordem: 14, cargoRh: 'Técnico de Segurança do Trabalho' },
-  { sigla: 'TS',      nome: 'Topógrafo / serviços',       ordem: 15, cargoRh: null },
-  { sigla: 'TED',     nome: 'Técnico de edificações',     ordem: 16, cargoRh: null },
-  { sigla: 'ADM',     nome: 'Administrativo',             ordem: 17, cargoRh: 'Auxiliar Administrativo' },
-  { sigla: 'PD ELE',  nome: 'Pedreiro eletricista',       ordem: 18, cargoRh: null },
+  { sigla: 'ADM',     nome: 'Administrativo',                    ordem: 1,  cargoRh: 'Auxiliar Administrativo', cor: COR_GRUPO.VERMELHO },
+  { sigla: 'ENG',     nome: 'Engenheiro civil',                   ordem: 2,  cargoRh: 'Engenheiro Civil',        cor: COR_GRUPO.VERMELHO },
+  { sigla: 'EO',      nome: 'Encarregado de obras',               ordem: 3,  cargoRh: 'Encarregado',             cor: COR_GRUPO.VERMELHO },
+  { sigla: 'LC',      nome: 'Líder de caldeiraria',                ordem: 4,  cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'LO',      nome: 'Líder de obra',                       ordem: 5,  cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'TST',     nome: 'Técnico de segurança do trabalho',   ordem: 6,  cargoRh: 'Técnico de Segurança do Trabalho', cor: COR_GRUPO.VERMELHO },
+  { sigla: 'STST',    nome: 'Supervisor téc. de segurança do trabalho', ordem: 7, cargoRh: null,                  cor: COR_GRUPO.VERMELHO },
+  { sigla: 'EF',      nome: 'Encarregado financeiro',              ordem: 8,  cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'RH',      nome: 'Assistente de departamento pessoal',  ordem: 9,  cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'EP',      nome: 'Encarregado de projetos',             ordem: 10, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'ARQ',     nome: 'Assistente técnico de arquiteto',     ordem: 11, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'ALM',     nome: 'Almoxarife',                          ordem: 12, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'AP',      nome: 'Assistente técnico de projetos',      ordem: 13, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'AE',      nome: 'Assistente de engenharia',            ordem: 14, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'SUPO',    nome: 'Supervisor de obras',                 ordem: 15, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'DIRETOR', nome: 'Engenheiro civil / diretor',          ordem: 16, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'TE',      nome: 'Técnico de edificações',              ordem: 17, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'TELE',    nome: 'Técnico eletricista',                 ordem: 18, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'COMP',    nome: 'Comprador',                           ordem: 19, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'PROJ',    nome: 'Projetista',                          ordem: 20, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'DIAR',    nome: 'Diarista',                            ordem: 21, cargoRh: null,                      cor: COR_GRUPO.VERMELHO },
+  { sigla: 'SO',      nome: 'Servente de obras',                   ordem: 22, cargoRh: 'Servente',                cor: COR_GRUPO.AZUL },
+  { sigla: 'PD',      nome: 'Pedreiro',                            ordem: 23, cargoRh: 'Pedreiro',                cor: COR_GRUPO.AMARELO },
+  { sigla: '1/2 PD',  nome: '1/2 oficial pedreiro',                ordem: 24, cargoRh: null,                      cor: COR_GRUPO.AMARELO },
+  { sigla: 'CP',      nome: 'Carpinteiro',                         ordem: 25, cargoRh: 'Carpinteiro',             cor: COR_GRUPO.AMARELO },
+  { sigla: 'ELET',    nome: 'Eletricista',                         ordem: 26, cargoRh: 'Eletricista',             cor: COR_GRUPO.ROXO },
+  { sigla: 'PT',      nome: 'Pintor',                              ordem: 27, cargoRh: 'Pintor',                  cor: COR_GRUPO.ROXO },
+  { sigla: 'MT',      nome: 'Montador',                            ordem: 28, cargoRh: null,                      cor: COR_GRUPO.LARANJA },
+  { sigla: '1/2 MT',  nome: '1/2 oficial montador',                ordem: 29, cargoRh: null,                      cor: COR_GRUPO.LARANJA },
+  { sigla: 'SOLD',    nome: 'Soldador',                            ordem: 30, cargoRh: null,                      cor: COR_GRUPO.LARANJA },
+  { sigla: 'OP.RETRO',nome: 'Operador de retroescavadeira',        ordem: 31, cargoRh: null,                      cor: COR_GRUPO.CINZA },
+  { sigla: 'MOT',     nome: 'Motorista',                           ordem: 32, cargoRh: 'Motorista',               cor: COR_GRUPO.VERDE },
 ]
 
 async function main() {

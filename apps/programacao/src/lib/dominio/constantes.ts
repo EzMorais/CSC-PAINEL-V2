@@ -42,6 +42,38 @@ export const CORES_FRENTE = [
   { nome: 'Roxo', valor: '#C9A0DC' },
 ]
 
+/**
+ * Cor de cada grupo de função — pinta o crachá do funcionário no quadro e a linha dele na
+ * imagem enviada pro grupo. Vermelho é gestão/técnica/liderança, azul é apoio operacional,
+ * amarelo é alvenaria/construção civil, roxo é instalações/acabamento, laranja é
+ * montagem/estrutura metálica, cinza é operação de equipamento, verde é motorista/frota.
+ */
+export const CORES_FUNCAO = [
+  { nome: 'Vermelho', valor: '#8B0000' },
+  { nome: 'Azul', valor: '#1B4F91' },
+  { nome: 'Amarelo', valor: '#C9A227' },
+  { nome: 'Roxo', valor: '#6A3FA0' },
+  { nome: 'Laranja', valor: '#C1560C' },
+  { nome: 'Cinza', valor: '#55606B' },
+  { nome: 'Verde', valor: '#1B6B34' },
+]
+
+/**
+ * Preto ou branco, o que for mais legível sobre a cor dada.
+ *
+ * Fórmula de luminância relativa padrão (WCAG), não meia-força: um vermelho escuro (#8B0000)
+ * e um amarelo (#C9A227) pedem texto de cor oposta, e advinhar por "é uma cor clara?" erra
+ * feio nos tons médios que a paleta usa.
+ */
+export function corTextoPara(hex: string): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16) / 255
+  const g = parseInt(h.slice(2, 4), 16) / 255
+  const b = parseInt(h.slice(4, 6), 16) / 255
+  const luminancia = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return luminancia > 0.55 ? '#000000' : '#FFFFFF'
+}
+
 /** Meia-noite UTC de uma data de calendário — mesma convenção dos outros módulos. */
 export function diaUtc(data: Date): Date {
   return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()))

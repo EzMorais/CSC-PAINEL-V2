@@ -49,7 +49,7 @@ export type Sessao = {
  *
  * Este módulo não emite sessão nem guarda usuários: quem cadastra gente e assina o crachá é
  * o Portal. Aqui só se confere a assinatura e se lê o cargo de dentro — sem consultar banco
- * nenhum, o que faz o Alojamentos continuar funcionando mesmo com o Portal fora do ar.
+ * nenhum, o que faz a Programação continuar funcionando mesmo com o Portal fora do ar.
  */
 export async function lerSessao(): Promise<Sessao | null> {
   const token = (await cookies()).get(COOKIE)?.value
@@ -118,7 +118,7 @@ export async function exigirLancamento(): Promise<Sessao> {
   const s = await exigirSessao()
   if (!podeLancar(s.cargo)) {
     throw new Error(
-      'Seu cargo permite apenas consultar. Para lançar nos alojamentos, peça ao ' +
+      'Seu cargo permite apenas consultar. Para lançar na programação, peça ao ' +
         'administrador para mudar seu cargo no Portal.',
     )
   }

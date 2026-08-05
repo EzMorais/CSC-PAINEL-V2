@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
-import { Plus, X, GripVertical, Truck, TriangleAlert, Search, UserPlus } from 'lucide-react'
+import { Plus, X, GripVertical, Truck, TriangleAlert, Search, UserPlus, UserRound } from 'lucide-react'
 import { chamarAction } from '@/lib/chamar-action'
 import { escalar, moverEscala, tirarEscala, trocarFuncao, adicionarRecurso, tirarRecurso } from '@/actions/programacao'
-import { TIPO_RECURSO } from '@/lib/dominio/constantes'
+import { TIPO_RECURSO, corTextoPara } from '@/lib/dominio/constantes'
 import type { Conflito } from '@/lib/dominio/conflitos'
 
 const CAMPO =
@@ -20,9 +20,37 @@ export type RecursoQuadro = {
   id: string; frenteId: string; tipo: string; descricao: string
   motoristaNome: string | null; destaque: boolean; placa: string | null
 }
-export type PessoaDisponivel = { id: string; nome: string; cargo: string | null; obraCodigo: string | null }
+/**
+ * `cargo` é polimórfico por `origem`: para quem vem do RH é o NOME do cargo lá (precisa
+ * passar por `siglaDoCargo` para virar sigla); para quem vem do cadastro local já é a
+ * SIGLA direto — o cadastro local guarda `funcaoSigla`, não o nome do cargo.
+ */
+export type PessoaDisponivel = {
+  id: string; nome: string; cargo: string | null; obraCodigo: string | null
+  origem: 'RH' | 'LOCAL'; foto?: string | null
+}
 export type VeiculoDisponivel = { placa: string; nome: string; motorista: string | null; emManutencao: boolean }
 export type MaquinaDisponivel = { id: string; nome: string; codigo: string }
+export type VeiculoCadastrado = { id: string; modelo: string; placa: string | null; motoristaNome: string | null }
+
+/** O crachá compacto do quadro: foto se tiver, senão a sigla da função colorida pelo grupo dela. */
+function CrachaMini({ foto, sigla, cor }: { foto?: string | null; sigla: string | null; cor?: string }) {
+  if (foto) {
+    // eslint-disable-next-line @next/next/no-img-element -- data URI local, sem servidor de imagem
+    return <img src={foto} alt="" className="size-6 shrink-0 rounded-full object-cover" />
+  }
+  if (sigla && cor) {
+    return (
+      <span
+        className="grid size-6 shrink-0 place-items-center rounded-full text-[8px] font-bold leading-none"
+        style={{ backgroundColor: cor, color: corTextoPara(cor) }}
+      >
+        {sigla.slice(0, 4)}
+      </span>
+    )
+  }
+  return <UserRound className="size-4 shrink-0 text-muted-foreground" />
+}
 
 /**
  * O quadro do dia.
@@ -36,7 +64,7 @@ export type MaquinaDisponivel = { id: string; nome: string; codigo: string }
  * ajusta pelo celular no caminho de casa.
  */
 export function Quadro({
-  data, frentes, escalas, recursos, disponiveis, veiculos, maquinas, funcoes, conflitos, podeEditar,
+  data, frentes, escalas, recursos, disponiveis, veiculos, maquinas, veiculosCadastrados, funcoes, conflitos, podeEditar,
 }: {
   data: string
   frentes: FrenteQuadro[]
@@ -45,7 +73,8 @@ export function Quadro({
   disponiveis: PessoaDisponivel[]
   veiculos: VeiculoDisponivel[]
   maquinas: MaquinaDisponivel[]
-  funcoes: Array<{ sigla: string; nome: string; cargoRh: string | null }>
+  veiculosCadastrados: VeiculoCadastrado[]
+  funcoes: Array<{ sigla: string; nome: string; cargoRh: string | null; cor: string }>
   conflitos: Conflito[]
   podeEditar: boolean
 }) {
@@ -65,6 +94,13 @@ export function Quadro({
     for (const f of funcoes) if (f.cargoRh) m.set(f.cargoRh.toLowerCase(), f.sigla)
     return m
   }, [funcoes])
+
+  const corPorSigla = useMemo(() => new Map(funcoes.map((f) => [f.sigla, f.cor])), [funcoes])
+
+  function siglaDe(p: PessoaDisponivel): string | null {
+    if (p.origem === 'LOCAL') return p.cargo
+    return p.cargo ? siglaDoCargo.get(p.cargo.toLowerCase()) ?? null : null
+  }
 
   const naoEscalados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
@@ -87,8 +123,10 @@ export function Quadro({
     if (escalaId) return agir(moverEscala(escalaId, frenteId))
     if (pessoa) {
       return agir(escalar({
-        data, frenteId, nome: pessoa.nome, funcionarioId: pessoa.id,
-        funcaoSigla: pessoa.cargo ? siglaDoCargo.get(pessoa.cargo.toLowerCase()) ?? null : null,
+        data, frenteId, nome: pessoa.nome,
+        funcionarioId: pessoa.origem === 'RH' ? pessoa.id : null,
+        funcionarioLocalId: pessoa.origem === 'LOCAL' ? pessoa.id : null,
+        funcaoSigla: siglaDe(pessoa),
       }))
     }
   }
@@ -125,25 +163,29 @@ export function Quadro({
                   : 'Todo mundo já está escalado.'}
               </p>
             )}
-            {naoEscalados.map((p) => (
-              <button
-                key={p.id} type="button" draggable={podeEditar}
-                onDragStart={(e) => e.dataTransfer.setData('text/plain', JSON.stringify({ pessoaId: p.id }))}
-                onClick={() => setSelecionada(selecionada === `p:${p.id}` ? null : `p:${p.id}`)}
-                data-testid={`disponivel-${p.id}`}
-                className={`flex w-full items-center gap-1.5 rounded border px-2 py-1.5 text-left text-xs transition-colors ${
-                  selecionada === `p:${p.id}`
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:bg-accent'
-                }`}
-              >
-                <GripVertical className="size-3 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{p.nome}</span>
-                  {p.cargo && <span className="block truncate text-muted-foreground">{p.cargo}</span>}
-                </span>
-              </button>
-            ))}
+            {naoEscalados.map((p) => {
+              const sigla = siglaDe(p)
+              return (
+                <button
+                  key={p.id} type="button" draggable={podeEditar}
+                  onDragStart={(e) => e.dataTransfer.setData('text/plain', JSON.stringify({ pessoaId: p.id }))}
+                  onClick={() => setSelecionada(selecionada === `p:${p.id}` ? null : `p:${p.id}`)}
+                  data-testid={`disponivel-${p.id}`}
+                  className={`flex w-full items-center gap-1.5 rounded border px-2 py-1.5 text-left text-xs transition-colors ${
+                    selecionada === `p:${p.id}`
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  <GripVertical className="size-3 shrink-0 text-muted-foreground" />
+                  <CrachaMini foto={p.foto} sigla={sigla} cor={sigla ? corPorSigla.get(sigla) : undefined} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{p.nome}</span>
+                    {sigla && <span className="block truncate text-muted-foreground">{sigla}</span>}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </section>
 
@@ -164,6 +206,7 @@ export function Quadro({
             aoSoltar={(escalaId, pessoaId) =>
               soltarNaFrente(f.id, escalaId, pessoaId ? disponiveis.find((p) => p.id === pessoaId) ?? null : null)
             }
+            veiculosCadastrados={veiculosCadastrados}
             agir={agir}
           />
         ))}
@@ -173,7 +216,7 @@ export function Quadro({
 }
 
 function ColunaFrente({
-  data, frente, escalas, recursos, veiculos, maquinas, funcoes,
+  data, frente, escalas, recursos, veiculos, maquinas, veiculosCadastrados, funcoes,
   podeEditar, temConflito, selecionada, aoSelecionar, aoSoltar, agir,
 }: {
   data: string
@@ -182,6 +225,7 @@ function ColunaFrente({
   recursos: RecursoQuadro[]
   veiculos: VeiculoDisponivel[]
   maquinas: MaquinaDisponivel[]
+  veiculosCadastrados: VeiculoCadastrado[]
   funcoes: Array<{ sigla: string; nome: string; cargoRh: string | null }>
   podeEditar: boolean
   temConflito: boolean
@@ -340,6 +384,7 @@ function ColunaFrente({
         {abrindoRecurso && (
           <FormRecurso
             data={data} frenteId={frente.id} veiculos={veiculos} maquinas={maquinas}
+            veiculosCadastrados={veiculosCadastrados}
             aoFechar={() => setAbrindoRecurso(false)} agir={agir}
           />
         )}
@@ -390,11 +435,12 @@ function FormAvulso({
 }
 
 function FormRecurso({
-  data, frenteId, veiculos, maquinas, aoFechar, agir,
+  data, frenteId, veiculos, maquinas, veiculosCadastrados, aoFechar, agir,
 }: {
   data: string; frenteId: string
   veiculos: VeiculoDisponivel[]
   maquinas: MaquinaDisponivel[]
+  veiculosCadastrados: VeiculoCadastrado[]
   aoFechar: () => void
   agir: (p: Promise<{ ok: true; dados: unknown } | { ok: false; erro: string }>) => void
 }) {
@@ -413,6 +459,14 @@ function FormRecurso({
         data, frenteId, tipo: TIPO_RECURSO.VEICULO,
         descricao: `${v.nome} ${v.placa}`.trim(), placa: v.placa,
         motoristaNome: motorista || v.motorista || null,
+      }))
+    } else if (tipo === 'c') {
+      const v = veiculosCadastrados.find((x) => x.id === chave)
+      if (!v) return
+      agir(adicionarRecurso({
+        data, frenteId, tipo: TIPO_RECURSO.VEICULO,
+        descricao: `${v.modelo}${v.placa ? ` ${v.placa}` : ''}`.trim(), placa: v.placa,
+        motoristaNome: motorista || v.motoristaNome || null, veiculoLocalId: v.id,
       }))
     } else if (tipo === 'm') {
       const m = maquinas.find((x) => x.id === chave)
@@ -447,6 +501,13 @@ function FormRecurso({
         {maquinas.length > 0 && (
           <optgroup label="Máquinas">
             {maquinas.map((m) => <option key={m.id} value={`m::${m.id}`}>{m.nome}</option>)}
+          </optgroup>
+        )}
+        {veiculosCadastrados.length > 0 && (
+          <optgroup label="Cadastrados">
+            {veiculosCadastrados.map((v) => (
+              <option key={v.id} value={`c::${v.id}`}>{v.modelo}{v.placa ? ` ${v.placa}` : ''}</option>
+            ))}
           </optgroup>
         )}
         <optgroup label="Aviso">

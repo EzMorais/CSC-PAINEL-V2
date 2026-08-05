@@ -1,11 +1,12 @@
 # Como rodar este projeto em outro computador
 
 Guia para quem nunca usou terminal nem instalou um projeto de programação antes.
-O repositório tem **cinco aplicações**, cada uma numa pasta dentro de `apps/`:
+O repositório tem **várias aplicações**, cada uma numa pasta dentro de `apps/`:
 
 | Pasta | Sistema | Porta | Para que serve |
 |---|---|---|---|
 | `apps/portal` | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
+| `apps/programacao` | Programação diária | 3007 | Programação diária de equipes por frente/cliente |
 | `apps/painel-locacao` | Painel de Locação | 3000 | Equipamentos alugados por obra |
 | `apps/rh` | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | `apps/estoque` | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |

@@ -5,6 +5,7 @@ import { exigirSessao } from '@/lib/auth'
 import { podeLancar } from '@/lib/dominio/cargos'
 import { frentesAtivas, funcoesAtivas, programacaoDoDia, ultimaProgramacaoAntesDe } from '@/queries/programacao'
 import { funcionariosDoRh, veiculosDaFrota, maquinasDoPortal } from '@/lib/clientes'
+import { prisma } from '@/lib/prisma'
 import { conferirQuadro } from '@/lib/dominio/conflitos'
 import { deIso, diaUtc, paraIso, tituloDoDia, STATUS_PROGRAMACAO } from '@/lib/dominio/constantes'
 import { Quadro } from '@/components/quadro/quadro'
@@ -25,7 +26,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
   if (!dataBruta) notFound()
   const data = diaUtc(dataBruta)
 
-  const [programacao, frentes, funcoes, anterior, rh, frota, portal] = await Promise.all([
+  const [programacao, frentes, funcoes, anterior, rh, frota, portal, funcionariosLocais, veiculosLocais] = await Promise.all([
     programacaoDoDia(data),
     frentesAtivas(),
     funcoesAtivas(),
@@ -33,6 +34,8 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
     funcionariosDoRh(),
     veiculosDaFrota(),
     maquinasDoPortal(),
+    prisma.funcionario.findMany({ where: { ativo: true, ausente: false }, orderBy: { nome: 'asc' } }),
+    prisma.veiculo.findMany({ where: { ativo: true }, orderBy: { modelo: 'asc' } }),
   ])
 
   const escalas = programacao?.escalas ?? []
@@ -122,14 +125,24 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
           id: r.id, frenteId: r.frenteId, tipo: r.tipo, descricao: r.descricao,
           motoristaNome: r.motoristaNome, destaque: r.destaque, placa: r.placa,
         }))}
-        disponiveis={rh.ok ? rh.dados.map((f) => ({
-          id: f.id, nome: f.nome, cargo: f.cargo, obraCodigo: f.obraCodigo,
-        })) : []}
+        disponiveis={[
+          ...(rh.ok ? rh.dados.map((f) => ({
+            id: f.id, nome: f.nome, cargo: f.cargo, obraCodigo: f.obraCodigo, origem: 'RH' as const,
+          })) : []),
+          // Cadastro local: quem não está no RH (a maioria). `cargo` aqui já é a sigla.
+          ...funcionariosLocais.map((f) => ({
+            id: f.id, nome: f.nome, cargo: f.funcaoSigla, obraCodigo: null,
+            origem: 'LOCAL' as const, foto: f.foto,
+          })),
+        ]}
         veiculos={frota.ok ? frota.dados.map((v) => ({
           placa: v.placa, nome: v.nome, motorista: v.motorista, emManutencao: v.emManutencao,
         })) : []}
         maquinas={portal.ok ? portal.dados.map((m) => ({ id: m.id, nome: m.nome, codigo: m.codigo })) : []}
-        funcoes={funcoes.map((f) => ({ sigla: f.sigla, nome: f.nome, cargoRh: f.cargoRh }))}
+        veiculosCadastrados={veiculosLocais.map((v) => ({
+          id: v.id, modelo: v.modelo, placa: v.placa, motoristaNome: v.motoristaNome,
+        }))}
+        funcoes={funcoes.map((f) => ({ sigla: f.sigla, nome: f.nome, cargoRh: f.cargoRh, cor: f.cor }))}
         conflitos={conflitos}
         podeEditar={podeEditar}
       />

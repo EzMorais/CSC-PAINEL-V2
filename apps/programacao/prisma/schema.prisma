@@ -76,8 +76,12 @@ model Escala {
   /// Avulso existe porque o RH tem 11 pessoas cadastradas e a programação move ~150. Exigir
   /// cadastro prévio faria o quadro nascer inutilizável, e o chefe voltaria para o Excel.
   funcionarioId String?
+  /// Id no cadastro fixo local (`Funcionario`) quando a pessoa está cadastrada aqui — para
+  /// quem não está no RH nem é gente de passagem. Convive com `funcionarioId`; nunca os dois.
+  funcionarioLocalId String?
+  funcionarioLocal   Funcionario? @relation(fields: [funcionarioLocalId], references: [id])
   /// Cópia do nome. Não é redundância: o print de um dia passado tem de continuar dizendo o
-  /// que dizia, mesmo que a pessoa saia do RH depois.
+  /// que dizia, mesmo que a pessoa saia do RH ou do cadastro local depois.
   nome          String
   /// A sigla que aparece depois do nome na imagem: PD, SO, ENG, MOT…
   funcaoSigla   String?
@@ -115,11 +119,59 @@ model Recurso {
   /// Pinta a faixa de amarelo na imagem, como o "MANUTENÇÃO" do print atual.
   destaque Boolean @default(false)
 
+  /// Id no cadastro fixo local (`Veiculo`) quando o veículo está cadastrado aqui — para quem
+  /// não vem da Frota (alugado, de terceiro). Convive com `placa`/`descricao` de texto livre.
+  veiculoLocalId String?
+  veiculoLocal   Veiculo? @relation(fields: [veiculoLocalId], references: [id])
+
   ordem Int @default(0)
 
   @@index([programacaoId])
   @@index([frenteId])
   @@index([placa])
+}
+
+/// Cadastro fixo de pessoal que não está no RH — a maioria de quem é escalado todo dia (o
+/// RH tem ~11 pessoas cadastradas, a programação move mais de 100). Complementar ao RH, não
+/// duplica quem já vem de lá: é a fonte certa para quem não está no RH.
+model Funcionario {
+  id          String @id @default(cuid())
+  nome        String
+  funcaoSigla String?
+
+  /// Base64 data URI (data:image/jpeg;base64,...) — mesmo padrão do RH e do Alojamentos:
+  /// este app não tem armazenamento de arquivo (disco, S3), só SQLite. A tela reduz a
+  /// imagem antes de gravar.
+  foto String?
+
+  ativo Boolean @default(true)
+  /// Ausente/de férias hoje — some da lista de "sem frente" e não entra em "copiar anterior".
+  ausente    Boolean @default(false)
+  ausenteObs String?
+
+  motorista Boolean @default(false)
+  /// CSC | PRESTADOR
+  tipo String @default("CSC")
+
+  criadoEm DateTime @default(now())
+
+  escalas Escala[]
+
+  @@index([ativo])
+}
+
+/// Cadastro fixo de veículo ou máquina de uso recorrente que não vem da Frota (alugado, de
+/// terceiro). Complementar à Frota, mesma lógica do `Funcionario` em relação ao RH.
+model Veiculo {
+  id            String  @id @default(cuid())
+  modelo        String
+  placa         String?
+  motoristaNome String?
+  foto          String?
+  ativo         Boolean @default(true)
+  criadoEm      DateTime @default(now())
+
+  recursos Recurso[]
 }
 
 /// As siglas de função que saem depois do nome.
@@ -135,6 +187,13 @@ model Funcao {
   cargoRh String?
   ordem Int     @default(0)
   ativa Boolean @default(true)
+
+  /// Cor do grupo desta função — pinta o card no quadro e na imagem gerada (vermelho para
+  /// gestão/técnica/liderança, azul para apoio operacional, amarelo para alvenaria, roxo
+  /// para instalações/acabamento, laranja para montagem/estrutura, cinza para operação de
+  /// equipamento, verde para motorista/frota). Editável ao cadastrar um funcionário — muda
+  /// a cor de todo mundo que tem essa sigla, não só de quem está sendo editado.
+  cor String @default("#8B0000")
 
   @@index([ordem])
 }

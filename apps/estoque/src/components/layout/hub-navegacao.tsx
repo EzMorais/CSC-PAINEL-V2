@@ -1,23 +1,31 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Building2, Users, Package, House, Check, X } from 'lucide-react'
+import {
+  LayoutGrid, Building2, Users, Package, House, Truck, FolderKanban, CalendarDays, Check, X,
+} from 'lucide-react'
 
-/** Mesmo host, portas diferentes — a sessão do Portal vale nos quatro. */
+/** Mesmo host, portas diferentes — a sessão do Portal vale em todos. */
 const URL_PORTAL = process.env.NEXT_PUBLIC_URL_PORTAL ?? 'http://localhost:3004'
+const URL_PROGRAMACAO = process.env.NEXT_PUBLIC_URL_PROGRAMACAO ?? 'http://localhost:3007'
 const URL_PAINEL = process.env.NEXT_PUBLIC_URL_PAINEL ?? 'http://localhost:3001'
 const URL_RH = process.env.NEXT_PUBLIC_URL_RH ?? 'http://localhost:3002'
 const URL_ESTOQUE = process.env.NEXT_PUBLIC_URL_ESTOQUE ?? 'http://localhost:3003'
 const URL_ALOJAMENTOS = process.env.NEXT_PUBLIC_URL_ALOJAMENTOS ?? 'http://localhost:3005'
+const URL_FROTA = process.env.NEXT_PUBLIC_URL_FROTA ?? 'http://localhost:3000'
 
-type Sistema = 'PORTAL' | 'PAINEL' | 'RH' | 'ESTOQUE' | 'ALOJAMENTOS'
+type Sistema =
+  | 'PORTAL' | 'CADASTROS' | 'PROGRAMACAO' | 'PAINEL' | 'RH' | 'ESTOQUE' | 'ALOJAMENTOS' | 'FROTA'
 
 const ITENS: { chave: Sistema; rotulo: string; Icone: typeof LayoutGrid; url: string; modulo?: string }[] = [
   { chave: 'PORTAL', rotulo: 'Portal', Icone: LayoutGrid, url: URL_PORTAL },
+  { chave: 'PROGRAMACAO', rotulo: 'Programação diária', Icone: CalendarDays, url: URL_PROGRAMACAO, modulo: 'PROGRAMACAO' },
+  { chave: 'CADASTROS', rotulo: 'Cadastros', Icone: FolderKanban, url: `${URL_PORTAL}/cadastros`, modulo: 'CADASTROS' },
   { chave: 'PAINEL', rotulo: 'Painel de Locação', Icone: Building2, url: URL_PAINEL, modulo: 'PAINEL' },
   { chave: 'RH', rotulo: 'RH e SST', Icone: Users, url: URL_RH, modulo: 'RH' },
   { chave: 'ESTOQUE', rotulo: 'Almoxarifado', Icone: Package, url: URL_ESTOQUE, modulo: 'ESTOQUE' },
   { chave: 'ALOJAMENTOS', rotulo: 'Alojamentos', Icone: House, url: URL_ALOJAMENTOS, modulo: 'ALOJAMENTOS' },
+  { chave: 'FROTA', rotulo: 'Frota', Icone: Truck, url: URL_FROTA, modulo: 'FROTA' },
 ]
 
 /**
@@ -64,7 +72,7 @@ export function HubNavegacao({
           className="absolute bottom-14 right-0 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-card shadow-xl"
         >
           <p className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
-            Sistemas Siqueira Campos
+            Sistemas Construtora Siqueira Campos
           </p>
           <div className="p-1">
             {itens.map(({ chave, rotulo, Icone, url }) =>

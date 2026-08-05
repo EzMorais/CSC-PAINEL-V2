@@ -80,15 +80,30 @@ export async function copiarDe(entrada: unknown): Promise<Resultado<{ escalas: n
 
     const destino = await prisma.programacao.upsert({ where: { data }, create: { data }, update: {} })
 
+    // Quem tem cadastro fixo local e está inativo ou ausente não atravessa pro dia seguinte —
+    // mesma lógica do sistema antigo: copiar em cima da ausência faria alguém de férias
+    // aparecer escalado, e o chefe só notaria olhando pro grupo pela manhã.
+    const idsLocais = [...new Set(de.escalas.map((e) => e.funcionarioLocalId).filter((v): v is string => !!v))]
+    const locaisIndisponiveis = idsLocais.length === 0 ? new Set<string>() : new Set(
+      (await prisma.funcionario.findMany({
+        where: { id: { in: idsLocais }, OR: [{ ativo: false }, { ausente: true }] },
+        select: { id: true },
+      })).map((f) => f.id),
+    )
+    const escalasParaCopiar = de.escalas.filter(
+      (e) => !e.funcionarioLocalId || !locaisIndisponiveis.has(e.funcionarioLocalId),
+    )
+
     // Numa transação só: se apagar der certo e criar falhar, o dia ficaria vazio sem
     // ninguém ter pedido isso — e o original de onde copiar já teria sido perdido de vista.
     await prisma.$transaction([
       prisma.escala.deleteMany({ where: { programacaoId: destino.id } }),
       prisma.recurso.deleteMany({ where: { programacaoId: destino.id } }),
       prisma.escala.createMany({
-        data: de.escalas.map((e) => ({
+        data: escalasParaCopiar.map((e) => ({
           programacaoId: destino.id, frenteId: e.frenteId,
-          funcionarioId: e.funcionarioId, nome: e.nome, funcaoSigla: e.funcaoSigla,
+          funcionarioId: e.funcionarioId, funcionarioLocalId: e.funcionarioLocalId,
+          nome: e.nome, funcaoSigla: e.funcaoSigla,
           ordem: e.ordem, observacao: e.observacao,
         })),
       }),
@@ -96,13 +111,14 @@ export async function copiarDe(entrada: unknown): Promise<Resultado<{ escalas: n
         data: de.recursos.map((r) => ({
           programacaoId: destino.id, frenteId: r.frenteId, tipo: r.tipo,
           placa: r.placa, descricao: r.descricao, motoristaNome: r.motoristaNome,
+          veiculoLocalId: r.veiculoLocalId,
           destaque: r.destaque, ordem: r.ordem,
         })),
       }),
     ])
 
     revalidar(data)
-    return { ok: true, dados: { escalas: de.escalas.length, recursos: de.recursos.length } }
+    return { ok: true, dados: { escalas: escalasParaCopiar.length, recursos: de.recursos.length } }
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : 'Falha ao copiar.' }
   }
@@ -115,6 +131,7 @@ const esquemaEscala = z.object({
   frenteId: z.string().trim().min(1, 'Escolha a frente.'),
   nome: z.string().trim().min(2, 'Informe o nome.'),
   funcionarioId: opcional,
+  funcionarioLocalId: opcional,
   funcaoSigla: opcional,
 })
 
@@ -137,7 +154,8 @@ export async function escalar(entrada: unknown): Promise<Resultado<{ id: string 
     const criada = await prisma.escala.create({
       data: {
         programacaoId: p.id, frenteId: d.frenteId,
-        funcionarioId: d.funcionarioId, nome: d.nome, funcaoSigla: d.funcaoSigla,
+        funcionarioId: d.funcionarioId, funcionarioLocalId: d.funcionarioLocalId,
+        nome: d.nome, funcaoSigla: d.funcaoSigla,
         ordem: (ultima?.ordem ?? 0) + 1,
       },
     })
@@ -223,6 +241,7 @@ const esquemaRecurso = z.object({
   descricao: z.string().trim().min(2, 'Informe o que vai aparecer.'),
   placa: opcional,
   motoristaNome: opcional,
+  veiculoLocalId: opcional,
   destaque: z.coerce.boolean().default(false),
 })
 
@@ -245,6 +264,7 @@ export async function adicionarRecurso(entrada: unknown): Promise<Resultado<{ id
       data: {
         programacaoId: p.id, frenteId: d.frenteId, tipo: d.tipo,
         descricao: d.descricao, placa: d.placa, motoristaNome: d.motoristaNome,
+        veiculoLocalId: d.veiculoLocalId,
         destaque: d.destaque, ordem: (ultimo?.ordem ?? 0) + 1,
       },
     })

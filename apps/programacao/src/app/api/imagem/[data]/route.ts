@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dat
   })
   if (!programacao) return new Response('Não há programação nesse dia.', { status: 404 })
 
-  const frentes = await frentesAtivas()
+  const [frentes, funcoes] = await Promise.all([frentesAtivas(), prisma.funcao.findMany()])
   // Frente sem ninguém e sem veículo não vira coluna: o print de hoje também não mostra
   // coluna vazia, e cada uma custa 200px de largura numa imagem já larga.
   const usadas = frentes.filter(
@@ -44,6 +44,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dat
       frenteId: r.frenteId, tipo: r.tipo, descricao: r.descricao,
       motoristaNome: r.motoristaNome, destaque: r.destaque,
     })),
+    new Map(funcoes.map((f) => [f.sigla, f.cor])),
   )
 
   const png = await gerarPng(svg)

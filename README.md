@@ -1,10 +1,11 @@
 # CSC — Painéis Internos (Construtora Siqueira Campos)
 
-Monorepo com cinco aplicações, cada uma numa pasta dentro de `apps/`:
+Monorepo com várias aplicações, cada uma numa pasta dentro de `apps/`:
 
 | Pasta | Sistema | Porta | Para que serve |
 |---|---|---|---|
 | [`apps/portal`](apps/portal) | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
+| [`apps/programacao`](apps/programacao) | Programação diária | 3007 | Programação diária de equipes por frente/cliente |
 | [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3000 | Controle de equipamentos alugados por obra |
 | [`apps/rh`](apps/rh) | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | [`apps/estoque`](apps/estoque) | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |

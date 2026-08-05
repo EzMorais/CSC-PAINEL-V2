@@ -1,4 +1,4 @@
-import { TIPO_RECURSO } from './dominio/constantes'
+import { TIPO_RECURSO, corTextoPara } from './dominio/constantes'
 
 /**
  * Desenha a programação do dia como imagem, no formato da planilha que o grupo já conhece.
@@ -114,6 +114,8 @@ function montarColunas(
 
 export function montarSvg(
   titulo: string, frentes: FrenteImagem[], escalas: EscalaImagem[], recursos: RecursoImagem[],
+  /** Sigla → cor do grupo da função, para pintar a linha de cada pessoa como no card do quadro. */
+  corPorSigla: Map<string, string> = new Map(),
 ): { svg: string; largura: number; altura: number } {
   const colunas = montarColunas(frentes, escalas, recursos)
 
@@ -171,13 +173,21 @@ export function montarSvg(
       const y = topoCorpo + j * ALTURA_LINHA
       const baseTexto = y + ALTURA_LINHA - 5
 
+      // Fundo colorido pelo grupo da função — mesma cor do crachá no quadro. Sem função
+      // reconhecida, a linha fica branca (nenhuma faixa desenhada).
+      const cor = p.funcaoSigla ? corPorSigla.get(p.funcaoSigla) : undefined
+      const corTexto = cor ? corTextoPara(cor) : '#000000'
+      if (cor) {
+        partes.push(`<rect x="${x}" y="${y}" width="${LARGURA_COLUNA}" height="${ALTURA_LINHA}" fill="${cor}"/>`)
+      }
+
       // Faixinha do número, à esquerda
       partes.push(
         `<line x1="${x + 22}" y1="${y}" x2="${x + 22}" y2="${y + ALTURA_LINHA}" stroke="#BFBFBF" stroke-width="0.5"/>`,
         `<text x="${x + 18}" y="${baseTexto}" text-anchor="end" font-family="Calibri, Arial, sans-serif" ` +
-        `font-size="11" font-weight="bold" fill="#000000">${coluna.numeroInicial + j}</text>`,
+        `font-size="11" font-weight="bold" fill="${corTexto}">${coluna.numeroInicial + j}</text>`,
         `<text x="${x + 26}" y="${baseTexto}" font-family="Calibri, Arial, sans-serif" font-size="11.5" ` +
-        `fill="#000000">${escapar(cortar(linhaDaPessoa(p), 34))}</text>`,
+        `fill="${corTexto}">${escapar(cortar(linhaDaPessoa(p), 34))}</text>`,
       )
 
       if (j > 0) {
