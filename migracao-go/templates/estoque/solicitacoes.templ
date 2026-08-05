@@ -1,0 +1,75 @@
+package estoque
+
+import "strconv"
+
+templ Solicitacoes(linhas []LinhaSolicitacao) {
+	@Pagina("Solicitações de compra") {
+		<h1>Solicitações de compra</h1>
+		<p><a href="/almoxarifado/solicitacoes/nova" class="botao botao-primario" data-testid="nova-solicitacao">+ Nova solicitação</a></p>
+
+		<div class="lista-usuarios" data-testid="tabela-solicitacoes">
+			if len(linhas) == 0 {
+				<p style="padding:1rem">Nenhuma solicitação registrada.</p>
+			}
+			for _, s := range linhas {
+				<a href={ templ.URL("/almoxarifado/solicitacoes/" + s.ID) } class="linha-locacao" data-testid={ "solicitacao-" + s.Numero }>
+					<span class="nome">{ s.Numero }<br/><span class="email">{ s.QtdItens } itens</span></span>
+					<span class="selo" style={ "background:" + s.StatusCor }>{ s.StatusRotulo }</span>
+					<span class="tabular">{ s.CriadoEm }</span>
+					<span class="email">{ s.EmailStatus }</span>
+				</a>
+			}
+		</div>
+	}
+}
+
+templ SolicitacaoNova(itens []ItemSugeridoView, erro string) {
+	@Pagina("Nova solicitação") {
+		<p><a href="/almoxarifado/solicitacoes">← Voltar</a></p>
+		<h1>Nova solicitação de compra</h1>
+		<p class="email">Itens abaixo do mínimo — desmarque o que não quer pedir, ajuste a quantidade.</p>
+
+		if erro != "" {
+			<p role="alert" data-testid="erro-solicitacao" class="erro">{ erro }</p>
+		}
+
+		if len(itens) == 0 {
+			<p style="padding:1rem">Nada abaixo do mínimo no momento — não há sugestão automática. Cadastre um material com estoque mínimo para ver sugestões aqui.</p>
+		} else {
+			<form class="formulario" method="POST" action="/almoxarifado/solicitacoes" data-testid="form-nova-solicitacao">
+				<table style="width:100%;border-collapse:collapse">
+					for i, item := range itens {
+						<tr style="border-bottom:1px solid var(--border)">
+							<td style="padding:0.4rem 0">
+								<input type="checkbox" name={ campoIncluir(i) } value="1" checked?={ true }/>
+								<input type="hidden" name={ campoMaterialID(i) } value={ item.MaterialID }/>
+								<input type="hidden" name={ campoSaldoNaEpoca(i) } value={ item.Saldo }/>
+								<input type="hidden" name={ campoMinimoNaEpoca(i) } value={ item.EstoqueMinimo }/>
+								<input type="hidden" name={ campoPrecoEstimado(i) } value={ item.PrecoEstimado }/>
+								{ item.Nome } ({ item.Codigo })
+								<br/>
+								<span class="email">saldo { item.Saldo }, mínimo { item.EstoqueMinimo }</span>
+							</td>
+							<td style="text-align:right">
+								<input type="number" step="any" min="0" name={ campoQuantidade(i) } value={ item.QuantidadeSugerida } style="width:6rem"/> { item.Unidade }
+							</td>
+						</tr>
+					}
+				</table>
+				<div class="campo" style="margin-top:1rem">
+					<label for="observacao">Observação</label>
+					<input id="observacao" name="observacao"/>
+				</div>
+				<button type="submit" data-testid="confirmar-solicitacao">Criar solicitação</button>
+			</form>
+		}
+	}
+}
+
+func itoa(i int) string               { return strconv.Itoa(i) }
+func campoIncluir(i int) string       { return "incluir_" + itoa(i) }
+func campoMaterialID(i int) string    { return "materialId_" + itoa(i) }
+func campoQuantidade(i int) string    { return "quantidade_" + itoa(i) }
+func campoSaldoNaEpoca(i int) string  { return "saldoNaEpoca_" + itoa(i) }
+func campoMinimoNaEpoca(i int) string { return "minimoNaEpoca_" + itoa(i) }
+func campoPrecoEstimado(i int) string { return "precoEstimado_" + itoa(i) }

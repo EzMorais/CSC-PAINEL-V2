@@ -57,8 +57,8 @@ segundo módulo — o Portal não tem `Obra`.
 |---|---|---|---|---|
 | **Portal** (`/` ou `/portal`) | ✅ [`portal/COMPORTAMENTO.md`](portal/COMPORTAMENTO.md) | ✅ `apps/portal/e2e/` — 20/20 contra o Next.js **e** contra o Go (`playwright.go.config.ts`) | ✅ `cmd/servidor`, `cmd/seed` — login, usuários, hub (2026-08-04) | ⬜ ainda convivendo — 4 apps Next.js seguem no ar |
 | **Painel de Locação** (`/painel`) | ✅ [`painel/COMPORTAMENTO.md`](painel/COMPORTAMENTO.md) | ✅ `apps/painel-locacao/e2e/*.go.spec.ts` — 18/18, duas vezes seguidas | ✅ CRUD/ciclo de vida completo + importador Excel (validado byte-exato contra a planilha real: 305/242/63/16/90/20) + exportadores Excel/PDF (2026-08-04) | ⬜ ainda convivendo |
+| **Almoxarifado** (`/almoxarifado`) | ✅ [`estoque/COMPORTAMENTO.md`](estoque/COMPORTAMENTO.md) | ✅ `apps/estoque/e2e/*.go.spec.ts` — 24/24, duas vezes seguidas | ✅ Materiais (saldo sempre somado do livro-razão, nunca gravado) + movimentações (entrada/saída/devolução/perda/ajuste, com bloqueio de saldo negativo) + fila de aprovação propose-then-execute (perda/ajuste/solicitação de compra, com bloqueio de auto-aprovação) + solicitação de compra com sugestão automática + envio de e-mail (SMTP nativo, `net/smtp`) + integração HTTP com o RH pra ficha de EPI (2026-08-04) | ⬜ ainda convivendo |
 | RH e SST (`/rh`) | ⬜ | ⬜ | ⬜ | ⬜ |
-| Almoxarifado (`/almoxarifado`) | ⬜ | ⬜ | ⬜ | ⬜ |
 | Alojamentos (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Painel de Locação — adaptações conscientes (2026-08-04)
@@ -83,6 +83,36 @@ lacuna não percebida:
   repo — nem o Next.js consegue reproduzi-lo sem ele). Os outros 5 números (305/242/63/16/
   90+20) **batem exatamente**, provando que o parser está correto; `aConfirmar` fica 0 no
   teste porque ele usa um mapeamento 1:1 aba→obra próprio, sem nenhuma aba compartilhada.
+
+## Almoxarifado — adaptações conscientes (2026-08-04)
+
+Suíte nova também (`apps/estoque/e2e/*.go.spec.ts`, 24 testes), mesmo motivo dos módulos
+anteriores. Divergências deliberadas do Next.js:
+
+- **`Obra` e `Fornecedor` são as tabelas compartilhadas do Painel**, não cópias — o
+  Almoxarifado referencia `obras`/`fornecedores` por FK (decisão de banco único). Único ajuste
+  de schema: `cnpj`/`email` viraram colunas nullable na tabela `fornecedores` compartilhada
+  (só o Almoxarifado as preenche; o Painel deixa nulas). `Obra`/`Fornecedor`, seus
+  repositórios e os erros de duplicidade foram extraídos para `internal/domain/cadastro`, com
+  aliases de tipo (`type Obra = cadastro.Obra`) no pacote `painel` pra não obrigar nenhum
+  arquivo já escrito do Painel a mudar de nome. `BRL`/`DataBR`/`DataLocalBR`/`ParseDataBR`/
+  `Fuso` sofreram a mesma extração para `internal/domain/comum`, pelo mesmo motivo.
+- **Sem drawer/modais**, mesma decisão dos outros módulos: material e solicitação têm página
+  de detalhe própria; Movimentar/Ajustar/Recusar são formulários `<details>` expansíveis.
+- **Envio de e-mail é `net/smtp` da stdlib**, não uma biblioteca — a necessidade é só
+  autenticação usuário/senha de aplicativo + STARTTLS (587) ou TLS implícito (465), o
+  `nodemailer` do Next.js não faz nada que o stdlib não cubra aqui.
+- **Cliente do RH é HTTP de verdade** (`internal/infrastructure/clienterh`), não uma chamada
+  em processo — o RH ainda não migrou para este binário, então a ficha de EPI continua
+  cruzando processo pela rede, com o mesmo token de máquina assinado (`internal/services/
+  integracao`, HS256, mesmo `AUTH_SECRET`, validade de 60s) que o Next.js usava. Isso muda
+  quando o RH migrar: a chamada vira função local, mas o contrato (`estoque.ClienteRH`) já
+  está isolado atrás de uma porta de domínio pra essa troca não vazar pro resto do módulo.
+- **Auto-aprovação bloqueada não tem teste de UI dedicado**: o cenário (mesma pessoa que pediu
+  vira quem aprova) só é alcançável se o cargo dela mudar entre o pedido e a decisão — a
+  suíte prova o caminho normal (OPERACIONAL pede, GERENTE decide) e a regra em si
+  (`aprovacoes.go`, `SolicitanteID == sess.ID`) é coberta pela leitura de código + é a mesma
+  checagem, no mesmo formato, que todo o resto da fila de aprovação usa.
 
 ## Como os testes de referência funcionam
 

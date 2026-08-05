@@ -1,0 +1,109 @@
+package estoque
+
+templ Materiais(linhas []LinhaMaterial, filtros FiltrosMateriaisView, categorias []Opcao, form FormMaterial) {
+	@Pagina("Materiais") {
+		<h1>Materiais</h1>
+
+		<details open?={ form.Aberto }>
+			<summary data-testid="novo-material" class="botao botao-primario">+ Novo material</summary>
+			<form class="formulario" method="POST" action="/almoxarifado/materiais" style="margin-top:0.75rem">
+				<input type="hidden" name="id" value={ form.ID }/>
+				<div class="campo">
+					<label for="nome">Nome *</label>
+					<input id="nome" name="nome" required?={ true } value={ form.Nome }/>
+				</div>
+				<div class="campo">
+					<label for="categoria">Categoria *</label>
+					<select id="categoria" name="categoria" required?={ true }>
+						for _, c := range categorias {
+							<option value={ c.Valor } selected?={ c.Valor == form.Categoria }>{ c.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="unidade">Unidade *</label>
+					<select id="unidade" name="unidade" required?={ true }>
+						for _, u := range unidadesOpcoes() {
+							<option value={ u } selected?={ u == form.Unidade }>{ u }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="estoqueMinimo">Estoque mínimo</label>
+					<input id="estoqueMinimo" name="estoqueMinimo" type="number" step="any" min="0" value={ form.EstoqueMinimo }/>
+				</div>
+				<div class="campo">
+					<label for="localizacao">Localização</label>
+					<input id="localizacao" name="localizacao" value={ form.Localizacao }/>
+				</div>
+				<div class="campo">
+					<label for="ca">Certificado de Aprovação (CA) — só EPI</label>
+					<input id="ca" name="ca" value={ form.CA }/>
+				</div>
+				<div class="campo">
+					<label for="validadeCA">Validade do CA — só EPI</label>
+					<input id="validadeCA" name="validadeCA" type="date" value={ form.ValidadeCA }/>
+				</div>
+				<div class="campo">
+					<label for="materialObservacao">Observação</label>
+					<input id="materialObservacao" name="observacao" value={ form.Observacao }/>
+				</div>
+				if form.Erro != "" {
+					<p role="alert" data-testid="erro-material" class="erro">{ form.Erro }</p>
+				}
+				<button type="submit" data-testid="salvar-material">Salvar</button>
+			</form>
+		</details>
+
+		<form method="GET" action="/almoxarifado/materiais" class="card" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end;margin-top:1rem">
+			<div class="campo" style="margin:0">
+				<label for="busca">Busca</label>
+				<input id="busca" name="busca" value={ filtros.Busca }/>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="categoriaFiltro">Categoria</label>
+				<select id="categoriaFiltro" name="categoria">
+					<option value="">Todas</option>
+					for _, c := range categorias {
+						<option value={ c.Valor } selected?={ c.Valor == filtros.Categoria }>{ c.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="situacao">Situação</label>
+				<select id="situacao" name="situacao">
+					<option value="" selected?={ filtros.Situacao == "" }>Todas</option>
+					<option value="ZERADO" selected?={ filtros.Situacao == "ZERADO" }>Sem estoque</option>
+					<option value="ABAIXO" selected?={ filtros.Situacao == "ABAIXO" }>Abaixo do mínimo</option>
+					<option value="OK" selected?={ filtros.Situacao == "OK" }>Normal</option>
+				</select>
+			</div>
+			<button type="submit">Filtrar</button>
+		</form>
+
+		<div class="lista-usuarios" data-testid="tabela-materiais" style="margin-top:1rem">
+			if len(linhas) == 0 {
+				<p style="padding:1rem">Nenhum material encontrado.</p>
+			}
+			for _, m := range linhas {
+				<a href={ templ.URL("/almoxarifado/materiais/" + m.ID) } class="linha-locacao" data-testid={ "material-" + m.Codigo }>
+					<span class="nome">
+						{ m.Nome }
+						<br/>
+						<span class="email">{ m.Codigo } · { m.Categoria }</span>
+					</span>
+					<span class="selo" style={ "background:" + m.SituacaoCor }>{ m.SituacaoRotulo }</span>
+					<span class="tabular">{ m.Saldo } { m.Unidade }</span>
+					<span class="tabular money">{ m.ValorEmEstoque }</span>
+					if !m.Ativo {
+						<span style="color:var(--danger)">inativo</span>
+					}
+				</a>
+			}
+		</div>
+	}
+}
+
+func unidadesOpcoes() []string {
+	return []string{"UN", "CX", "PC", "PAR", "KG", "SC", "M", "M2", "M3", "L", "RL"}
+}

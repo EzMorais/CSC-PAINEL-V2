@@ -1,0 +1,62 @@
+package estoque
+
+templ SolicitacaoDetalhe(d DetalheSolicitacao) {
+	@Pagina(d.Numero) {
+		<p><a href="/almoxarifado/solicitacoes">← Voltar</a></p>
+		<div data-testid="detalhe-solicitacao" class="card">
+			<header>
+				<h1>{ d.Numero }</h1>
+				<span class="selo" style={ "background:" + d.StatusCor }>{ d.StatusRotulo }</span>
+			</header>
+
+			<dl>
+				<dt>Criada em</dt><dd class="tabular">{ d.CriadoEm }</dd>
+				if d.RegistradoPor != "" {
+					<dt>Registrado por</dt><dd>{ d.RegistradoPor }</dd>
+				}
+				if d.Observacao != "" {
+					<dt>Observação</dt><dd>{ d.Observacao }</dd>
+				}
+				if d.EmailInfo != "" {
+					<dt>E-mail</dt><dd data-testid="email-info">{ d.EmailInfo }</dd>
+				}
+			</dl>
+
+			if d.Erro != "" {
+				<p role="alert" class="erro">{ d.Erro }</p>
+			}
+			if d.Mensagem != "" {
+				<p role="status" class="aviso">{ d.Mensagem }</p>
+			}
+
+			<table style="width:100%;border-collapse:collapse;margin-top:1rem" data-testid="itens-solicitacao">
+				for _, i := range d.Itens {
+					<tr style="border-bottom:1px solid var(--border)">
+						<td style="padding:0.4rem 0">{ i.MaterialNome } ({ i.MaterialCodigo })</td>
+						<td class="tabular">{ i.Quantidade } { i.Unidade }</td>
+						<td class="tabular money">{ i.PrecoEstimado }</td>
+					</tr>
+				}
+			</table>
+
+			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem">
+				<form method="POST" action={ templ.URL("/almoxarifado/solicitacoes/" + d.ID + "/reenviar-email") } style="display:inline">
+					<button type="submit" data-testid="reenviar-email">Reenviar e-mail</button>
+				</form>
+				<form method="POST" action={ templ.URL("/almoxarifado/solicitacoes/" + d.ID + "/status") } style="display:inline">
+					<input type="hidden" name="status" value="ATENDIDA"/>
+					<button type="submit" data-testid="marcar-atendida">Marcar como atendida</button>
+				</form>
+				<form method="POST" action={ templ.URL("/almoxarifado/solicitacoes/" + d.ID + "/status") } style="display:inline">
+					<input type="hidden" name="status" value="CANCELADA"/>
+					<button type="submit" data-testid="cancelar-solicitacao">Cancelar</button>
+				</form>
+				if d.PodeExcluir {
+					<form method="POST" action={ templ.URL("/almoxarifado/solicitacoes/" + d.ID + "/excluir") } style="display:inline">
+						<button type="submit" data-testid="excluir-solicitacao">Excluir</button>
+					</form>
+				}
+			</div>
+		</div>
+	}
+}

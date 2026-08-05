@@ -1,0 +1,56 @@
+package estoque
+
+templ Aprovacoes(linhas []LinhaAprovacao, statusFiltro string) {
+	@Pagina("Aprovações") {
+		<h1>Aprovações</h1>
+
+		<form method="GET" action="/almoxarifado/aprovacoes" class="card" style="display:flex;gap:0.5rem;align-items:end">
+			<div class="campo" style="margin:0">
+				<label for="status">Status</label>
+				<select id="status" name="status">
+					<option value="PENDENTE" selected?={ statusFiltro == "PENDENTE" || statusFiltro == "" }>Pendentes</option>
+					<option value="APROVADA" selected?={ statusFiltro == "APROVADA" }>Aprovadas</option>
+					<option value="REJEITADA" selected?={ statusFiltro == "REJEITADA" }>Recusadas</option>
+					<option value="" selected?={ statusFiltro == "TODAS" }>Todas</option>
+				</select>
+			</div>
+			<button type="submit">Filtrar</button>
+		</form>
+
+		<div class="lista-usuarios" data-testid="tabela-aprovacoes" style="margin-top:1rem">
+			if len(linhas) == 0 {
+				<p style="padding:1rem">Nenhum pedido de aprovação.</p>
+			}
+			for _, a := range linhas {
+				<div class="card" data-testid={ "aprovacao-" + a.ID } style="margin-bottom:0.75rem">
+					<div class="linha-topo">
+						<span class="nome">{ a.TipoRotulo }<br/><span class="email">{ a.Resumo }</span></span>
+						<span class="selo" style={ "background:" + a.StatusCor }>{ a.StatusRotulo }</span>
+					</div>
+					<p class="email">Pedido por { a.SolicitanteNome } em { a.CriadoEm }</p>
+					<p class="email">{ a.MotivoDaRegra }</p>
+					if a.Motivo != "" {
+						<p>Motivo informado: { a.Motivo }</p>
+					}
+					if a.PodeDecidir {
+						<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+							<form method="POST" action={ templ.URL("/almoxarifado/aprovacoes/" + a.ID + "/aprovar") } style="display:inline">
+								<button type="submit" data-testid={ "aprovar-" + a.ID }>Aprovar</button>
+							</form>
+							<details style="display:inline-block">
+								<summary class="botao" data-testid={ "abrir-rejeitar-" + a.ID }>Recusar</summary>
+								<form method="POST" action={ templ.URL("/almoxarifado/aprovacoes/" + a.ID + "/rejeitar") } class="painel-edicao">
+									<div class="campo">
+										<label for={ "motivo-" + a.ID }>Motivo da recusa *</label>
+										<input id={ "motivo-" + a.ID } name="motivo" required?={ true }/>
+									</div>
+									<button type="submit" data-testid={ "confirmar-rejeitar-" + a.ID }>Confirmar recusa</button>
+								</form>
+							</details>
+						</div>
+					}
+				</div>
+			}
+		</div>
+	}
+}

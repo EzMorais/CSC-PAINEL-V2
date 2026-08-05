@@ -1,0 +1,75 @@
+package estoque
+
+templ Configuracoes(f ConfiguracaoEmailForm) {
+	@Pagina("Configurações") {
+		<h1>Configurações de e-mail</h1>
+		<p class="email">Conta usada para enviar solicitações de compra por e-mail.</p>
+
+		if f.Erro != "" {
+			<p role="alert" data-testid="erro-configuracao" class="erro">{ f.Erro }</p>
+		}
+		if f.Mensagem != "" {
+			<p role="status" class="aviso" data-testid="mensagem-configuracao">{ f.Mensagem }</p>
+		}
+
+		<form class="formulario" method="POST" action="/almoxarifado/configuracoes" data-testid="form-configuracao">
+			<div class="campo">
+				<label for="provedor">Provedor *</label>
+				<select id="provedor" name="provedor" required?={ true }>
+					<option value="GMAIL" selected?={ f.Provedor == "GMAIL" }>Gmail / Google Workspace</option>
+					<option value="OUTLOOK" selected?={ f.Provedor == "OUTLOOK" }>Outlook / Microsoft 365</option>
+					<option value="OUTRO" selected?={ f.Provedor == "OUTRO" }>Outro (servidor próprio)</option>
+				</select>
+			</div>
+			<div class="campo">
+				<label for="host">Servidor SMTP (só para "Outro")</label>
+				<input id="host" name="host" value={ f.Host }/>
+			</div>
+			<div class="campo">
+				<label for="porta">Porta (só para "Outro")</label>
+				<input id="porta" name="porta" type="number" value={ f.Porta }/>
+			</div>
+			<div class="campo">
+				<label for="usuario">E-mail da conta *</label>
+				<input id="usuario" name="usuario" type="email" required?={ true } value={ f.Usuario }/>
+			</div>
+			<div class="campo">
+				<label for="senha">Senha de aplicativo *</label>
+				<input id="senha" name="senha" type="password" required?={ true } value={ f.Senha }/>
+			</div>
+			<div class="campo">
+				<label for="remetente">Nome do remetente</label>
+				<input id="remetente" name="remetente" value={ f.Remetente }/>
+			</div>
+			<div class="campo">
+				<label for="destinatarioPadrao">E-mail padrão do comprador</label>
+				<input id="destinatarioPadrao" name="destinatarioPadrao" type="email" value={ f.DestinatarioPadrao }/>
+			</div>
+			<div class="campo">
+				<label for="copiaPara">Copiar para</label>
+				<input id="copiaPara" name="copiaPara" type="email" value={ f.CopiaPara }/>
+			</div>
+			<div class="campo">
+				<label>
+					<input type="checkbox" name="enviarAutomatico" value="1" checked?={ f.EnviarAutomatico }/>
+					Disparar e-mail automaticamente ao criar solicitação
+				</label>
+			</div>
+			<button type="submit" data-testid="salvar-configuracao">Salvar</button>
+		</form>
+
+		<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem">
+			<form method="POST" action="/almoxarifado/configuracoes/testar" style="display:inline">
+				<button type="submit" data-testid="testar-configuracao">Testar envio</button>
+			</form>
+			if f.Existe {
+				<form method="POST" action="/almoxarifado/configuracoes/desativar" style="display:inline">
+					<button type="submit" data-testid="desativar-configuracao">Desativar</button>
+				</form>
+			}
+		</div>
+		if f.TestadoEm != "" {
+			<p class="email">Último teste bem-sucedido: { f.TestadoEm }</p>
+		}
+	}
+}

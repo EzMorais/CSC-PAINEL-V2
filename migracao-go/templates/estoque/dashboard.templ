@@ -1,0 +1,64 @@
+package estoque
+
+templ Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMovimentacao) {
+	@Pagina("Dashboard") {
+		<h1>Dashboard</h1>
+
+		<div class="grade-sistemas" data-testid="kpis">
+			<div class="card">
+				<p class="email">MATERIAIS ATIVOS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-total">{ kpis.TotalMateriais }</p>
+			</div>
+			<div class="card">
+				<p class="email">SEM ESTOQUE</p>
+				<p style="font-size:1.4rem" data-testid="kpi-sem-estoque">{ kpis.SemEstoque }</p>
+			</div>
+			<div class="card">
+				<p class="email">ABAIXO DO MÍNIMO</p>
+				<p style="font-size:1.4rem" data-testid="kpi-abaixo-minimo">{ kpis.AbaixoDoMinimo }</p>
+			</div>
+			<div class="card">
+				<p class="email">VALOR EM ESTOQUE</p>
+				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-valor">{ kpis.ValorEmEstoque }</p>
+			</div>
+			<div class="card">
+				<p class="email">ENTRADAS NO MÊS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-entradas">{ kpis.EntradasDoMes }</p>
+			</div>
+			<div class="card">
+				<p class="email">SAÍDAS NO MÊS</p>
+				<p style="font-size:1.4rem" data-testid="kpi-saidas">{ kpis.SaidasDoMes }</p>
+			</div>
+			<div class="card">
+				<p class="email">APROVAÇÕES PENDENTES</p>
+				<p style="font-size:1.4rem" data-testid="kpi-aprovacoes-pendentes">{ kpis.AprovacoesPendentes }</p>
+			</div>
+		</div>
+
+		<section class="card" style="margin-top:1rem">
+			<h2>Materiais para repor</h2>
+			<ul data-testid="para-repor" style="list-style:none;padding:0">
+				for _, m := range paraRepor {
+					<li style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)">
+						<span>{ m.Nome } ({ m.Codigo })</span>
+						<span class="selo" style={ "background:" + m.SituacaoCor }>{ m.SituacaoRotulo }</span>
+						<span class="tabular">{ m.Saldo } { m.Unidade }</span>
+					</li>
+				}
+			</ul>
+		</section>
+
+		<section class="card" style="margin-top:1rem">
+			<h2>Movimentações recentes</h2>
+			<ul data-testid="movimentacoes-recentes" style="list-style:none;padding:0">
+				for _, m := range recentes {
+					<li style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)">
+						<span>{ m.MaterialTexto }</span>
+						<span class="selo" style={ "background:" + m.TipoCor }>{ m.TipoRotulo }</span>
+						<span class="tabular">{ m.Quantidade }</span>
+					</li>
+				}
+			</ul>
+		</section>
+	}
+}

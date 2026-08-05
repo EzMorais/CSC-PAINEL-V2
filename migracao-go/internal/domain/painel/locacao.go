@@ -2,7 +2,11 @@
 // Não importa banco de dados nem HTTP — ver ARQUITETURA.md §1.
 package painel
 
-import "time"
+import (
+	"time"
+
+	"siqueiracampos/servidor/internal/domain/cadastro"
+)
 
 type Status string
 
@@ -59,26 +63,11 @@ var Periodos = []Periodo{
 	{"Trimestre (90 dias)", 90},
 }
 
-type Obra struct {
-	ID          string
-	Cliente     string
-	Codigo      string
-	Descricao   string
-	Responsavel *string
-	// AbaOrigem é usado só pelo importador — de qual aba da planilha os itens desta obra vêm.
-	AbaOrigem string
-	Ativa     bool
-	CriadoEm  time.Time
-}
-
-type Fornecedor struct {
-	ID       string
-	Nome     string
-	Telefone *string
-	Ativo    bool
-	Aliases  []string
-	CriadoEm time.Time
-}
+// Obra e Fornecedor são tabelas COMPARTILHADAS entre módulos — ver
+// internal/domain/cadastro. O Painel foi o primeiro módulo e mantém estes aliases pra não
+// obrigar handlers/templates/repositórios já escritos a trocar de nome de pacote.
+type Obra = cadastro.Obra
+type Fornecedor = cadastro.Fornecedor
 
 type Movimentacao struct {
 	ID              string

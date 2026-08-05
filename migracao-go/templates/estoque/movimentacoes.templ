@@ -1,0 +1,57 @@
+package estoque
+
+templ Movimentacoes(linhas []LinhaMovimentacao, tipoFiltro string, buscaFiltro string) {
+	@Pagina("Movimentações") {
+		<h1>Movimentações</h1>
+
+		<form method="GET" action="/almoxarifado/movimentacoes" class="card" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end">
+			<div class="campo" style="margin:0">
+				<label for="busca">Busca</label>
+				<input id="busca" name="busca" value={ buscaFiltro }/>
+			</div>
+			<div class="campo" style="margin:0">
+				<label for="tipo">Tipo</label>
+				<select id="tipo" name="tipo">
+					<option value="" selected?={ tipoFiltro == "" }>Todos</option>
+					<option value="ENTRADA" selected?={ tipoFiltro == "ENTRADA" }>Entrada</option>
+					<option value="SAIDA" selected?={ tipoFiltro == "SAIDA" }>Saída</option>
+					<option value="DEVOLUCAO" selected?={ tipoFiltro == "DEVOLUCAO" }>Devolução</option>
+					<option value="PERDA" selected?={ tipoFiltro == "PERDA" }>Perda</option>
+					<option value="AJUSTE_POSITIVO" selected?={ tipoFiltro == "AJUSTE_POSITIVO" }>Ajuste (sobra)</option>
+					<option value="AJUSTE_NEGATIVO" selected?={ tipoFiltro == "AJUSTE_NEGATIVO" }>Ajuste (falta)</option>
+				</select>
+			</div>
+			<button type="submit">Filtrar</button>
+		</form>
+
+		<div class="lista-usuarios" data-testid="tabela-movimentacoes" style="margin-top:1rem">
+			if len(linhas) == 0 {
+				<p style="padding:1rem">Nenhuma movimentação encontrada.</p>
+			}
+			for _, m := range linhas {
+				<div class="linha-locacao">
+					<span class="nome">
+						{ m.MaterialTexto }
+						<br/>
+						<span class="email">
+							if m.ObraTexto != "" {
+								{ m.ObraTexto }
+							}
+							if m.FornecedorTexto != "" {
+								{ m.FornecedorTexto }
+							}
+						</span>
+					</span>
+					<span class="selo" style={ "background:" + m.TipoCor }>{ m.TipoRotulo }</span>
+					<span class="tabular">{ m.Quantidade }</span>
+					<span class="tabular">{ m.OcorridoEm }</span>
+					if m.FichaPendente {
+						<form method="POST" action={ templ.URL("/almoxarifado/movimentacoes/" + m.ID + "/reenviar-ficha") } style="display:inline">
+							<button type="submit" data-testid={ "reenviar-ficha-" + m.ID }>Reenviar ficha</button>
+						</form>
+					}
+				</div>
+			}
+		</div>
+	}
+}

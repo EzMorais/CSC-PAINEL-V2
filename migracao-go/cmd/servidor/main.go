@@ -12,14 +12,19 @@ import (
 	"syscall"
 	"time"
 
+	aplicacaoEstoque "siqueiracampos/servidor/internal/application/estoque"
 	aplicacaoIdentidade "siqueiracampos/servidor/internal/application/identidade"
 	aplicacaoPainel "siqueiracampos/servidor/internal/application/painel"
 	"siqueiracampos/servidor/internal/config"
 	dominioIdentidade "siqueiracampos/servidor/internal/domain/identidade"
+	handlersEstoque "siqueiracampos/servidor/internal/handlers/estoque"
 	handlersIdentidade "siqueiracampos/servidor/internal/handlers/identidade"
 	handlersPainel "siqueiracampos/servidor/internal/handlers/painel"
+	"siqueiracampos/servidor/internal/infrastructure/clienterh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
+	"siqueiracampos/servidor/internal/infrastructure/emailenvio"
 	"siqueiracampos/servidor/internal/middleware"
+	"siqueiracampos/servidor/internal/services/integracao"
 	"siqueiracampos/servidor/internal/services/sessao"
 )
 
@@ -101,6 +106,64 @@ func main() {
 	mux.HandleFunc("POST /painel/importar/confirmar", hPainel.ImportarConfirmar)
 	mux.HandleFunc("GET /painel/export/xlsx", hPainel.ExportarXLSX)
 	mux.HandleFunc("GET /painel/export/pdf", hPainel.ExportarPDF)
+
+	// ── Almoxarifado (Estoque) — montado sob /almoxarifado ────────────────────
+	servicoIntegracao, err := integracao.NovoServico(cfg.AuthSecret)
+	if err != nil {
+		log.Fatalf("integração: %v", err)
+	}
+	clienteRH := clienterh.Novo(cfg.URLRH, servicoIntegracao)
+	remetenteEmail := emailenvio.NovoAdaptador()
+
+	repoMateriais := database.NovoEstoqueMaterialRepositorio(db)
+	repoMovimentacoes := database.NovoEstoqueMovimentacaoRepositorio(db)
+	repoSolicitacoes := database.NovoEstoqueSolicitacaoRepositorio(db)
+	repoAprovacoes := database.NovoEstoqueAprovacaoRepositorio(db)
+	repoConfiguracaoEmail := database.NovoEstoqueConfiguracaoEmailRepositorio(db)
+
+	gerenciadorMateriais := &aplicacaoEstoque.GerenciadorMateriais{Materiais: repoMateriais}
+	gerenciadorMovimentacoes := &aplicacaoEstoque.GerenciadorMovimentacoes{
+		Materiais: repoMateriais, Movimentacoes: repoMovimentacoes, Aprovacoes: repoAprovacoes,
+		Configuracao: repoConfiguracaoEmail, ClienteRH: clienteRH,
+	}
+	gerenciadorSolicitacoes := &aplicacaoEstoque.GerenciadorSolicitacoes{
+		Solicitacoes: repoSolicitacoes, Materiais: repoMateriais, Aprovacoes: repoAprovacoes,
+		Configuracao: repoConfiguracaoEmail, EmailRemetente: remetenteEmail,
+	}
+	gerenciadorAprovacoes := &aplicacaoEstoque.GerenciadorAprovacoes{
+		Aprovacoes: repoAprovacoes, Materiais: repoMateriais, Movimentacoes: repoMovimentacoes, Solicitacoes: gerenciadorSolicitacoes,
+	}
+	gerenciadorConfiguracao := &aplicacaoEstoque.GerenciadorConfiguracaoEmail{Configuracao: repoConfiguracaoEmail, EmailRemetente: remetenteEmail}
+	gerenciadorDashboardEstoque := &aplicacaoEstoque.GerenciadorDashboard{Materiais: repoMateriais, Movimentacoes: repoMovimentacoes}
+
+	hEstoque := handlersEstoque.Novo(
+		sessoes, gerenciadorMateriais, gerenciadorMovimentacoes, gerenciadorSolicitacoes,
+		gerenciadorAprovacoes, gerenciadorConfiguracao, gerenciadorDashboardEstoque,
+		repoMateriais, repoMovimentacoes, repoSolicitacoes, repoAprovacoes, repoObras, repoFornecedores,
+	)
+	mux.HandleFunc("GET /almoxarifado", hEstoque.DashboardPagina)
+	mux.HandleFunc("GET /almoxarifado/materiais", hEstoque.ListarMateriais)
+	mux.HandleFunc("POST /almoxarifado/materiais", hEstoque.MaterialSalvar)
+	mux.HandleFunc("GET /almoxarifado/materiais/{id}", hEstoque.MaterialDetalhe)
+	mux.HandleFunc("POST /almoxarifado/materiais/{id}/movimentar", hEstoque.MaterialMovimentar)
+	mux.HandleFunc("POST /almoxarifado/materiais/{id}/ajustar", hEstoque.MaterialAjustar)
+	mux.HandleFunc("POST /almoxarifado/materiais/{id}/alternar", hEstoque.MaterialAlternar)
+	mux.HandleFunc("GET /almoxarifado/movimentacoes", hEstoque.ListarMovimentacoes)
+	mux.HandleFunc("POST /almoxarifado/movimentacoes/{id}/reenviar-ficha", hEstoque.MovimentacaoReenviarFicha)
+	mux.HandleFunc("GET /almoxarifado/solicitacoes", hEstoque.ListarSolicitacoes)
+	mux.HandleFunc("GET /almoxarifado/solicitacoes/nova", hEstoque.SolicitacaoNovaForm)
+	mux.HandleFunc("POST /almoxarifado/solicitacoes", hEstoque.SolicitacaoCriar)
+	mux.HandleFunc("GET /almoxarifado/solicitacoes/{id}", hEstoque.SolicitacaoDetalhe)
+	mux.HandleFunc("POST /almoxarifado/solicitacoes/{id}/reenviar-email", hEstoque.SolicitacaoReenviarEmail)
+	mux.HandleFunc("POST /almoxarifado/solicitacoes/{id}/status", hEstoque.SolicitacaoStatus)
+	mux.HandleFunc("POST /almoxarifado/solicitacoes/{id}/excluir", hEstoque.SolicitacaoExcluir)
+	mux.HandleFunc("GET /almoxarifado/aprovacoes", hEstoque.ListarAprovacoes)
+	mux.HandleFunc("POST /almoxarifado/aprovacoes/{id}/aprovar", hEstoque.AprovacaoAprovar)
+	mux.HandleFunc("POST /almoxarifado/aprovacoes/{id}/rejeitar", hEstoque.AprovacaoRejeitar)
+	mux.HandleFunc("GET /almoxarifado/configuracoes", hEstoque.Configuracoes)
+	mux.HandleFunc("POST /almoxarifado/configuracoes", hEstoque.ConfiguracoesSalvar)
+	mux.HandleFunc("POST /almoxarifado/configuracoes/testar", hEstoque.ConfiguracoesTestar)
+	mux.HandleFunc("POST /almoxarifado/configuracoes/desativar", hEstoque.ConfiguracoesDesativar)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

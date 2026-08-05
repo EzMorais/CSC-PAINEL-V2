@@ -4,20 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	_ "time/tzdata" // embute o banco IANA no binário — LoadLocation não pode depender do SO.
+	"siqueiracampos/servidor/internal/domain/comum"
 )
 
 // Fuso é o fuso horário de "hoje" nas regras de negócio deste módulo — ver
 // COMPORTAMENTO.md §3.1: "hoje" é o dia de quem está olhando a tela (Brasil), não UTC.
-var Fuso = carregarFuso()
-
-func carregarFuso() *time.Location {
-	loc, err := time.LoadLocation("America/Sao_Paulo")
-	if err != nil {
-		return time.UTC
-	}
-	return loc
-}
+// Vive em internal/domain/comum (compartilhado com o Almoxarifado); alias mantido para não
+// obrigar o resto do pacote painel a trocar de nome.
+var Fuso = comum.Fuso
 
 const diaMS = 86_400_000
 

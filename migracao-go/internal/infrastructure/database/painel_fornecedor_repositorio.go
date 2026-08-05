@@ -18,13 +18,13 @@ func NovoFornecedorRepositorio(db *sql.DB) *FornecedorRepositorio {
 	return &FornecedorRepositorio{DB: db}
 }
 
-const colunasFornecedor = `id, nome, telefone, ativo, criado_em`
+const colunasFornecedor = `id, nome, telefone, cnpj, email, ativo, criado_em`
 
 func lerFornecedor(linha linhaEscaneavel) (*painel.Fornecedor, error) {
 	var f painel.Fornecedor
 	var ativo int
 	var criadoEm string
-	if err := linha.Scan(&f.ID, &f.Nome, &f.Telefone, &ativo, &criadoEm); err != nil {
+	if err := linha.Scan(&f.ID, &f.Nome, &f.Telefone, &f.Cnpj, &f.Email, &ativo, &criadoEm); err != nil {
 		return nil, err
 	}
 	f.Ativo = ativo != 0
@@ -191,8 +191,8 @@ func (r *FornecedorRepositorio) Criar(ctx context.Context, f *painel.Fornecedor)
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO fornecedores (id, nome, telefone, ativo, criado_em) VALUES (?, ?, ?, 1, ?)`,
-		id, f.Nome, f.Telefone, agora,
+		`INSERT INTO fornecedores (id, nome, telefone, cnpj, email, ativo, criado_em) VALUES (?, ?, ?, ?, ?, 1, ?)`,
+		id, f.Nome, f.Telefone, f.Cnpj, f.Email, agora,
 	); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: fornecedores.nome") {
 			return painel.ErrFornecedorDuplicado
@@ -221,7 +221,8 @@ func (r *FornecedorRepositorio) Atualizar(ctx context.Context, f *painel.Fornece
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx,
-		`UPDATE fornecedores SET nome = ?, telefone = ? WHERE id = ?`, f.Nome, f.Telefone, f.ID,
+		`UPDATE fornecedores SET nome = ?, telefone = ?, cnpj = ?, email = ? WHERE id = ?`,
+		f.Nome, f.Telefone, f.Cnpj, f.Email, f.ID,
 	); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: fornecedores.nome") {
 			return painel.ErrFornecedorDuplicado

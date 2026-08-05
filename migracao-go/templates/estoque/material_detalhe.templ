@@ -1,0 +1,166 @@
+package estoque
+
+templ MaterialDetalhe(d DetalheMaterial, obras []Opcao, fornecedores []Opcao, tipos []Opcao, hoje string) {
+	@Pagina(d.Nome) {
+		<p><a href="/almoxarifado/materiais">← Voltar</a></p>
+		<div data-testid="detalhe-material" class="card">
+			<header>
+				<h1>{ d.Nome }</h1>
+				<p>{ d.Codigo } · { d.CategoriaRotulo }</p>
+				<span class="selo" data-testid="situacao-material" style={ "background:" + d.SituacaoCor }>{ d.SituacaoRotulo }</span>
+				if !d.Ativo {
+					<span style="color:var(--danger)">inativo</span>
+				}
+			</header>
+
+			<dl>
+				<dt>Saldo</dt><dd class="tabular" data-testid="saldo-material">{ d.Saldo } { d.Unidade }</dd>
+				<dt>Estoque mínimo</dt><dd class="tabular">{ d.EstoqueMinimo } { d.Unidade }</dd>
+				if d.Localizacao != "" {
+					<dt>Localização</dt><dd>{ d.Localizacao }</dd>
+				}
+				if d.EhEPI {
+					<dt>CA</dt><dd>{ d.CA }</dd>
+					if d.ValidadeCA != "" {
+						<dt>Validade do CA</dt><dd>{ d.ValidadeCA }</dd>
+					}
+				}
+				if d.Observacao != "" {
+					<dt>Observação</dt><dd>{ d.Observacao }</dd>
+				}
+			</dl>
+
+			if d.Erro != "" {
+				<p role="alert" class="erro">{ d.Erro }</p>
+			}
+			if d.Mensagem != "" {
+				<p role="status" class="aviso">{ d.Mensagem }</p>
+			}
+
+			<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0">
+				<details open?={ d.AbrirMovimentar }>
+					<summary class="botao" data-testid="abrir-movimentar">Movimentar</summary>
+					<form method="POST" action={ templ.URL("/almoxarifado/materiais/" + d.ID + "/movimentar") } class="painel-edicao">
+						<div class="campo">
+							<label for="tipo">Tipo *</label>
+							<select id="tipo" name="tipo" required?={ true }>
+								for _, t := range tipos {
+									<option value={ t.Valor }>{ t.Rotulo }</option>
+								}
+							</select>
+						</div>
+						<div class="campo">
+							<label for="quantidade">Quantidade *</label>
+							<input id="quantidade" name="quantidade" type="number" step="any" min="0" required?={ true }/>
+						</div>
+						<div class="campo">
+							<label for="valorUnitario">Valor unitário (só entrada)</label>
+							<input id="valorUnitario" name="valorUnitario" type="number" step="any" min="0"/>
+						</div>
+						<div class="campo">
+							<label for="obraId">Obra (saída/devolução)</label>
+							<select id="obraId" name="obraId">
+								<option value="">—</option>
+								for _, o := range obras {
+									<option value={ o.Valor }>{ o.Rotulo }</option>
+								}
+							</select>
+						</div>
+						<div class="campo">
+							<label for="fornecedorId">Fornecedor (só entrada)</label>
+							<select id="fornecedorId" name="fornecedorId">
+								<option value="">—</option>
+								for _, f := range fornecedores {
+									<option value={ f.Valor }>{ f.Rotulo }</option>
+								}
+							</select>
+						</div>
+						if d.EhEPI {
+							<div class="campo">
+								<label for="funcionarioId">Funcionário (saída de EPI) — id do RH</label>
+								<input id="funcionarioId" name="funcionarioId"/>
+							</div>
+							<div class="campo">
+								<label for="funcionarioNome">Nome do funcionário</label>
+								<input id="funcionarioNome" name="funcionarioNome"/>
+							</div>
+						}
+						<div class="campo">
+							<label for="documento">Documento</label>
+							<input id="documento" name="documento"/>
+						</div>
+						<div class="campo">
+							<label for="movObservacao">Observação</label>
+							<input id="movObservacao" name="observacao"/>
+						</div>
+						<div class="campo">
+							<label for="ocorridoEm">Data *</label>
+							<input id="ocorridoEm" name="ocorridoEm" type="date" required?={ true } value={ hoje }/>
+						</div>
+						<button type="submit" data-testid="confirmar-movimentar">Confirmar</button>
+					</form>
+				</details>
+
+				<details open?={ d.AbrirAjustar }>
+					<summary class="botao" data-testid="abrir-ajustar">Ajustar por inventário</summary>
+					<form method="POST" action={ templ.URL("/almoxarifado/materiais/" + d.ID + "/ajustar") } class="painel-edicao">
+						<div class="campo">
+							<label for="quantidadeContada">Quantidade contada *</label>
+							<input id="quantidadeContada" name="quantidadeContada" type="number" step="any" min="0" required?={ true }/>
+						</div>
+						<div class="campo">
+							<label for="ajusteObservacao">Observação</label>
+							<input id="ajusteObservacao" name="observacao"/>
+						</div>
+						<button type="submit" data-testid="confirmar-ajustar">Confirmar</button>
+					</form>
+				</details>
+
+				<form method="POST" action={ templ.URL("/almoxarifado/materiais/" + d.ID + "/alternar") } style="display:inline">
+					<input type="hidden" name="ativo" value={ ativoToggle(d.Ativo) }/>
+					<button type="submit" data-testid="alternar-material">{ rotuloAlternarMaterial(d.Ativo) }</button>
+				</form>
+			</div>
+
+			<section style="margin-top:1.5rem">
+				<h2>Histórico ({ len(d.Historico) })</h2>
+				<ul data-testid="historico-material" style="list-style:none;padding:0">
+					for _, h := range d.Historico {
+						<li style="padding:0.4rem 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:0.5rem;flex-wrap:wrap">
+							<span>
+								<span class="selo" style={ "background:" + h.TipoCor }>{ h.TipoRotulo }</span>
+								{ h.Quantidade }
+								if h.ObraTexto != "" {
+									· { h.ObraTexto }
+								}
+								if h.FornecedorTexto != "" {
+									· { h.FornecedorTexto }
+								}
+							</span>
+							<span class="tabular">{ h.OcorridoEm }</span>
+							if h.FichaPendente {
+								<form method="POST" action={ templ.URL("/almoxarifado/movimentacoes/" + h.ID + "/reenviar-ficha") } style="display:inline">
+									<button type="submit" data-testid={ "reenviar-ficha-" + h.ID }>Reenviar ficha ao RH</button>
+								</form>
+							}
+						</li>
+					}
+				</ul>
+			</section>
+		</div>
+	}
+}
+
+func ativoToggle(ativo bool) string {
+	if ativo {
+		return "0"
+	}
+	return "1"
+}
+
+func rotuloAlternarMaterial(ativo bool) string {
+	if ativo {
+		return "Desativar"
+	}
+	return "Ativar"
+}

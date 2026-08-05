@@ -4,12 +4,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"log"
 	"os"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"siqueiracampos/servidor/internal/config"
+	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	dominio "siqueiracampos/servidor/internal/domain/identidade"
 	painel "siqueiracampos/servidor/internal/domain/painel"
 	"siqueiracampos/servidor/internal/infrastructure/database"
@@ -40,6 +44,7 @@ func main() {
 	if os.Getenv("SEED_RESET") == "1" {
 		tabelas := []string{
 			"registros_acesso", "acessos_modulo", "usuarios",
+			"aprovacoes_estoque", "itens_solicitacao", "solicitacoes_compra", "movimentacoes_estoque", "materiais", "configuracao_email_estoque",
 			"movimentacoes_locacao", "locacoes", "fornecedor_aliases", "fornecedores", "obras",
 		}
 		for _, tabela := range tabelas {
@@ -56,6 +61,12 @@ func main() {
 	repoObras := database.NovoObraRepositorio(db)
 	repoFornecedores := database.NovoFornecedorRepositorio(db)
 	semearPainel(ctx, repoObras, repoFornecedores)
+
+	repoMateriais := database.NovoEstoqueMaterialRepositorio(db)
+	repoMovimentacoesEstoque := database.NovoEstoqueMovimentacaoRepositorio(db)
+	repoSolicitacoes := database.NovoEstoqueSolicitacaoRepositorio(db)
+	repoAprovacoesEstoque := database.NovoEstoqueAprovacaoRepositorio(db)
+	semearEstoque(ctx, repoObras, repoMateriais, repoMovimentacoesEstoque, repoSolicitacoes, repoAprovacoesEstoque)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -193,4 +204,108 @@ func semearPainel(ctx context.Context, obras *database.ObraRepositorio, forneced
 	}
 
 	log.Printf("Painel de Locação: %d obras e %d fornecedores de exemplo criados (dados fictícios).", criadasObras, criadosFornecedores)
+}
+
+type materialExemplo struct {
+	codigo, nome   string
+	categoria      estoque.Categoria
+	unidade        string
+	estoqueMinimo  float64
+	ca, validadeCA string
+}
+
+// Cobre os 4 cenários citados em estoque/COMPORTAMENTO.md §10: saldo OK, ABAIXO do mínimo,
+// ZERADO (sem nenhuma movimentação) e um EPI com CA/validade preenchidos.
+var materiaisExemplo = []materialExemplo{
+	{"MAT-0001", "Cimento CP-II 50kg", estoque.CategoriaCimentoArgamassa, "SC", 50, "", ""},
+	{"MAT-0002", "Areia média", estoque.CategoriaAgregado, "M3", 20, "", ""},
+	{"MAT-0003", "Arame recozido 18", estoque.CategoriaConsumivel, "KG", 10, "", ""},
+	{"MAT-0004", "Capacete de segurança", estoque.CategoriaEPI, "UN", 5, "31469", "2027-12-31"},
+	{"MAT-0005", "Tábua de pinho 3m", estoque.CategoriaMadeira, "M", 30, "", ""},
+}
+
+func semearEstoque(
+	ctx context.Context,
+	obras *database.ObraRepositorio,
+	materiais *database.EstoqueMaterialRepositorio,
+	movimentacoes *database.EstoqueMovimentacaoRepositorio,
+	solicitacoes *database.EstoqueSolicitacaoRepositorio,
+	aprovacoes *database.EstoqueAprovacaoRepositorio,
+) {
+	ids := map[string]string{}
+	criados := 0
+	for _, e := range materiaisExemplo {
+		m := &estoque.Material{Codigo: e.codigo, Nome: e.nome, Categoria: e.categoria, Unidade: e.unidade, EstoqueMinimo: e.estoqueMinimo}
+		if e.ca != "" {
+			m.CA = &e.ca
+		}
+		if e.validadeCA != "" {
+			t, err := time.Parse("2006-01-02", e.validadeCA)
+			if err != nil {
+				log.Fatalf("validade do CA de %s: %v", e.codigo, err)
+			}
+			m.ValidadeCA = &t
+		}
+		if err := materiais.Criar(ctx, m); err != nil {
+			if errors.Is(err, estoque.ErrCodigoMaterialDuplicado) {
+				log.Printf("Almoxarifado: materiais de exemplo já existiam — pulando o resto do seed do módulo.")
+				return
+			}
+			log.Fatalf("criar material %s: %v", e.codigo, err)
+		}
+		ids[e.codigo] = m.ID
+		criados++
+	}
+
+	registradoPor := "Seed"
+	criarMov := func(materialID string, tipo estoque.TipoMovimentacao, quantidade float64, valorUnitario *float64, obraID, funcionarioID, funcionarioNome *string) {
+		mov := &estoque.Movimentacao{
+			Tipo: tipo, Quantidade: quantidade, ValorUnitario: valorUnitario, OcorridoEm: time.Now().UTC(),
+			RegistradoPor: &registradoPor, MaterialID: materialID, ObraID: obraID,
+			FuncionarioID: funcionarioID, FuncionarioNome: funcionarioNome,
+		}
+		if err := movimentacoes.Criar(ctx, mov); err != nil {
+			log.Fatalf("criar movimentação de %s: %v", materialID, err)
+		}
+	}
+	precoCimento, precoAreia, precoCapacete, precoTabua := 32.50, 85.0, 45.0, 18.0
+
+	criarMov(ids["MAT-0001"], estoque.MovEntrada, 200, &precoCimento, nil, nil, nil)
+	criarMov(ids["MAT-0002"], estoque.MovEntrada, 15, &precoAreia, nil, nil, nil) // fica ABAIXO do mínimo (20) de propósito
+
+	criarMov(ids["MAT-0004"], estoque.MovEntrada, 20, &precoCapacete, nil, nil, nil)
+	funcionarioID, funcionarioNome := "func-exemplo-1", "João Operário"
+	criarMov(ids["MAT-0004"], estoque.MovSaida, 3, nil, nil, &funcionarioID, &funcionarioNome)
+
+	if obra, _ := obras.BuscarPorCodigo(ctx, "EX-1001-25"); obra != nil {
+		criarMov(ids["MAT-0005"], estoque.MovEntrada, 100, &precoTabua, nil, nil, nil)
+		criarMov(ids["MAT-0005"], estoque.MovSaida, 20, nil, &obra.ID, nil, nil)
+	} else {
+		criarMov(ids["MAT-0005"], estoque.MovEntrada, 100, &precoTabua, nil, nil, nil)
+	}
+	// MAT-0003 (Arame) fica sem nenhuma movimentação de propósito — cenário ZERADO.
+
+	saldoNaEpoca, minimoNaEpoca := 15.0, 20.0
+	s := &estoque.SolicitacaoCompra{
+		Numero: "SC-2026-0001", RegistradoPor: &registradoPor,
+		Itens: []estoque.ItemSolicitacao{{MaterialID: ids["MAT-0002"], Quantidade: 25, SaldoNaEpoca: saldoNaEpoca, MinimoNaEpoca: minimoNaEpoca}},
+	}
+	if err := solicitacoes.Criar(ctx, s); err != nil {
+		log.Fatalf("criar solicitação de exemplo: %v", err)
+	}
+
+	dadosAjuste, err := json.Marshal(estoque.DadosAjusteInventario{MaterialID: ids["MAT-0003"], QuantidadeContada: 5})
+	if err != nil {
+		log.Fatalf("montar dados do ajuste de exemplo: %v", err)
+	}
+	aprovacao := &estoque.Aprovacao{
+		Tipo: estoque.AprovacaoAjusteInventario, Dados: string(dadosAjuste),
+		Resumo:        "Arame recozido 18: contagem de 5 KG contra 0 no sistema (sobra de 5).",
+		SolicitanteID: "seed", SolicitanteNome: "Ana Almoxarife",
+	}
+	if err := aprovacoes.Criar(ctx, aprovacao); err != nil {
+		log.Fatalf("criar aprovação de exemplo: %v", err)
+	}
+
+	log.Printf("Almoxarifado: %d materiais de exemplo criados, com histórico, 1 solicitação e 1 aprovação pendente.", criados)
 }
