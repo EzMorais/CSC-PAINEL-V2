@@ -1,0 +1,12 @@
+node_modules
+.next
+data
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.production.example
+.git
+playwright-report
+test-results

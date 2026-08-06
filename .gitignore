@@ -1,0 +1,4 @@
+# Variáveis usadas como build args do docker compose (ver DEPLOY.md) — só valores públicos
+# (NEXT_PUBLIC_*), mas mesmo assim não precisa versionar a cópia de cada um.
+.env
+!.env.example
