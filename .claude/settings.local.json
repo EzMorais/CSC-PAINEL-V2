@@ -19,7 +19,8 @@
       "PowerShell(Get-Command winget -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command choco -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command scoop -ErrorAction SilentlyContinue)",
-      "PowerShell(winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements)"
+      "PowerShell(winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements)",
+      "Bash(git -C \"c:\\\\Users\\\\TÉCNICO\\\\Documents\\\\GitHub\\\\CSC-PAINEL\" check-ignore -v apps/painel-locacao/dados/Maquinas_Alugadas_Controle_REVISADA.xlsx)"
     ]
   }
 }

@@ -15,11 +15,13 @@ import (
 	aplicacaoEstoque "siqueiracampos/servidor/internal/application/estoque"
 	aplicacaoIdentidade "siqueiracampos/servidor/internal/application/identidade"
 	aplicacaoPainel "siqueiracampos/servidor/internal/application/painel"
+	aplicacaoRH "siqueiracampos/servidor/internal/application/rh"
 	"siqueiracampos/servidor/internal/config"
 	dominioIdentidade "siqueiracampos/servidor/internal/domain/identidade"
 	handlersEstoque "siqueiracampos/servidor/internal/handlers/estoque"
 	handlersIdentidade "siqueiracampos/servidor/internal/handlers/identidade"
 	handlersPainel "siqueiracampos/servidor/internal/handlers/painel"
+	handlersRH "siqueiracampos/servidor/internal/handlers/rh"
 	"siqueiracampos/servidor/internal/infrastructure/clienterh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
 	"siqueiracampos/servidor/internal/infrastructure/emailenvio"
@@ -164,6 +166,63 @@ func main() {
 	mux.HandleFunc("POST /almoxarifado/configuracoes", hEstoque.ConfiguracoesSalvar)
 	mux.HandleFunc("POST /almoxarifado/configuracoes/testar", hEstoque.ConfiguracoesTestar)
 	mux.HandleFunc("POST /almoxarifado/configuracoes/desativar", hEstoque.ConfiguracoesDesativar)
+
+	// ── RH e SST — montado sob /rh ─────────────────────────────────────────────
+	// Primeira fatia: cadastros (Cargo/Departamento) + Funcionário (CRUD, timeline
+	// automática, exclusão) + dashboard. Treinamentos/Exames/Uniformes/Documentos/
+	// Auditorias/EPI/relatórios/importação ainda não migraram — ver
+	// migracao-go/rh/COMPORTAMENTO.md e o README para o que falta.
+	repoRHCargos := database.NovoRHCargoRepositorio(db)
+	repoRHDepartamentos := database.NovoRHDepartamentoRepositorio(db)
+	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
+	repoRHDependentes := database.NovoRHDependenteRepositorio(db)
+	repoRHEventos := database.NovoRHEventoRepositorio(db)
+
+	gerenciadorRHFuncionarios := &aplicacaoRH.GerenciadorFuncionarios{
+		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos, Eventos: repoRHEventos,
+		ResolverObraCodigo: func(ctx context.Context, obraID string) (string, error) {
+			o, err := repoObras.BuscarPorID(ctx, obraID)
+			if err != nil || o == nil {
+				return "", err
+			}
+			return o.Codigo, nil
+		},
+	}
+	hRH := handlersRH.Novo(
+		sessoes,
+		&aplicacaoRH.GerenciadorCargos{Cargos: repoRHCargos},
+		&aplicacaoRH.GerenciadorDepartamentos{Departamentos: repoRHDepartamentos},
+		gerenciadorRHFuncionarios,
+		&aplicacaoRH.GerenciadorDashboard{Funcionarios: repoRHFuncionarios, Eventos: repoRHEventos},
+		repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHDependentes, repoRHEventos,
+		func(ctx context.Context) (int, error) {
+			obras, err := repoObras.ListarAtivas(ctx)
+			return len(obras), err
+		},
+		func(ctx context.Context) ([]handlersRH.OpcaoObra, error) {
+			obras, err := repoObras.ListarAtivas(ctx)
+			if err != nil {
+				return nil, err
+			}
+			opcoes := make([]handlersRH.OpcaoObra, len(obras))
+			for i, o := range obras {
+				opcoes[i] = handlersRH.OpcaoObra{ID: o.ID, Codigo: o.Codigo}
+			}
+			return opcoes, nil
+		},
+	)
+	mux.HandleFunc("GET /rh", hRH.DashboardPagina)
+	mux.HandleFunc("GET /rh/funcionarios", hRH.ListarFuncionarios)
+	mux.HandleFunc("GET /rh/funcionarios/novo", hRH.FuncionarioNovoForm)
+	mux.HandleFunc("POST /rh/funcionarios", hRH.FuncionarioCriar)
+	mux.HandleFunc("GET /rh/funcionarios/{id}", hRH.FuncionarioDetalhe)
+	mux.HandleFunc("GET /rh/funcionarios/{id}/editar", hRH.FuncionarioEditarForm)
+	mux.HandleFunc("POST /rh/funcionarios/{id}", hRH.FuncionarioEditar)
+	mux.HandleFunc("POST /rh/funcionarios/{id}/excluir", hRH.FuncionarioExcluir)
+	mux.HandleFunc("GET /rh/configuracoes", hRH.Configuracoes)
+	mux.HandleFunc("POST /rh/cargos", hRH.CargoCriar)
+	mux.HandleFunc("POST /rh/departamentos/ramos", hRH.DepartamentoRamoCriar)
+	mux.HandleFunc("POST /rh/departamentos/setores", hRH.DepartamentoSetorCriar)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

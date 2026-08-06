@@ -50,6 +50,10 @@ prisma/*.db*
 *.xlsx
 *.xlsm
 dados/
+# Exceção: fixture fictícia usada por e2e/importacao.go.spec.ts (gerada por
+# scripts/gerar-planilha-importacao-exemplo.ts) — não é dado real, precisa estar versionada
+# para o teste rodar num clone novo/CI.
+!e2e/fixtures/*.xlsx
 
 # Exports gerados
 exports/
@@ -73,3 +77,4 @@ prisma/dados-locais.json
 # Cookie de sessão gravado pelo projeto `setup` do Playwright — é uma credencial
 # válida, ainda que só contra o teste.db.
 e2e/.sessao.json
+e2e/.sessao-go.json

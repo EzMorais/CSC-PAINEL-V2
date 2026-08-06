@@ -1,0 +1,44 @@
+package rh
+
+import "fmt"
+
+type LinhaEvento struct {
+	Descricao string
+	Quando    string
+}
+
+templ Dashboard(ativos, afastados, ferias, desligados, cadastrosIncompletos int, eventos []LinhaEvento) {
+	@Pagina("Dashboard") {
+		<h1>RH e SST</h1>
+
+		<div class="grade-kpis">
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Ativos</span>
+				<span class="valor-kpi" data-testid="kpi-ativos">{ fmt.Sprint(ativos) }</span>
+			</div>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Afastados</span>
+				<span class="valor-kpi" data-testid="kpi-afastados">{ fmt.Sprint(afastados) }</span>
+			</div>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Férias</span>
+				<span class="valor-kpi" data-testid="kpi-ferias">{ fmt.Sprint(ferias) }</span>
+			</div>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Desligados</span>
+				<span class="valor-kpi" data-testid="kpi-desligados">{ fmt.Sprint(desligados) }</span>
+			</div>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Cadastros incompletos</span>
+				<span class="valor-kpi" data-testid="kpi-cadastros-incompletos">{ fmt.Sprint(cadastrosIncompletos) }</span>
+			</div>
+		</div>
+
+		<h2>Últimas movimentações</h2>
+		<ul data-testid="eventos-recentes">
+			for _, e := range eventos {
+				<li>{ e.Descricao } <span class="email">{ e.Quando }</span></li>
+			}
+		</ul>
+	}
+}

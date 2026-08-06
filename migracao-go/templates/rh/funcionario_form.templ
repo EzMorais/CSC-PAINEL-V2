@@ -1,0 +1,102 @@
+package rh
+
+type OpcaoSelect struct{ ID, Rotulo string }
+
+type FormFuncionario struct {
+	ID, Erro                                                   string
+	Nome, CPF, AdmitidoEm, Status, TipoContrato                string
+	Telefone, Email                                            string
+	ObraID, CargoID, DepartamentoID, NivelObra, Salario         string
+	TamanhoCamisa, TamanhoCalca, TamanhoCalcado                 string
+	Obras                                                       []OpcaoSelect
+	Cargos                                                      []OpcaoSelect
+}
+
+templ FuncionarioForm(f FormFuncionario) {
+	@Pagina("Funcionário") {
+		<h1>{ tituloForm(f.ID) }</h1>
+		<form class="formulario" method="POST" action={ acaoForm(f.ID) }>
+			<div class="campo">
+				<label for="nome">Nome completo *</label>
+				<input id="nome" name="nome" required?={ true } value={ f.Nome }/>
+			</div>
+			<div class="campo">
+				<label for="cpf">CPF *</label>
+				<input id="cpf" name="cpf" required?={ true } value={ f.CPF }/>
+			</div>
+			<div class="campo">
+				<label for="admitidoEm">Data de admissão *</label>
+				<input id="admitidoEm" name="admitidoEm" type="date" required?={ true } value={ f.AdmitidoEm }/>
+			</div>
+			<div class="campo">
+				<label for="status">Situação</label>
+				<select id="status" name="status">
+					<option value="ATIVO" selected?={ f.Status == "ATIVO" || f.Status == "" }>Ativo</option>
+					<option value="AFASTADO" selected?={ f.Status == "AFASTADO" }>Afastado</option>
+					<option value="FERIAS" selected?={ f.Status == "FERIAS" }>Férias</option>
+					<option value="DESLIGADO" selected?={ f.Status == "DESLIGADO" }>Desligado</option>
+				</select>
+			</div>
+			<div class="campo">
+				<label for="telefone">Telefone</label>
+				<input id="telefone" name="telefone" value={ f.Telefone }/>
+			</div>
+			<div class="campo">
+				<label for="email">E-mail</label>
+				<input id="email" name="email" value={ f.Email }/>
+			</div>
+			<div class="campo">
+				<label for="obraId">Obra</label>
+				<select id="obraId" name="obraId">
+					<option value="">— sem obra —</option>
+					for _, o := range f.Obras {
+						<option value={ o.ID } selected?={ o.ID == f.ObraID }>{ o.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo">
+				<label for="cargoId">Cargo</label>
+				<select id="cargoId" name="cargoId">
+					<option value="">— sem cargo —</option>
+					for _, c := range f.Cargos {
+						<option value={ c.ID } selected?={ c.ID == f.CargoID }>{ c.Rotulo }</option>
+					}
+				</select>
+			</div>
+			<div class="campo">
+				<label for="salario">Salário</label>
+				<input id="salario" name="salario" value={ f.Salario }/>
+			</div>
+			<div class="campo">
+				<label for="tamanhoCamisa">Camisa</label>
+				<input id="tamanhoCamisa" name="tamanhoCamisa" value={ f.TamanhoCamisa }/>
+			</div>
+			<div class="campo">
+				<label for="tamanhoCalca">Calça</label>
+				<input id="tamanhoCalca" name="tamanhoCalca" value={ f.TamanhoCalca }/>
+			</div>
+			<div class="campo">
+				<label for="tamanhoCalcado">Calçado</label>
+				<input id="tamanhoCalcado" name="tamanhoCalcado" value={ f.TamanhoCalcado }/>
+			</div>
+			if f.Erro != "" {
+				<p role="alert">{ f.Erro }</p>
+			}
+			<button type="submit" data-testid="salvar">Salvar</button>
+		</form>
+	}
+}
+
+func tituloForm(id string) string {
+	if id == "" {
+		return "Novo funcionário"
+	}
+	return "Editar funcionário"
+}
+
+func acaoForm(id string) string {
+	if id == "" {
+		return "/rh/funcionarios"
+	}
+	return "/rh/funcionarios/" + id
+}

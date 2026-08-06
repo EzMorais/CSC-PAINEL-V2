@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -16,6 +18,7 @@ import (
 	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	dominio "siqueiracampos/servidor/internal/domain/identidade"
 	painel "siqueiracampos/servidor/internal/domain/painel"
+	rh "siqueiracampos/servidor/internal/domain/rh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
 )
 
@@ -45,6 +48,13 @@ func main() {
 		tabelas := []string{
 			"registros_acesso", "acessos_modulo", "usuarios",
 			"aprovacoes_estoque", "itens_solicitacao", "solicitacoes_compra", "movimentacoes_estoque", "materiais", "configuracao_email_estoque",
+			// RH — filhos antes de pais (foreign_keys = ON): nao_conformidades referencia
+			// auditoria_itens, que referencia auditorias; documentos/exames/entregas_*/
+			// eventos/dependentes referenciam funcionarios, que referencia obras/cargos/
+			// departamentos.
+			"nao_conformidades", "auditoria_itens", "auditorias",
+			"documentos", "exames", "entregas_epi", "treinamento_participantes", "treinamentos", "entregas_uniforme",
+			"eventos", "dependentes", "funcionarios", "departamentos", "cargos",
 			"movimentacoes_locacao", "locacoes", "fornecedor_aliases", "fornecedores", "obras",
 		}
 		for _, tabela := range tabelas {
@@ -67,6 +77,12 @@ func main() {
 	repoSolicitacoes := database.NovoEstoqueSolicitacaoRepositorio(db)
 	repoAprovacoesEstoque := database.NovoEstoqueAprovacaoRepositorio(db)
 	semearEstoque(ctx, repoObras, repoMateriais, repoMovimentacoesEstoque, repoSolicitacoes, repoAprovacoesEstoque)
+
+	repoRHCargos := database.NovoRHCargoRepositorio(db)
+	repoRHDepartamentos := database.NovoRHDepartamentoRepositorio(db)
+	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
+	repoRHEventos := database.NovoRHEventoRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -308,4 +324,205 @@ func semearEstoque(
 	}
 
 	log.Printf("Almoxarifado: %d materiais de exemplo criados, com histórico, 1 solicitação e 1 aprovação pendente.", criados)
+}
+
+type cargoExemploRH struct {
+	nome, cbo, risco string
+}
+
+// Mesmos 10 cargos de prisma/dados-exemplo.ts do RH Next.js — ver rh/COMPORTAMENTO.md §10.
+var cargosExemploRH = []cargoExemploRH{
+	{"Pedreiro", "7152-10", rh.RiscoNormal},
+	{"Servente de obras", "7170-20", rh.RiscoNormal},
+	{"Carpinteiro", "7155-10", rh.RiscoNormal},
+	{"Armador de ferragem", "7153-05", rh.RiscoNormal},
+	{"Eletricista de obras", "7156-15", rh.RiscoPericuloso},
+	{"Soldador", "7243-15", rh.RiscoInsalubre},
+	{"Operador de máquinas", "7151-20", rh.RiscoPericuloso},
+	{"Mestre de obras", "7102-10", rh.RiscoNormal},
+	{"Técnico em segurança", "3516-05", rh.RiscoNormal},
+	{"Auxiliar administrativo", "4110-05", rh.RiscoNormal},
+}
+
+type funcionarioExemploRH struct {
+	nome, cpf, obraCodigo, cargoNome, status, telefone string
+	admitidoHaDias                                     int
+}
+
+// Mesmos 14 funcionários de prisma/dados-exemplo.ts do RH Next.js (mesmos códigos de obra
+// do Painel — é assim que os dois cadastros se reconhecem) — ver rh/COMPORTAMENTO.md §10 e
+// apps/rh/e2e/apoio.go.ts `ESPERADO`/`FIXTURE` (a suíte Playwright depende exatamente
+// destes nomes/CPFs/obras/cargos/status).
+var funcionariosExemploRH = []funcionarioExemploRH{
+	{"JOÃO BATISTA SILVEIRA", "52998224725", "EX-1001-25", "Mestre de obras", rh.StatusAtivo, "(11) 90000-0001", 940},
+	{"ANTÔNIO PEREIRA LIMA", "11144477735", "EX-1001-25", "Pedreiro", rh.StatusAtivo, "(11) 90000-0002", 620},
+	{"CARLOS EDUARDO ROCHA", "39053344705", "EX-1001-25", "Servente de obras", rh.StatusAtivo, "(11) 90000-0003", 410},
+	{"MARCOS VINÍCIUS ALVES", "69331867093", "EX-1002-25", "Eletricista de obras", rh.StatusAtivo, "(11) 90000-0004", 300},
+	{"PAULO HENRIQUE COSTA", "04546487070", "EX-1002-25", "Soldador", rh.StatusAtivo, "(11) 90000-0005", 250},
+	{"RAFAEL AUGUSTO MENDES", "85770693037", "EX-1010-25A", "Carpinteiro", rh.StatusAtivo, "(11) 90000-0006", 180},
+	{"FERNANDA APARECIDA DIAS", "15350946056", "EX-1010-25A", "Técnico em segurança", rh.StatusAtivo, "(11) 90000-0007", 150},
+	{"JOSÉ ROBERTO NASCIMENTO", "20688429041", "EX-1010-25B", "Armador de ferragem", rh.StatusFerias, "(11) 90000-0008", 720},
+	{"LUCIANA MARTINS SOUZA", "47817148031", "EX-1010-25B", "Auxiliar administrativo", rh.StatusAtivo, "(11) 90000-0009", 90},
+	{"SEBASTIÃO GOMES FARIA", "35045179560", "EX-1020-26", "Operador de máquinas", rh.StatusAfastado, "(11) 90000-0010", 520},
+	{"ADRIANO CÉSAR BARBOSA", "62491959046", "EX-1020-26", "Pedreiro", rh.StatusAtivo, "(11) 90000-0011", 60},
+	{"WELLINGTON SANTOS CRUZ", "93713237018", "EX-1020-26", "Servente de obras", rh.StatusAtivo, "(11) 90000-0012", 25},
+	// Sem obra e sem cargo de propósito — alimenta o indicador de cadastro incompleto.
+	{"DIEGO FERREIRA PINTO", "29585903059", "", "", rh.StatusAtivo, "", 10},
+	{"MARIA DE LOURDES RAMOS", "83219432093", "EX-1001-25", "Servente de obras", rh.StatusDesligado, "(11) 90000-0014", 800},
+}
+
+// nivelObraDoCargo espelha `nivelDoCargo()` de prisma/seed.ts do RH Next.js — só para os
+// dados de exemplo terem algo plausível, não é regra de negócio (ver rh/COMPORTAMENTO.md §3:
+// profissão e nível são eixos independentes).
+func nivelObraDoCargo(cargoNome string) string {
+	n := strings.ToLower(cargoNome)
+	switch {
+	case strings.Contains(n, "mestre"):
+		return "MESTRE_DE_OBRAS"
+	case strings.Contains(n, "encarregado"):
+		return "ENCARREGADO"
+	case strings.Contains(n, "engenheiro"):
+		return "ENGENHEIRO"
+	case strings.Contains(n, "servente"), strings.Contains(n, "ajudante"):
+		return "SERVENTE_AJUDANTE"
+	case strings.Contains(n, "auxiliar"), strings.Contains(n, "técnico"):
+		return "" // escritório
+	case n == "":
+		return ""
+	}
+	return "OFICIAL"
+}
+
+func haDiasRH(dias int) time.Time {
+	agora := time.Now().UTC()
+	hoje := time.Date(agora.Year(), agora.Month(), agora.Day(), 0, 0, 0, 0, time.UTC)
+	return hoje.AddDate(0, 0, -dias)
+}
+
+func semearRH(
+	ctx context.Context,
+	obras *database.ObraRepositorio,
+	cargos *database.RHCargoRepositorio,
+	departamentos *database.RHDepartamentoRepositorio,
+	funcionarios *database.RHFuncionarioRepositorio,
+	eventos *database.RHEventoRepositorio,
+) {
+	idsCargos := map[string]string{}
+	criadosCargos := 0
+	for _, e := range cargosExemploRH {
+		if existente, _ := cargos.BuscarPorNome(ctx, e.nome); existente != nil {
+			idsCargos[e.nome] = existente.ID
+			continue
+		}
+		cbo := e.cbo
+		c := &rh.Cargo{Nome: e.nome, CBO: &cbo, Risco: e.risco}
+		if err := cargos.Criar(ctx, c); err != nil {
+			log.Fatalf("criar cargo %s: %v", e.nome, err)
+		}
+		idsCargos[e.nome] = c.ID
+		criadosCargos++
+	}
+
+	// Organograma reduzido — 2 ramos + 2 setores cada (versão completa do Next.js tem 19
+	// setores; aqui só o suficiente pra validar os dois níveis). "Obras" é o setor que
+	// nivelObraDoCargo aponta pra quem trabalha em canteiro — ver rh/COMPORTAMENTO.md §10.
+	organogramaRH := map[string][]string{
+		"Administrativo": {"RH", "Financeiro"},
+		"Engenharia":     {"Obras", "Planejamento"},
+	}
+	idsDepartamentos := map[string]string{}
+	criadosDepartamentos := 0
+	for ramo, setores := range organogramaRH {
+		idRamo, ja := idsDepartamentos[ramo]
+		if !ja {
+			if existente, _ := departamentos.BuscarPorNome(ctx, ramo); existente != nil {
+				idRamo = existente.ID
+			} else {
+				d := &rh.Departamento{Nome: ramo}
+				if err := departamentos.Criar(ctx, d); err != nil {
+					log.Fatalf("criar ramo %s: %v", ramo, err)
+				}
+				idRamo = d.ID
+				criadosDepartamentos++
+			}
+			idsDepartamentos[ramo] = idRamo
+		}
+		for _, setor := range setores {
+			if existente, _ := departamentos.BuscarPorNome(ctx, setor); existente != nil {
+				idsDepartamentos[setor] = existente.ID
+				continue
+			}
+			d := &rh.Departamento{Nome: setor, PaiID: &idRamo}
+			if err := departamentos.Criar(ctx, d); err != nil {
+				log.Fatalf("criar setor %s: %v", setor, err)
+			}
+			idsDepartamentos[setor] = d.ID
+			criadosDepartamentos++
+		}
+	}
+	idSetorObras := idsDepartamentos["Obras"]
+
+	criadosFuncionarios, pulados := 0, 0
+	for i, e := range funcionariosExemploRH {
+		if existente, _ := funcionarios.BuscarPorCPF(ctx, e.cpf); existente != nil {
+			pulados++
+			continue
+		}
+
+		var obraID, cargoID, departamentoID, nivelObra *string
+		if e.obraCodigo != "" {
+			if o, _ := obras.BuscarPorCodigo(ctx, e.obraCodigo); o != nil {
+				id := o.ID
+				obraID = &id
+			}
+		}
+		if e.cargoNome != "" {
+			if id, ok := idsCargos[e.cargoNome]; ok {
+				cargoID = &id
+			}
+		}
+		if nivel := nivelObraDoCargo(e.cargoNome); nivel != "" {
+			nivelObra = &nivel
+			departamentoID = &idSetorObras
+		}
+
+		admitidoEm := haDiasRH(e.admitidoHaDias)
+		var telefone *string
+		if e.telefone != "" {
+			t := e.telefone
+			telefone = &t
+		}
+		matricula := fmt.Sprintf("SC-%04d", i+1)
+
+		f := &rh.Funcionario{
+			Matricula: matricula, Nome: e.nome, CPF: e.cpf, Status: e.status, AdmitidoEm: admitidoEm,
+			TipoContrato: "CLT", Telefone: telefone, ObraID: obraID, CargoID: cargoID,
+			DepartamentoID: departamentoID, NivelObra: nivelObra,
+		}
+		registradoPor := "Seed"
+		descricao := "Admitido"
+		if obraID != nil {
+			descricao = "Admitido na obra " + e.obraCodigo
+		}
+		evento := &rh.Evento{
+			Tipo: rh.EventoAdmissao, DescricaoHumana: descricao, OcorridoEm: admitidoEm,
+			RegistradoPor: &registradoPor, ObraID: obraID,
+		}
+		if err := funcionarios.Criar(ctx, f, evento); err != nil {
+			log.Fatalf("criar funcionário %s: %v", e.nome, err)
+		}
+		criadosFuncionarios++
+	}
+	_ = eventos // reservado para próximas fatias (treinamentos/exames/etc. lançam eventos próprios)
+
+	log.Printf("RH: %d cargos, %d departamentos, %d funcionários criados%s.",
+		criadosCargos, criadosDepartamentos, criadosFuncionarios,
+		condicional(pulados > 0, fmt.Sprintf(" (%d já existiam)", pulados), ""))
+}
+
+func condicional(cond bool, seSim, seNao string) string {
+	if cond {
+		return seSim
+	}
+	return seNao
 }

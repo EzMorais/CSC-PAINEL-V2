@@ -15,6 +15,11 @@ const validadeSegundos = 60
 
 var EmissoresValidos = map[string]bool{
 	"estoque": true, "rh": true, "painel-locacao": true, "alojamentos": true, "portal": true,
+	// "programacao" está na lista do RH em Next.js (lib/integracao.ts EMISSOR_VALIDO) mesmo
+	// sem uso hoje; mantido aqui pela mesma razão — nenhum módulo trata isto como exceção,
+	// custa uma linha manter a lista igual. "whatsapp" é usado pela integração do Alojamentos
+	// (fora do escopo desta lista até aquele módulo migrar, adicionado já por não ter custo).
+	"programacao": true, "whatsapp": true,
 }
 
 type claims struct {

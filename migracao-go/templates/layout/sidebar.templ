@@ -89,6 +89,23 @@ templ Sidebar(sess identidade.Sessao) {
 					</a>
 				</div>
 			}
+			if identidade.TemAcesso(sess, identidade.ModuloRH) {
+				<div class="secao-nav">
+					<p class="secao-titulo">RH e SST</p>
+					<a href="/rh" class="item-nav" data-nav title="Dashboard">
+						@IconeDashboard("icone")
+						<span class="rotulo">Dashboard</span>
+					</a>
+					<a href="/rh/funcionarios" class="item-nav" data-nav title="Funcionários">
+						@IconeUsuarios("icone")
+						<span class="rotulo">Funcionários</span>
+					</a>
+					<a href="/rh/configuracoes" class="item-nav" data-nav title="Configurações">
+						@IconeUsuarios("icone")
+						<span class="rotulo">Configurações</span>
+					</a>
+				</div>
+			}
 		</div>
 		<div class="barra-lateral-rodape">
 			<div class="usuario-info">
