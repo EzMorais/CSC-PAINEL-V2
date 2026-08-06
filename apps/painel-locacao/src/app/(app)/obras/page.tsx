@@ -11,21 +11,26 @@ export default async function ObrasPage() {
     <div className="space-y-4 p-4 sm:p-6">
       <TabelaCadastro
         titulo="Obras"
-        cabecalhos={['Cliente', 'Código', 'Descrição', 'Responsável']}
+        cabecalhos={['Cliente', 'Código', 'Descrição', 'Responsável', 'Aba na planilha']}
         campos={[
           { nome: 'cliente', rotulo: 'Cliente', obrigatorio: true },
           { nome: 'codigo', rotulo: 'Código da obra', obrigatorio: true, dica: 'Ex.: SC-1017-26' },
           { nome: 'descricao', rotulo: 'Descrição', obrigatorio: true },
           { nome: 'responsavel', rotulo: 'Responsável' },
+          {
+            nome: 'abaOrigem', rotulo: 'Aba de origem (planilha)',
+            dica: 'Nome exato da aba na planilha de importação, ex.: SC-1060-25_CLARIOS. Em branco, usa o código da obra.',
+          },
         ]}
         linhas={obras.map((o) => ({
           id: o.id,
           ativo: o.ativa,
           usos: o._count.locacoes,
-          colunas: [o.cliente, o.codigo, o.descricao, o.responsavel ?? ''],
+          colunas: [o.cliente, o.codigo, o.descricao, o.responsavel ?? '', o.abaOrigem],
           valores: {
             cliente: o.cliente, codigo: o.codigo,
             descricao: o.descricao, responsavel: o.responsavel ?? '',
+            abaOrigem: o.abaOrigem,
           },
         }))}
         aoSalvar={async (id, dados) => {
