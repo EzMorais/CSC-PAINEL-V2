@@ -17,7 +17,8 @@ test.describe('Auditorias e Não Conformidades — Go', () => {
     await page.goto('/rh/auditorias')
     await page.getByTestId('lista-auditorias').getByRole('link').first().click()
     await expect(page.getByTestId('lista-itens-auditoria').locator('li')).toHaveCount(ESPERADO.itensAuditoria)
-    await expect(page.getByText('Não conforme')).toBeVisible()
+    // Escopado à lista — "Não conforme" também existe (oculto) na <option> do formulário.
+    await expect(page.getByTestId('lista-itens-auditoria').getByText('Não conforme')).toBeVisible()
   })
 
   test('item reprovado no seed já tem a NC vinculada, e existe também uma NC solta', async ({ page }) => {

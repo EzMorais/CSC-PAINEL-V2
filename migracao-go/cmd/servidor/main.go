@@ -181,6 +181,8 @@ func main() {
 	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
 	repoRHExames := database.NovoRHExameRepositorio(db)
 	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
+	repoRHAuditorias := database.NovoRHAuditoriaRepositorio(db)
+	repoRHNaoConformidades := database.NovoRHNaoConformidadeRepositorio(db)
 
 	gerenciadorRHFuncionarios := &aplicacaoRH.GerenciadorFuncionarios{
 		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos, Eventos: repoRHEventos,
@@ -202,6 +204,8 @@ func main() {
 		Uniformes:         &aplicacaoRH.GerenciadorUniformes{Uniformes: repoRHUniformes},
 		Exames:            &aplicacaoRH.GerenciadorExames{Exames: repoRHExames},
 		Documentos:        &aplicacaoRH.GerenciadorDocumentos{Documentos: repoRHDocumentos},
+		Auditorias:        &aplicacaoRH.GerenciadorAuditorias{Auditorias: repoRHAuditorias, NaoConformidades: repoRHNaoConformidades},
+		NaoConformidades:  &aplicacaoRH.GerenciadorNaoConformidades{NaoConformidades: repoRHNaoConformidades},
 		RepoCargos:        repoRHCargos,
 		RepoDepartamentos: repoRHDepartamentos,
 		RepoFuncionarios:  repoRHFuncionarios,
@@ -247,6 +251,11 @@ func main() {
 	mux.HandleFunc("POST /rh/documentos", hRH.DocumentoCriar)
 	mux.HandleFunc("GET /rh/documentos/{id}", hRH.DocumentoDetalhe)
 	mux.HandleFunc("POST /rh/documentos/{id}/versoes", hRH.DocumentoNovaVersao)
+	mux.HandleFunc("GET /rh/auditorias", hRH.ListarAuditorias)
+	mux.HandleFunc("POST /rh/auditorias", hRH.AuditoriaCriar)
+	mux.HandleFunc("GET /rh/auditorias/{id}", hRH.AuditoriaDetalhe)
+	mux.HandleFunc("POST /rh/auditorias/{id}/itens", hRH.AuditoriaItemAdicionar)
+	mux.HandleFunc("GET /rh/nao-conformidades", hRH.ListarNaoConformidades)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

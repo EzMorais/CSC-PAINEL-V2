@@ -1,0 +1,39 @@
+package rh
+
+import "fmt"
+
+type LinhaNC struct {
+	Titulo, Gravidade, Status, Prazo string
+}
+
+templ NaoConformidades(linhas []LinhaNC, abertas, vencidas int) {
+	@Pagina("Não Conformidades") {
+		<div class="linha-topo">
+			<h1>Não Conformidades</h1>
+		</div>
+
+		<div class="grade-kpis">
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Abertas</span>
+				<span class="valor-kpi" data-testid="kpi-nc-abertas">{ fmt.Sprint(abertas) }</span>
+			</div>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Vencidas</span>
+				<span class="valor-kpi" data-testid="kpi-nc-vencidas">{ fmt.Sprint(vencidas) }</span>
+			</div>
+		</div>
+
+		<table class="lista-usuarios" data-testid="lista-nc">
+			<tbody>
+				for _, l := range linhas {
+					<tr>
+						<td>{ l.Titulo }</td>
+						<td>{ l.Gravidade }</td>
+						<td>{ l.Status }</td>
+						<td>{ l.Prazo }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

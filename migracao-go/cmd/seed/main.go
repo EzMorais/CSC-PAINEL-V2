@@ -86,7 +86,9 @@ func main() {
 	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
 	repoRHExames := database.NovoRHExameRepositorio(db)
 	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
-	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos)
+	repoRHAuditorias := database.NovoRHAuditoriaRepositorio(db)
+	repoRHNaoConformidades := database.NovoRHNaoConformidadeRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos, repoRHAuditorias, repoRHNaoConformidades)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -414,6 +416,8 @@ func semearRH(
 	uniformes rh.EntregaUniformeRepositorio,
 	exames rh.ExameRepositorio,
 	documentos rh.DocumentoRepositorio,
+	auditorias rh.AuditoriaRepositorio,
+	naoConformidades rh.NaoConformidadeRepositorio,
 ) {
 	idsCargos := map[string]string{}
 	criadosCargos := 0
@@ -534,6 +538,63 @@ func semearRH(
 	semearRHUniformes(ctx, uniformes, idsFuncionarios)
 	semearRHExames(ctx, exames, idsFuncionarios)
 	semearRHDocumentos(ctx, documentos, obras, idsFuncionarios)
+	semearRHAuditorias(ctx, auditorias, naoConformidades, obras)
+}
+
+// semearRHAuditorias — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`:
+// 1 auditoria com 3 itens (2 CONFORME, 1 NAO_CONFORME que gera NC automaticamente) + 1 NC
+// solta. Idempotente: pula se já existir alguma auditoria.
+func semearRHAuditorias(ctx context.Context, repoAuditorias rh.AuditoriaRepositorio, repoNC rh.NaoConformidadeRepositorio, obras *database.ObraRepositorio) {
+	existentes, err := repoAuditorias.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar auditorias: %v", err)
+	}
+	if len(existentes) > 0 {
+		log.Printf("RH: auditorias de exemplo já existiam.")
+		return
+	}
+
+	var obraID *string
+	if o, _ := obras.BuscarPorCodigo(ctx, "EX-1001-25"); o != nil {
+		id := o.ID
+		obraID = &id
+	}
+	responsavel := "Técnico de Segurança"
+	a := &rh.Auditoria{Titulo: "Inspeção de canteiro — EPI e sinalização", RealizadaEm: haDiasRH(15), Responsavel: &responsavel, ObraID: obraID}
+	if err := repoAuditorias.Criar(ctx, a); err != nil {
+		log.Fatalf("criar auditoria: %v", err)
+	}
+
+	itens := []struct{ descricao, situacao string }{
+		{"Uso de capacete pela equipe", rh.SituacaoConforme},
+		{"Sinalização de área de risco", rh.SituacaoConforme},
+		{"Extintor de incêndio dentro da validade", rh.SituacaoNaoConforme},
+	}
+	for _, it := range itens {
+		item := &rh.AuditoriaItem{Descricao: it.descricao, Situacao: it.situacao, AuditoriaID: a.ID}
+		if err := repoAuditorias.CriarItem(ctx, item); err != nil {
+			log.Fatalf("criar item de auditoria %q: %v", it.descricao, err)
+		}
+		if it.situacao == rh.SituacaoNaoConforme {
+			nc := &rh.NaoConformidade{
+				Titulo: it.descricao, Descricao: it.descricao, Gravidade: rh.GravidadeMedia,
+				Status: rh.StatusNCAberta, AuditoriaItemID: &item.ID,
+			}
+			if err := repoNC.Criar(ctx, nc); err != nil {
+				log.Fatalf("criar NC do item %q: %v", it.descricao, err)
+			}
+		}
+	}
+
+	solta := &rh.NaoConformidade{
+		Titulo: "Vazamento de óleo no pátio de máquinas", Descricao: "Vazamento de óleo identificado próximo ao abastecimento",
+		Gravidade: rh.GravidadeAlta, Status: rh.StatusNCAberta,
+	}
+	if err := repoNC.Criar(ctx, solta); err != nil {
+		log.Fatalf("criar NC solta: %v", err)
+	}
+
+	log.Printf("RH: 1 auditoria (3 itens) e 2 não conformidades de exemplo criadas.")
 }
 
 // semearRHDocumentos — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
