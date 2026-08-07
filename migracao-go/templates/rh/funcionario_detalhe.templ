@@ -10,6 +10,7 @@ type DetalheFuncionario struct {
 	ErroExclusao                                                   string
 	Timeline                                                       []LinhaTimeline
 	Documentos                                                     []string
+	Epis                                                           []string
 }
 
 templ FuncionarioDetalhe(f DetalheFuncionario) {
@@ -36,6 +37,13 @@ templ FuncionarioDetalhe(f DetalheFuncionario) {
 		<ul data-testid="checklist-documentos">
 			for _, categoria := range f.Documentos {
 				<li>{ categoria }</li>
+			}
+		</ul>
+
+		<h2>EPIs entregues</h2>
+		<ul data-testid="lista-epis-funcionario">
+			for _, material := range f.Epis {
+				<li>{ material }</li>
 			}
 		</ul>
 

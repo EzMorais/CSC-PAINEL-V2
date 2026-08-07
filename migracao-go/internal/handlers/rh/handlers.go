@@ -11,6 +11,7 @@ import (
 	identidade "siqueiracampos/servidor/internal/domain/identidade"
 	dominio "siqueiracampos/servidor/internal/domain/rh"
 	"siqueiracampos/servidor/internal/middleware"
+	"siqueiracampos/servidor/internal/services/integracao"
 )
 
 type Handlers struct {
@@ -25,6 +26,7 @@ type Handlers struct {
 	Documentos    *aplicacao.GerenciadorDocumentos
 	Auditorias       *aplicacao.GerenciadorAuditorias
 	NaoConformidades *aplicacao.GerenciadorNaoConformidades
+	Epi              *aplicacao.GerenciadorEpi
 
 	RepoCargos        dominio.CargoRepositorio
 	RepoDepartamentos dominio.DepartamentoRepositorio
@@ -32,6 +34,12 @@ type Handlers struct {
 	RepoDependentes   dominio.DependenteRepositorio
 	RepoEventos       dominio.EventoRepositorio
 	RepoTreinamentos  dominio.TreinamentoRepositorio
+
+	// Integracao verifica o token de máquina das rotas /api/integracao/... (COMPORTAMENTO.md
+	// §6) — mesmo serviço usado pelo internal/infrastructure/clienterh do lado do Almoxarifado.
+	Integracao *integracao.Servico
+	// URLEstoque alimenta o link externo de /rh/epis pro Almoxarifado (COMPORTAMENTO.md §6).
+	URLEstoque string
 
 	// ContarObrasAtivas e ListarObrasAtivas evitam este pacote importar domain/cadastro —
 	// mesma decisão do pacote application/rh (ver funcionarios.go ResolverObraCodigo).

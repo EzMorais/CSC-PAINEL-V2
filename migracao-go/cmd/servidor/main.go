@@ -183,6 +183,7 @@ func main() {
 	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
 	repoRHAuditorias := database.NovoRHAuditoriaRepositorio(db)
 	repoRHNaoConformidades := database.NovoRHNaoConformidadeRepositorio(db)
+	repoRHEpi := database.NovoRHEpiRepositorio(db)
 
 	gerenciadorRHFuncionarios := &aplicacaoRH.GerenciadorFuncionarios{
 		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos, Eventos: repoRHEventos,
@@ -206,6 +207,9 @@ func main() {
 		Documentos:        &aplicacaoRH.GerenciadorDocumentos{Documentos: repoRHDocumentos},
 		Auditorias:        &aplicacaoRH.GerenciadorAuditorias{Auditorias: repoRHAuditorias, NaoConformidades: repoRHNaoConformidades},
 		NaoConformidades:  &aplicacaoRH.GerenciadorNaoConformidades{NaoConformidades: repoRHNaoConformidades},
+		Epi:               &aplicacaoRH.GerenciadorEpi{Epi: repoRHEpi, Funcionarios: repoRHFuncionarios},
+		Integracao:        servicoIntegracao,
+		URLEstoque:        cfg.URLEstoque,
 		RepoCargos:        repoRHCargos,
 		RepoDepartamentos: repoRHDepartamentos,
 		RepoFuncionarios:  repoRHFuncionarios,
@@ -256,6 +260,12 @@ func main() {
 	mux.HandleFunc("GET /rh/auditorias/{id}", hRH.AuditoriaDetalhe)
 	mux.HandleFunc("POST /rh/auditorias/{id}/itens", hRH.AuditoriaItemAdicionar)
 	mux.HandleFunc("GET /rh/nao-conformidades", hRH.ListarNaoConformidades)
+	mux.HandleFunc("GET /rh/epis", hRH.ListarEpis)
+	// Rotas de integração — SEM prefixo /rh, contrato externo com Almoxarifado/Alojamentos/
+	// Portal (COMPORTAMENTO.md §6), mesmo padrão de internal/infrastructure/clienterh.
+	mux.HandleFunc("POST /api/integracao/entregas-epi", hRH.IntegracaoEntregaEpiCriar)
+	mux.HandleFunc("GET /api/integracao/funcionarios", hRH.IntegracaoFuncionariosListar)
+	mux.HandleFunc("GET /api/integracao/resumo", hRH.IntegracaoResumo)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

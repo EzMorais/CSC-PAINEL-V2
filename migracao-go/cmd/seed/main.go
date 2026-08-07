@@ -88,7 +88,8 @@ func main() {
 	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
 	repoRHAuditorias := database.NovoRHAuditoriaRepositorio(db)
 	repoRHNaoConformidades := database.NovoRHNaoConformidadeRepositorio(db)
-	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos, repoRHAuditorias, repoRHNaoConformidades)
+	repoRHEpi := database.NovoRHEpiRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos, repoRHAuditorias, repoRHNaoConformidades, repoRHEpi)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -418,6 +419,7 @@ func semearRH(
 	documentos rh.DocumentoRepositorio,
 	auditorias rh.AuditoriaRepositorio,
 	naoConformidades rh.NaoConformidadeRepositorio,
+	epi rh.EntregaEpiRepositorio,
 ) {
 	idsCargos := map[string]string{}
 	criadosCargos := 0
@@ -539,6 +541,31 @@ func semearRH(
 	semearRHExames(ctx, exames, idsFuncionarios)
 	semearRHDocumentos(ctx, documentos, obras, idsFuncionarios)
 	semearRHAuditorias(ctx, auditorias, naoConformidades, obras)
+	semearRHEpi(ctx, epi, idsFuncionarios)
+}
+
+// semearRHEpi — fixture nova, simula uma ficha já recebida do Almoxarifado (o RH nunca cria
+// isso sozinho, COMPORTAMENTO.md §6). Idempotente por movimentacaoId.
+func semearRHEpi(ctx context.Context, repo rh.EntregaEpiRepositorio, idsFuncionarios map[string]string) {
+	const movimentacaoID = "mov-exemplo-001"
+	if existente, _ := repo.BuscarPorMovimentacaoID(ctx, movimentacaoID); existente != nil {
+		log.Printf("RH: entrega de EPI de exemplo já existia.")
+		return
+	}
+	id, ok := idsFuncionarios["PAULO HENRIQUE COSTA"]
+	if !ok {
+		log.Fatalf("entrega de EPI: funcionário PAULO HENRIQUE COSTA não encontrado no seed")
+	}
+	ca := "31469"
+	validadeCA := "2027-12-31"
+	e := &rh.EntregaEpi{
+		MovimentacaoID: movimentacaoID, MaterialCodigo: "MAT-0004", MaterialNome: "Capacete de segurança",
+		CA: &ca, ValidadeCA: &validadeCA, Quantidade: 1, Unidade: "UN", EntregueEm: time.Now().UTC(), FuncionarioID: id,
+	}
+	if err := repo.Criar(ctx, e); err != nil {
+		log.Fatalf("criar entrega de EPI de exemplo: %v", err)
+	}
+	log.Printf("RH: 1 entrega de EPI de exemplo criada.")
 }
 
 // semearRHAuditorias — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`:
