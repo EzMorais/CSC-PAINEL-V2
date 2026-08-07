@@ -1,0 +1,110 @@
+package rh
+
+type LinhaDocumento struct {
+	ID, Titulo, Categoria, Vinculo, Vencimento string
+}
+
+templ Documentos(linhas []LinhaDocumento, obras []OpcaoSelect, funcionarios []OpcaoSelect) {
+	@Pagina("Documentos") {
+		<div class="linha-topo">
+			<h1>Documentos</h1>
+		</div>
+
+		<table class="lista-usuarios" data-testid="lista-documentos">
+			<tbody>
+				for _, l := range linhas {
+					<tr>
+						<td><a href={ templ.URL("/rh/documentos/" + l.ID) }>{ l.Titulo }</a></td>
+						<td>{ l.Categoria }</td>
+						<td>{ l.Vinculo }</td>
+						<td>{ l.Vencimento }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+
+		<details>
+			<summary data-testid="novo-documento-empresa" class="botao botao-primario">+ Documento de empresa/obra</summary>
+			<form class="formulario" method="POST" action="/rh/documentos">
+				<input type="hidden" name="tipo" value="empresa"/>
+				<div class="campo">
+					<label for="categoriaEmpresa">Categoria</label>
+					<select id="categoriaEmpresa" name="categoria">
+						<option value="PGR">PGR</option>
+						<option value="PCMSO">PCMSO</option>
+						<option value="LTCAT">LTCAT</option>
+						<option value="APR">APR</option>
+						<option value="PT">PT</option>
+						<option value="FISPQ">FISPQ</option>
+						<option value="ART">ART</option>
+						<option value="OUTRO">Outro</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="tituloEmpresa">Título</label>
+					<input id="tituloEmpresa" name="titulo"/>
+				</div>
+				<div class="campo">
+					<label for="obraId">Obra</label>
+					<select id="obraId" name="obraId">
+						<option value="">— nenhuma —</option>
+						for _, o := range obras {
+							<option value={ o.ID }>{ o.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="vigenteDesdeEmpresa">Vigente desde</label>
+					<input type="date" id="vigenteDesdeEmpresa" name="vigenteDesde"/>
+				</div>
+				<div class="campo">
+					<label for="validoAteEmpresa">Válido até</label>
+					<input type="date" id="validoAteEmpresa" name="validoAte"/>
+				</div>
+				<button type="submit" data-testid="salvar-documento-empresa">Salvar</button>
+			</form>
+		</details>
+
+		<details>
+			<summary data-testid="novo-documento-pessoal" class="botao">+ Documento pessoal</summary>
+			<form class="formulario" method="POST" action="/rh/documentos">
+				<input type="hidden" name="tipo" value="pessoal"/>
+				<div class="campo">
+					<label for="categoriaPessoal">Categoria</label>
+					<select id="categoriaPessoal" name="categoria">
+						<option value="RG">RG</option>
+						<option value="CPF">CPF</option>
+						<option value="CTPS">CTPS</option>
+						<option value="PIS_PASEP">PIS/PASEP</option>
+						<option value="TITULO_ELEITOR">Título de eleitor</option>
+						<option value="RESERVISTA">Reservista</option>
+						<option value="COMPROVANTE_RESIDENCIA">Comprovante de residência</option>
+						<option value="CERTIDAO">Certidão</option>
+						<option value="CONTRATO_TRABALHO">Contrato de trabalho</option>
+						<option value="EXAME_ADMISSIONAL">Exame admissional</option>
+						<option value="DADOS_BANCARIOS">Dados bancários</option>
+						<option value="VALE_TRANSPORTE">Vale-transporte</option>
+						<option value="OUTRO">Outro</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="tituloPessoal">Título</label>
+					<input id="tituloPessoal" name="titulo"/>
+				</div>
+				<div class="campo">
+					<label for="funcionarioIdDoc">Funcionário</label>
+					<select id="funcionarioIdDoc" name="funcionarioId">
+						for _, f := range funcionarios {
+							<option value={ f.ID }>{ f.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="vigenteDesdePessoal">Vigente desde</label>
+					<input type="date" id="vigenteDesdePessoal" name="vigenteDesde"/>
+				</div>
+				<button type="submit" data-testid="salvar-documento-pessoal">Salvar</button>
+			</form>
+		</details>
+	}
+}

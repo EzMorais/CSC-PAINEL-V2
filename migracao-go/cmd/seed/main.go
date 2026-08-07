@@ -85,7 +85,8 @@ func main() {
 	repoRHTreinamentos := database.NovoRHTreinamentoRepositorio(db)
 	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
 	repoRHExames := database.NovoRHExameRepositorio(db)
-	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames)
+	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -412,6 +413,7 @@ func semearRH(
 	treinamentos rh.TreinamentoRepositorio,
 	uniformes rh.EntregaUniformeRepositorio,
 	exames rh.ExameRepositorio,
+	documentos rh.DocumentoRepositorio,
 ) {
 	idsCargos := map[string]string{}
 	criadosCargos := 0
@@ -531,6 +533,62 @@ func semearRH(
 	semearRHTreinamentos(ctx, treinamentos, idsFuncionarios)
 	semearRHUniformes(ctx, uniformes, idsFuncionarios)
 	semearRHExames(ctx, exames, idsFuncionarios)
+	semearRHDocumentos(ctx, documentos, obras, idsFuncionarios)
+}
+
+// semearRHDocumentos — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação título+categoria+vínculo (mesma regra de versionamento
+// do domínio, COMPORTAMENTO.md §3).
+func semearRHDocumentos(ctx context.Context, repo rh.DocumentoRepositorio, obras *database.ObraRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar documentos: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, d := range existentes {
+		jaExiste[d.Titulo+"|"+d.Categoria] = true
+	}
+
+	criar := func(titulo, categoria string, obraCodigo, funcionarioNome string, validoAteHaDias *int) {
+		if jaExiste[titulo+"|"+categoria] {
+			return
+		}
+		var obraID, funcionarioID *string
+		if obraCodigo != "" {
+			if o, _ := obras.BuscarPorCodigo(ctx, obraCodigo); o != nil {
+				id := o.ID
+				obraID = &id
+			}
+		}
+		if funcionarioNome != "" {
+			id, ok := idsFuncionarios[funcionarioNome]
+			if !ok {
+				log.Fatalf("documento %s: funcionário %s não encontrado no seed", titulo, funcionarioNome)
+			}
+			funcionarioID = &id
+		}
+		var validoAte *time.Time
+		if validoAteHaDias != nil {
+			v := haDiasRH(*validoAteHaDias)
+			validoAte = &v
+		}
+		vigenteDesde := haDiasRH(30)
+		registradoPor := "Seed"
+		d := &rh.Documento{
+			Categoria: categoria, Titulo: titulo, Versao: 1, VigenteDesde: &vigenteDesde, ValidoAte: validoAte,
+			RegistradoPor: &registradoPor, ObraID: obraID, FuncionarioID: funcionarioID,
+		}
+		if err := repo.Criar(ctx, d); err != nil {
+			log.Fatalf("criar documento %s: %v", titulo, err)
+		}
+	}
+
+	menos10 := -10
+	criar("PGR", rh.DocEmpresaPGR, "EX-1001-25", "", nil)
+	criar("PCMSO", rh.DocEmpresaPCMSO, "EX-1002-25", "", &menos10)
+	criar("RG", rh.DocPessoalRG, "", "PAULO HENRIQUE COSTA", nil)
+
+	log.Printf("RH: documentos de exemplo verificados (PGR/PCMSO/RG).")
 }
 
 // semearRHExames — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.

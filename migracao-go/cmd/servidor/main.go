@@ -180,6 +180,7 @@ func main() {
 	repoRHTreinamentos := database.NovoRHTreinamentoRepositorio(db)
 	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
 	repoRHExames := database.NovoRHExameRepositorio(db)
+	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
 
 	gerenciadorRHFuncionarios := &aplicacaoRH.GerenciadorFuncionarios{
 		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos, Eventos: repoRHEventos,
@@ -200,6 +201,7 @@ func main() {
 		Treinamentos:      &aplicacaoRH.GerenciadorTreinamentos{Treinamentos: repoRHTreinamentos},
 		Uniformes:         &aplicacaoRH.GerenciadorUniformes{Uniformes: repoRHUniformes},
 		Exames:            &aplicacaoRH.GerenciadorExames{Exames: repoRHExames},
+		Documentos:        &aplicacaoRH.GerenciadorDocumentos{Documentos: repoRHDocumentos},
 		RepoCargos:        repoRHCargos,
 		RepoDepartamentos: repoRHDepartamentos,
 		RepoFuncionarios:  repoRHFuncionarios,
@@ -241,6 +243,10 @@ func main() {
 	mux.HandleFunc("POST /rh/uniformes", hRH.UniformeCriar)
 	mux.HandleFunc("GET /rh/exames", hRH.ListarExames)
 	mux.HandleFunc("POST /rh/exames", hRH.ExameCriar)
+	mux.HandleFunc("GET /rh/documentos", hRH.ListarDocumentos)
+	mux.HandleFunc("POST /rh/documentos", hRH.DocumentoCriar)
+	mux.HandleFunc("GET /rh/documentos/{id}", hRH.DocumentoDetalhe)
+	mux.HandleFunc("POST /rh/documentos/{id}/versoes", hRH.DocumentoNovaVersao)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

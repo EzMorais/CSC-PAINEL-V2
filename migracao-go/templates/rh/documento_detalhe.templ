@@ -1,0 +1,44 @@
+package rh
+
+import "fmt"
+
+type LinhaVersaoDocumento struct {
+	Versao, VigenteDesde, ValidoAte string
+}
+
+type DetalheDocumento struct {
+	ID, Titulo, Categoria, Vinculo string
+	VersaoAtual                    int
+	Versoes                        []LinhaVersaoDocumento
+}
+
+templ DocumentoDetalhe(d DetalheDocumento) {
+	@Pagina(d.Titulo) {
+		<h1>{ d.Titulo }</h1>
+		<p>Categoria: { d.Categoria }</p>
+		<p>Vínculo: { d.Vinculo }</p>
+		<p>Versão atual: <strong data-testid="versao-atual">{ fmt.Sprint(d.VersaoAtual) }</strong></p>
+
+		<h2>Versões</h2>
+		<ul data-testid="lista-versoes">
+			for _, v := range d.Versoes {
+				<li>v{ v.Versao } — vigente desde { v.VigenteDesde } { v.ValidoAte }</li>
+			}
+		</ul>
+
+		<details>
+			<summary data-testid="nova-versao" class="botao botao-primario">+ Nova versão</summary>
+			<form class="formulario" method="POST" action={ templ.URL("/rh/documentos/" + d.ID + "/versoes") }>
+				<div class="campo">
+					<label for="vigenteDesde">Vigente desde</label>
+					<input type="date" id="vigenteDesde" name="vigenteDesde"/>
+				</div>
+				<div class="campo">
+					<label for="validoAte">Válido até</label>
+					<input type="date" id="validoAte" name="validoAte"/>
+				</div>
+				<button type="submit" data-testid="salvar">Salvar</button>
+			</form>
+		</details>
+	}
+}

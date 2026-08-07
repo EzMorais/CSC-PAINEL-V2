@@ -22,6 +22,7 @@ type Handlers struct {
 	Treinamentos  *aplicacao.GerenciadorTreinamentos
 	Uniformes     *aplicacao.GerenciadorUniformes
 	Exames        *aplicacao.GerenciadorExames
+	Documentos    *aplicacao.GerenciadorDocumentos
 
 	RepoCargos        dominio.CargoRepositorio
 	RepoDepartamentos dominio.DepartamentoRepositorio

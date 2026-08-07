@@ -9,6 +9,7 @@ type DetalheFuncionario struct {
 	PodeExcluir                                                    bool
 	ErroExclusao                                                   string
 	Timeline                                                       []LinhaTimeline
+	Documentos                                                     []string
 }
 
 templ FuncionarioDetalhe(f DetalheFuncionario) {
@@ -32,7 +33,11 @@ templ FuncionarioDetalhe(f DetalheFuncionario) {
 		}
 
 		<h2>Documentos</h2>
-		<ul data-testid="checklist-documentos"></ul>
+		<ul data-testid="checklist-documentos">
+			for _, categoria := range f.Documentos {
+				<li>{ categoria }</li>
+			}
+		</ul>
 
 		<h2>Linha do tempo</h2>
 		<ul data-testid="lista-timeline">
@@ -42,7 +47,7 @@ templ FuncionarioDetalhe(f DetalheFuncionario) {
 		</ul>
 
 		if f.PodeExcluir {
-			<details>
+			<details open?={ f.ErroExclusao != "" }>
 				<summary data-testid="excluir-funcionario" class="botao botao-perigo">Excluir cadastro</summary>
 				<form method="POST" action={ templ.URL("/rh/funcionarios/" + f.ID + "/excluir") }>
 					<p>Tem certeza? Esta ação não pode ser desfeita.</p>

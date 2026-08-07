@@ -174,11 +174,22 @@ func (h *Handlers) montarDetalhe(r *http.Request, f *dominio.Funcionario, sess *
 		email = *f.Email
 	}
 
+	var documentos []string
+	if h.Documentos != nil {
+		docs, err := h.Documentos.ListarPorFuncionario(ctx, f.ID)
+		if err != nil {
+			return tpl.DetalheFuncionario{}, err
+		}
+		for _, d := range docs {
+			documentos = append(documentos, d.Categoria)
+		}
+	}
+
 	return tpl.DetalheFuncionario{
 		ID: f.ID, Matricula: f.Matricula, Nome: f.Nome, CPF: dominio.FormatarCPF(f.CPF),
 		Status: dominio.RotuloStatus[f.Status], Obra: nomeOuVazio(f.ObraID, obras), Cargo: nomeOuVazio(f.CargoID, cargos),
 		Telefone: telefone, Email: email, PodeExcluir: sess != nil && identidade.PodeAdministrar(sess.Cargo),
-		ErroExclusao: erroExclusao, Timeline: timeline,
+		ErroExclusao: erroExclusao, Timeline: timeline, Documentos: documentos,
 	}, nil
 }
 
