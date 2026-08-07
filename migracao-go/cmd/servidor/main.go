@@ -177,6 +177,9 @@ func main() {
 	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
 	repoRHDependentes := database.NovoRHDependenteRepositorio(db)
 	repoRHEventos := database.NovoRHEventoRepositorio(db)
+	repoRHTreinamentos := database.NovoRHTreinamentoRepositorio(db)
+	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
+	repoRHExames := database.NovoRHExameRepositorio(db)
 
 	gerenciadorRHFuncionarios := &aplicacaoRH.GerenciadorFuncionarios{
 		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos, Eventos: repoRHEventos,
@@ -188,18 +191,26 @@ func main() {
 			return o.Codigo, nil
 		},
 	}
-	hRH := handlersRH.Novo(
-		sessoes,
-		&aplicacaoRH.GerenciadorCargos{Cargos: repoRHCargos},
-		&aplicacaoRH.GerenciadorDepartamentos{Departamentos: repoRHDepartamentos},
-		gerenciadorRHFuncionarios,
-		&aplicacaoRH.GerenciadorDashboard{Funcionarios: repoRHFuncionarios, Eventos: repoRHEventos},
-		repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHDependentes, repoRHEventos,
-		func(ctx context.Context) (int, error) {
+	hRH := handlersRH.Novo(handlersRH.Handlers{
+		Sessoes:           sessoes,
+		Cargos:            &aplicacaoRH.GerenciadorCargos{Cargos: repoRHCargos},
+		Departamentos:     &aplicacaoRH.GerenciadorDepartamentos{Departamentos: repoRHDepartamentos},
+		Funcionarios:      gerenciadorRHFuncionarios,
+		Dashboard:         &aplicacaoRH.GerenciadorDashboard{Funcionarios: repoRHFuncionarios, Eventos: repoRHEventos},
+		Treinamentos:      &aplicacaoRH.GerenciadorTreinamentos{Treinamentos: repoRHTreinamentos},
+		Uniformes:         &aplicacaoRH.GerenciadorUniformes{Uniformes: repoRHUniformes},
+		Exames:            &aplicacaoRH.GerenciadorExames{Exames: repoRHExames},
+		RepoCargos:        repoRHCargos,
+		RepoDepartamentos: repoRHDepartamentos,
+		RepoFuncionarios:  repoRHFuncionarios,
+		RepoDependentes:   repoRHDependentes,
+		RepoEventos:       repoRHEventos,
+		RepoTreinamentos:  repoRHTreinamentos,
+		ContarObrasAtivas: func(ctx context.Context) (int, error) {
 			obras, err := repoObras.ListarAtivas(ctx)
 			return len(obras), err
 		},
-		func(ctx context.Context) ([]handlersRH.OpcaoObra, error) {
+		ListarObrasAtivas: func(ctx context.Context) ([]handlersRH.OpcaoObra, error) {
 			obras, err := repoObras.ListarAtivas(ctx)
 			if err != nil {
 				return nil, err
@@ -210,7 +221,7 @@ func main() {
 			}
 			return opcoes, nil
 		},
-	)
+	})
 	mux.HandleFunc("GET /rh", hRH.DashboardPagina)
 	mux.HandleFunc("GET /rh/funcionarios", hRH.ListarFuncionarios)
 	mux.HandleFunc("GET /rh/funcionarios/novo", hRH.FuncionarioNovoForm)
@@ -223,6 +234,13 @@ func main() {
 	mux.HandleFunc("POST /rh/cargos", hRH.CargoCriar)
 	mux.HandleFunc("POST /rh/departamentos/ramos", hRH.DepartamentoRamoCriar)
 	mux.HandleFunc("POST /rh/departamentos/setores", hRH.DepartamentoSetorCriar)
+	mux.HandleFunc("GET /rh/treinamentos", hRH.ListarTreinamentos)
+	mux.HandleFunc("GET /rh/treinamentos/{id}", hRH.TreinamentoDetalhe)
+	mux.HandleFunc("POST /rh/treinamentos/{id}/participantes", hRH.TreinamentoParticipanteAdicionar)
+	mux.HandleFunc("GET /rh/uniformes", hRH.ListarUniformes)
+	mux.HandleFunc("POST /rh/uniformes", hRH.UniformeCriar)
+	mux.HandleFunc("GET /rh/exames", hRH.ListarExames)
+	mux.HandleFunc("POST /rh/exames", hRH.ExameCriar)
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 

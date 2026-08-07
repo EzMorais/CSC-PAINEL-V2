@@ -82,7 +82,10 @@ func main() {
 	repoRHDepartamentos := database.NovoRHDepartamentoRepositorio(db)
 	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
 	repoRHEventos := database.NovoRHEventoRepositorio(db)
-	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos)
+	repoRHTreinamentos := database.NovoRHTreinamentoRepositorio(db)
+	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
+	repoRHExames := database.NovoRHExameRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -406,6 +409,9 @@ func semearRH(
 	departamentos *database.RHDepartamentoRepositorio,
 	funcionarios *database.RHFuncionarioRepositorio,
 	eventos *database.RHEventoRepositorio,
+	treinamentos rh.TreinamentoRepositorio,
+	uniformes rh.EntregaUniformeRepositorio,
+	exames rh.ExameRepositorio,
 ) {
 	idsCargos := map[string]string{}
 	criadosCargos := 0
@@ -462,9 +468,11 @@ func semearRH(
 	}
 	idSetorObras := idsDepartamentos["Obras"]
 
+	idsFuncionarios := map[string]string{}
 	criadosFuncionarios, pulados := 0, 0
 	for i, e := range funcionariosExemploRH {
 		if existente, _ := funcionarios.BuscarPorCPF(ctx, e.cpf); existente != nil {
+			idsFuncionarios[e.nome] = existente.ID
 			pulados++
 			continue
 		}
@@ -511,13 +519,164 @@ func semearRH(
 		if err := funcionarios.Criar(ctx, f, evento); err != nil {
 			log.Fatalf("criar funcionário %s: %v", e.nome, err)
 		}
+		idsFuncionarios[e.nome] = f.ID
 		criadosFuncionarios++
 	}
-	_ = eventos // reservado para próximas fatias (treinamentos/exames/etc. lançam eventos próprios)
+	_ = eventos // reservado para próximas fatias (exames/documentos/auditorias lançam eventos próprios)
 
 	log.Printf("RH: %d cargos, %d departamentos, %d funcionários criados%s.",
 		criadosCargos, criadosDepartamentos, criadosFuncionarios,
 		condicional(pulados > 0, fmt.Sprintf(" (%d já existiam)", pulados), ""))
+
+	semearRHTreinamentos(ctx, treinamentos, idsFuncionarios)
+	semearRHUniformes(ctx, uniformes, idsFuncionarios)
+	semearRHExames(ctx, exames, idsFuncionarios)
+}
+
+// semearRHExames — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação funcionário+tipo.
+func semearRHExames(ctx context.Context, repo rh.ExameRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar exames: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, e := range existentes {
+		jaExiste[e.FuncionarioNome+"|"+e.Tipo] = true
+	}
+
+	type exameExemplo struct {
+		funcionario, tipo, resultado string
+		realizadoHaDias              int
+		validadeHaDias               *int // negativo = no futuro (haDiasRH inverte o sinal)
+	}
+	menos5, menos20, menos185 := -5, -20, -185
+	exemplos := []exameExemplo{
+		{"PAULO HENRIQUE COSTA", rh.ExamePeriodico, rh.ResultadoApto, 360, &menos5},
+		{"FERNANDA APARECIDA DIAS", rh.ExamePeriodico, rh.ResultadoApto, 345, &menos20},
+		{"RAFAEL AUGUSTO MENDES", rh.ExameAdmissional, rh.ResultadoAptoComRestricao, 180, &menos185},
+	}
+
+	criados := 0
+	for _, ex := range exemplos {
+		if jaExiste[ex.funcionario+"|"+ex.tipo] {
+			continue
+		}
+		id, ok := idsFuncionarios[ex.funcionario]
+		if !ok {
+			log.Fatalf("exame: funcionário %s não encontrado no seed", ex.funcionario)
+		}
+		var validadeEm *time.Time
+		if ex.validadeHaDias != nil {
+			v := haDiasRH(*ex.validadeHaDias)
+			validadeEm = &v
+		}
+		registradoPor := "Seed"
+		e := &rh.Exame{
+			Tipo: ex.tipo, RealizadoEm: haDiasRH(ex.realizadoHaDias), ValidadeEm: validadeEm,
+			Resultado: ex.resultado, RegistradoPor: &registradoPor, FuncionarioID: id,
+		}
+		if err := repo.Criar(ctx, e); err != nil {
+			log.Fatalf("criar exame de %s: %v", ex.funcionario, err)
+		}
+		criados++
+	}
+	log.Printf("RH: %d exames de exemplo criados.", criados)
+}
+
+// semearRHTreinamentos — fixture nova (o Next.js não tinha treinamentos), plano exato
+// documentado em apps/rh/e2e/apoio.go.ts `FIXTURE`. Idempotente: pula pela Descricao.
+func semearRHTreinamentos(ctx context.Context, repo rh.TreinamentoRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx, "")
+	if err != nil {
+		log.Fatalf("listar treinamentos: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, t := range existentes {
+		jaExiste[t.Descricao] = true
+	}
+
+	type turmaExemplo struct {
+		norma, descricao          string
+		realizadoHaDias           int
+		validadeHaDias            *int // negativo = no futuro (haDiasRH inverte o sinal)
+		participantes             []string
+	}
+	menos15, menos35 := -15, 35
+	turmas := []turmaExemplo{
+		{rh.NormaNR35, "Trabalho em Altura — Turma A", 400, &menos35, []string{"JOÃO BATISTA SILVEIRA", "ANTÔNIO PEREIRA LIMA"}},
+		{rh.NormaNR18, "Construção Civil — Turma B", 350, &menos15, []string{"PAULO HENRIQUE COSTA", "RAFAEL AUGUSTO MENDES"}},
+		{rh.NormaNR10, "Segurança em Eletricidade — Integração", 100, nil, []string{"MARCOS VINÍCIUS ALVES"}},
+	}
+
+	criadas := 0
+	for _, tu := range turmas {
+		if jaExiste[tu.descricao] {
+			continue
+		}
+		var validadeEm *time.Time
+		if tu.validadeHaDias != nil {
+			v := haDiasRH(*tu.validadeHaDias)
+			validadeEm = &v
+		}
+		t := &rh.Treinamento{Norma: tu.norma, Descricao: tu.descricao, RealizadoEm: haDiasRH(tu.realizadoHaDias), ValidadeEm: validadeEm}
+		if err := repo.Criar(ctx, t); err != nil {
+			log.Fatalf("criar treinamento %s: %v", tu.descricao, err)
+		}
+		for _, nome := range tu.participantes {
+			id, ok := idsFuncionarios[nome]
+			if !ok {
+				log.Fatalf("treinamento %s: funcionário %s não encontrado no seed", tu.descricao, nome)
+			}
+			if err := repo.AdicionarParticipante(ctx, &rh.TreinamentoParticipante{TreinamentoID: t.ID, FuncionarioID: id}); err != nil {
+				log.Fatalf("matricular %s em %s: %v", nome, tu.descricao, err)
+			}
+		}
+		criadas++
+	}
+	log.Printf("RH: %d turmas de treinamento de exemplo criadas.", criadas)
+}
+
+// semearRHUniformes — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação funcionário+peça+motivo.
+func semearRHUniformes(ctx context.Context, repo rh.EntregaUniformeRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar entregas de uniforme: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, e := range existentes {
+		jaExiste[e.FuncionarioNome+"|"+e.Peca+"|"+e.Motivo] = true
+	}
+
+	type entregaExemplo struct {
+		funcionario, peca, tamanho, motivo string
+	}
+	entregas := []entregaExemplo{
+		{"PAULO HENRIQUE COSTA", rh.PecaCamisa, "M", rh.MotivoAdmissao},
+		{"RAFAEL AUGUSTO MENDES", rh.PecaCalcado, "42", rh.MotivoReposicao},
+	}
+
+	criadas := 0
+	for _, ex := range entregas {
+		if jaExiste[ex.funcionario+"|"+ex.peca+"|"+ex.motivo] {
+			continue
+		}
+		id, ok := idsFuncionarios[ex.funcionario]
+		if !ok {
+			log.Fatalf("entrega de uniforme: funcionário %s não encontrado no seed", ex.funcionario)
+		}
+		registradoPor := "Seed"
+		e := &rh.EntregaUniforme{
+			Peca: ex.peca, Tamanho: ex.tamanho, Quantidade: 1, Motivo: ex.motivo,
+			EntregueEm: time.Now().UTC(), RegistradoPor: &registradoPor, FuncionarioID: id,
+		}
+		if err := repo.Criar(ctx, e); err != nil {
+			log.Fatalf("criar entrega de uniforme para %s: %v", ex.funcionario, err)
+		}
+		criadas++
+	}
+	log.Printf("RH: %d entregas de uniforme de exemplo criadas.", criadas)
 }
 
 func condicional(cond bool, seSim, seNao string) string {

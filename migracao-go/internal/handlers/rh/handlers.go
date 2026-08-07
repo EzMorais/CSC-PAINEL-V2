@@ -19,42 +19,30 @@ type Handlers struct {
 	Departamentos *aplicacao.GerenciadorDepartamentos
 	Funcionarios  *aplicacao.GerenciadorFuncionarios
 	Dashboard     *aplicacao.GerenciadorDashboard
+	Treinamentos  *aplicacao.GerenciadorTreinamentos
+	Uniformes     *aplicacao.GerenciadorUniformes
+	Exames        *aplicacao.GerenciadorExames
 
 	RepoCargos        dominio.CargoRepositorio
 	RepoDepartamentos dominio.DepartamentoRepositorio
 	RepoFuncionarios  dominio.FuncionarioRepositorio
 	RepoDependentes   dominio.DependenteRepositorio
 	RepoEventos       dominio.EventoRepositorio
+	RepoTreinamentos  dominio.TreinamentoRepositorio
 
-	// ContarObrasAtivas evita este pacote importar domain/cadastro — mesma decisão do
-	// pacote application/rh (ver funcionarios.go ResolverObraCodigo).
+	// ContarObrasAtivas e ListarObrasAtivas evitam este pacote importar domain/cadastro —
+	// mesma decisão do pacote application/rh (ver funcionarios.go ResolverObraCodigo).
 	ContarObrasAtivas func(ctx context.Context) (int, error)
-	// ListarObrasAtivas alimenta o <select> de obra do formulário de funcionário.
 	ListarObrasAtivas func(ctx context.Context) ([]OpcaoObra, error)
 }
 
 type OpcaoObra struct{ ID, Codigo string }
 
-func Novo(
-	sessoes *middleware.Sessoes,
-	cargos *aplicacao.GerenciadorCargos,
-	departamentos *aplicacao.GerenciadorDepartamentos,
-	funcionarios *aplicacao.GerenciadorFuncionarios,
-	dashboard *aplicacao.GerenciadorDashboard,
-	repoCargos dominio.CargoRepositorio,
-	repoDepartamentos dominio.DepartamentoRepositorio,
-	repoFuncionarios dominio.FuncionarioRepositorio,
-	repoDependentes dominio.DependenteRepositorio,
-	repoEventos dominio.EventoRepositorio,
-	contarObrasAtivas func(ctx context.Context) (int, error),
-	listarObrasAtivas func(ctx context.Context) ([]OpcaoObra, error),
-) *Handlers {
-	return &Handlers{
-		Sessoes: sessoes, Cargos: cargos, Departamentos: departamentos, Funcionarios: funcionarios, Dashboard: dashboard,
-		RepoCargos: repoCargos, RepoDepartamentos: repoDepartamentos, RepoFuncionarios: repoFuncionarios,
-		RepoDependentes: repoDependentes, RepoEventos: repoEventos,
-		ContarObrasAtivas: contarObrasAtivas, ListarObrasAtivas: listarObrasAtivas,
-	}
+// Novo recebe a struct já preenchida (campos nomeados no site de chamada, em
+// cmd/servidor/main.go) — em vez de uma lista posicional de ~15 parâmetros, fácil de
+// trocar de ordem por engano à medida que o módulo cresce.
+func Novo(h Handlers) *Handlers {
+	return &h
 }
 
 // exigirLancamento — piso de toda escrita. COMPORTAMENTO.md §1.

@@ -30,7 +30,8 @@ test.describe('Exames — Go', () => {
     await page.getByLabel('Realizado em').fill('2026-08-01')
     await page.getByLabel('Resultado').selectOption('INAPTO')
     await page.getByTestId('salvar').click()
-    await expect(page.getByText('CARLOS EDUARDO ROCHA')).toBeVisible()
-    await expect(page.getByText('Inapto')).toBeVisible()
+    // Escopado à lista — o nome também existe (oculto) na <option> do próprio formulário.
+    await expect(page.getByTestId('lista-exames').getByText('CARLOS EDUARDO ROCHA')).toBeVisible()
+    await expect(page.getByTestId('lista-exames').getByText('Inapto')).toBeVisible()
   })
 })

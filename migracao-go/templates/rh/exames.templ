@@ -1,0 +1,86 @@
+package rh
+
+import "fmt"
+
+type LinhaExame struct {
+	Funcionario, Tipo, Resultado, Data string
+}
+
+templ Exames(linhas []LinhaExame, alertas []LinhaExame, funcionarios []OpcaoSelect) {
+	@Pagina("Exames") {
+		<div class="linha-topo">
+			<h1>Exames</h1>
+		</div>
+
+		<p>Total: <span data-testid="contagem-exames">{ fmt.Sprint(len(linhas)) }</span></p>
+
+		if len(alertas) > 0 {
+			<div data-testid="alertas-vencimento" role="alert">
+				<p>Vencidos ou vencendo em 30 dias:</p>
+				<ul>
+					for _, a := range alertas {
+						<li>{ a.Funcionario } — { a.Tipo } — { a.Data }</li>
+					}
+				</ul>
+			</div>
+		}
+
+		<details>
+			<summary data-testid="novo-exame" class="botao botao-primario">+ Novo exame</summary>
+			<form class="formulario" method="POST" action="/rh/exames">
+				<div class="campo">
+					<label for="funcionarioId">Funcionário</label>
+					<select id="funcionarioId" name="funcionarioId">
+						for _, f := range funcionarios {
+							<option value={ f.ID }>{ f.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="tipo">Tipo</label>
+					<select id="tipo" name="tipo">
+						<option value="ADMISSIONAL">Admissional</option>
+						<option value="PERIODICO">Periódico</option>
+						<option value="RETORNO_TRABALHO">Retorno ao trabalho</option>
+						<option value="DEMISSIONAL">Demissional</option>
+						<option value="MUDANCA_FUNCAO">Mudança de função</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="realizadoEm">Realizado em</label>
+					<input type="date" id="realizadoEm" name="realizadoEm"/>
+				</div>
+				<div class="campo">
+					<label for="validadeEm">Válido até</label>
+					<input type="date" id="validadeEm" name="validadeEm"/>
+				</div>
+				<div class="campo">
+					<label for="resultado">Resultado</label>
+					<select id="resultado" name="resultado">
+						<option value="APTO">Apto</option>
+						<option value="INAPTO">Inapto</option>
+						<option value="APTO_COM_RESTRICAO">Apto com restrição</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="restricoes">Restrições</label>
+					<input id="restricoes" name="restricoes"/>
+				</div>
+				<button type="submit" data-testid="salvar">Salvar</button>
+			</form>
+		</details>
+
+		<table class="lista-usuarios" data-testid="lista-exames">
+			<tbody>
+				for _, l := range linhas {
+					<tr>
+						<td>{ l.Funcionario }</td>
+						<td>{ l.Tipo }</td>
+						<td>{ l.Resultado }</td>
+						<td>{ l.Data }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

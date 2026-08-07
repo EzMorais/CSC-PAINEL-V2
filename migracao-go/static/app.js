@@ -102,4 +102,44 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  // Canvas de assinatura (RH — entrega de uniforme) — desenha no <canvas
+  // data-testid="assinatura-canvas"> e grava o PNG como data URI num <input hidden> antes
+  // do submit, mesmo formato que o Next.js gravava em EntregaUniforme.assinatura.
+  document.querySelectorAll('canvas[data-assinatura]').forEach(function (canvas) {
+    var ctx = canvas.getContext('2d');
+    var desenhando = false;
+    var form = canvas.closest('form');
+    var campoOculto = form ? form.querySelector('input[name="assinatura"]') : null;
+
+    function posicao(e) {
+      var r = canvas.getBoundingClientRect();
+      var ponto = e.touches ? e.touches[0] : e;
+      return { x: ponto.clientX - r.left, y: ponto.clientY - r.top };
+    }
+    function iniciar(e) {
+      desenhando = true;
+      var p = posicao(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    }
+    function desenhar(e) {
+      if (!desenhando) return;
+      var p = posicao(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      e.preventDefault();
+    }
+    function parar() {
+      if (!desenhando) return;
+      desenhando = false;
+      if (campoOculto) campoOculto.value = canvas.toDataURL('image/png');
+    }
+    canvas.addEventListener('mousedown', iniciar);
+    canvas.addEventListener('mousemove', desenhar);
+    window.addEventListener('mouseup', parar);
+    canvas.addEventListener('touchstart', iniciar);
+    canvas.addEventListener('touchmove', desenhar);
+    canvas.addEventListener('touchend', parar);
+  });
 });

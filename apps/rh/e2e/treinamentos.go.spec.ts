@@ -30,7 +30,9 @@ test.describe('Treinamentos — Go', () => {
 
   test('detalhe da turma lista os participantes e aceita certificado', async ({ page }) => {
     await page.goto('/rh/treinamentos')
-    await page.getByText('Construção Civil — Turma B').click()
+    // Escopado à lista (não ao alerta de vencimento, que também menciona a turma) — a mesma
+    // turma pode aparecer nos dois blocos quando está vencendo.
+    await page.getByTestId('lista-turmas').getByText('Construção Civil — Turma B').click()
     await expect(page.getByTestId('lista-participantes').locator('li')).toHaveCount(2)
     await expect(page.getByText('PAULO HENRIQUE COSTA')).toBeVisible()
     await expect(page.getByText('RAFAEL AUGUSTO MENDES')).toBeVisible()
@@ -39,13 +41,14 @@ test.describe('Treinamentos — Go', () => {
   test('busca de turma filtra por descrição', async ({ page }) => {
     await page.goto('/rh/treinamentos')
     await page.getByTestId('busca-turma').fill('Altura')
-    await expect(page.getByText('Trabalho em Altura — Turma A')).toBeVisible()
-    await expect(page.getByText('Construção Civil — Turma B')).not.toBeVisible()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('lista-turmas').getByText('Trabalho em Altura — Turma A')).toBeVisible()
+    await expect(page.getByTestId('lista-turmas').getByText('Construção Civil — Turma B')).not.toBeVisible()
   })
 
   test('desligado não pode ser matriculado numa turma nova', async ({ page }) => {
     await page.goto('/rh/treinamentos')
-    await page.getByText('Construção Civil — Turma B').click()
+    await page.getByTestId('lista-turmas').getByText('Construção Civil — Turma B').click()
     await page.getByTestId('adicionar-participante').click()
     // MARIA DE LOURDES RAMOS está DESLIGADA no seed.
     await expect(page.getByRole('combobox', { name: /participante/i })).not.toContainText(

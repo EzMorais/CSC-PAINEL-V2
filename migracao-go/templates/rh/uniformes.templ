@@ -1,0 +1,69 @@
+package rh
+
+type LinhaUniforme struct {
+	Funcionario, Peca, Tamanho, Motivo, Data string
+}
+
+templ Uniformes(linhas []LinhaUniforme, funcionarios []OpcaoSelect) {
+	@Pagina("Uniformes") {
+		<div class="linha-topo">
+			<h1>Uniformes</h1>
+		</div>
+
+		<details>
+			<summary data-testid="nova-entrega" class="botao botao-primario">+ Nova entrega</summary>
+			<form class="formulario" method="POST" action="/rh/uniformes">
+				<div class="campo">
+					<label for="funcionarioId">Funcionário</label>
+					<select id="funcionarioId" name="funcionarioId">
+						for _, f := range funcionarios {
+							<option value={ f.ID }>{ f.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="peca">Peça</label>
+					<select id="peca" name="peca">
+						<option value="CAMISA">Camisa</option>
+						<option value="CALCA">Calça</option>
+						<option value="CALCADO">Calçado</option>
+						<option value="OUTRO">Outro</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="tamanho">Tamanho</label>
+					<input id="tamanho" name="tamanho"/>
+				</div>
+				<div class="campo">
+					<label for="motivo">Motivo</label>
+					<select id="motivo" name="motivo">
+						<option value="ADMISSAO">Admissão</option>
+						<option value="REPOSICAO">Reposição</option>
+						<option value="TROCA">Troca</option>
+						<option value="DANIFICADO">Danificado</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label>Assinatura de recebimento</label>
+					<canvas data-testid="assinatura-canvas" data-assinatura width="320" height="120" style="border:1px solid var(--border);touch-action:none"></canvas>
+					<input type="hidden" name="assinatura"/>
+				</div>
+				<button type="submit" data-testid="salvar">Salvar</button>
+			</form>
+		</details>
+
+		<table class="lista-usuarios" data-testid="lista-entregas">
+			<tbody>
+				for _, l := range linhas {
+					<tr>
+						<td>{ l.Funcionario }</td>
+						<td>{ l.Peca }</td>
+						<td>{ l.Tamanho }</td>
+						<td>{ l.Motivo }</td>
+						<td>{ l.Data }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

@@ -32,6 +32,7 @@ test.describe('Uniformes — Go', () => {
     }
 
     await page.getByTestId('salvar').click()
-    await expect(page.getByText('ANTÔNIO PEREIRA LIMA')).toBeVisible()
+    // Escopado à lista — o nome também existe (oculto) na <option> do próprio formulário.
+    await expect(page.getByTestId('lista-entregas').getByText('ANTÔNIO PEREIRA LIMA')).toBeVisible()
   })
 })
