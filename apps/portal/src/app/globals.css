@@ -213,6 +213,15 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Fundo da tela de login no mesmo tom do painel-lucas (apps/programacao) — só aqui, não no
+   --background global do Portal, que o resto do sistema (dashboard, cadastros) também usa. */
+.tela-login-fundo {
+  background: oklch(0.98 0.003 260);
+}
+.dark .tela-login-fundo {
+  background: oklch(0.19 0.012 260);
+}
+
 @theme inline {
   --color-status-ativa: oklch(0.62 0.16 150);
   --color-status-atencao: oklch(0.70 0.16 75);

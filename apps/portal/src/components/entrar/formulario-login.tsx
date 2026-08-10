@@ -11,7 +11,7 @@ export function FormularioLogin({ destino }: { destino: string }) {
   const [estado, acao, pendente] = useActionState<EstadoLogin, FormData>(entrar, null)
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-10">
+    <main className="tela-login-fundo grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- imagem decorativa fixa, sem necessidade de otimização do next/image */}
