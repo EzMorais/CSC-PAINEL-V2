@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { USUARIO_TESTE, reiniciarBancoGo } from './apoio.go'
+import { reiniciarBancoGo } from './apoio.go'
 
 /**
  * O ciclo completo de uma locação: registrar → renovar → transferir → devolver — contra o

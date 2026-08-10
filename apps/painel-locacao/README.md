@@ -25,7 +25,7 @@ npm run gerar:exemplo                            # gera uma planilha de teste
 npm run dev
 ```
 
-Abra <http://localhost:3000>. Ele pede login:
+Abra <http://localhost:3001>. Ele pede login:
 
 | | |
 |---|---|

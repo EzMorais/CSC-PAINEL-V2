@@ -1,5 +1,6 @@
 node_modules/
 .env
+*.log
 
 # A sessão do WhatsApp são as CREDENCIAIS do número pareado: quem tiver esta pasta
 # manda mensagem como a empresa. Nunca versionar.

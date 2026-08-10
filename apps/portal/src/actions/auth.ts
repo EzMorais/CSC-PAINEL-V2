@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { autenticar, criarSessao, encerrarSessao } from '@/lib/auth'
+import { destinoSeguro } from '@/lib/destino-login'
 
 export type EstadoLogin = { erro: string } | null
 
@@ -29,8 +30,7 @@ export async function entrar(_estado: EstadoLogin, fd: FormData): Promise<Estado
   // e caiu no login voltar para onde queria ir. Só caminho relativo é aceito — um endereço
   // completo aqui deixaria qualquer um mandar um link que loga a pessoa e a joga em outro
   // site parecido com este.
-  const destino = String(fd.get('destino') ?? '')
-  redirect(destino.startsWith('/') && !destino.startsWith('//') ? destino : '/')
+  redirect(destinoSeguro(fd.get('destino')))
 }
 
 export async function sair() {

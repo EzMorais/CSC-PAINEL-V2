@@ -6,7 +6,7 @@ Monorepo com várias aplicações, cada uma numa pasta dentro de `apps/`:
 |---|---|---|---|
 | [`apps/portal`](apps/portal) | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
 | [`apps/programacao`](apps/programacao) | Programação diária | 3007 | Programação diária de equipes por frente/cliente |
-| [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3000 | Controle de equipamentos alugados por obra |
+| [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3001 | Controle de equipamentos alugados por obra |
 | [`apps/rh`](apps/rh) | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | [`apps/estoque`](apps/estoque) | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
 | [`apps/frota`](apps/frota) | Frota | 3000 | Veículos, manutenções e abastecimento |
@@ -184,7 +184,7 @@ Isso baixa o projeto inteiro (todos os módulos) para o seu computador.
 ### Passo 3 — Abrir o terminal na pasta certa
 
 Cada sistema abaixo precisa de comandos digitados num terminal, dentro da pasta dele
-(`apps/painel-locacao`, `apps/rh` ou `apps/frota`).
+(`apps/portal`, `apps/programacao`, `apps/painel-locacao`, `apps/rh`, `apps/estoque` ou `apps/frota`).
 
 Jeito mais simples de abrir o terminal já na pasta certa:
 
@@ -211,6 +211,27 @@ npm run dev
 
 Abra **http://localhost:3004**. Login: `admin@siqueiracampos.com.br` / `locacao2026`.
 
+### Programacao diaria — modulo integrado
+
+Este é o módulo que recebeu a implementação do antigo `painel-lucas`. Ele usa o mesmo login
+do Portal e mantém apenas o cadastro local complementar necessário para a escala diária.
+Numa janela de terminal aberta dentro de `apps/programacao`:
+
+```bash
+npm install
+copy ..\portal\.env .env
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Abra **http://localhost:3007**. O quadro permite montar a programação por frente, escalar
+funcionários, avulsos, veículos e máquinas, copiar o dia anterior, detectar conflitos e gerar
+a imagem para compartilhamento.
+
+Mais detalhes do módulo estão em [`apps/programacao/README.md`](apps/programacao/README.md).
+
 > **Guarde o `.env` deste passo.** Os outros módulos precisam do **mesmo `AUTH_SECRET`** —
 > nos passos seguintes você copia este arquivo em vez de gerar um novo. É ele que faz o
 > login do Portal valer nos demais.
@@ -231,8 +252,7 @@ Demora alguns minutos na primeira vez (baixa as peças que o sistema usa). Depoi
 arquivo de configuração:
 
 ```bash
-echo DATABASE_URL="file:./dev.db" > .env
-node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
+copy ..\portal\.env .env
 ```
 
 Depois:
@@ -250,7 +270,7 @@ npm run dev
 > prepararia o acesso ao banco sozinho. Sem essa linha, tudo instala "com sucesso" e só
 > quebra no comando seguinte, com a mensagem `@prisma/client did not initialize yet`.
 
-Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3000**.
+Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3001**.
 
 **Login:**
 
@@ -343,9 +363,9 @@ Deixe a janela do `iniciar.bat` aberta enquanto usa o sistema — fechá-la desl
 Detalhes extras (backup, alertas por e-mail, rodar como serviço do Windows) estão em
 [`apps/frota/README.md`](apps/frota/README.md).
 
-> **Atenção às portas:** Painel de Locação e Frota usam a mesma porta (3000) por padrão. Para
-> rodar os dois ao mesmo tempo na mesma máquina, mude a porta de um deles — no Painel de
-> Locação: `npm run dev -- --port 3010`.
+> **Atenção às portas:** a Frota usa a porta 3000 e o Painel de Locação usa a porta 3001,
+> por padrão. Assim os dois podem rodar ao mesmo tempo na mesma máquina. Para usar outra
+> porta no Painel: `npm run dev -- --port 3010`.
 
 ### Problemas comuns
 

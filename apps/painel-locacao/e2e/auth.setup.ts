@@ -22,8 +22,8 @@ setup('autentica e guarda a sessão', async ({ page }) => {
 
   // Só grava depois de confirmar que entrou: um storageState com cookie inválido faria
   // todas as suítes falharem redirecionadas para /entrar, longe da causa.
-  await page.waitForURL('**/', { timeout: 60_000 })
-  await expect(page.getByTestId('navegacao')).toBeVisible({ timeout: 60_000 })
+  await page.waitForURL('**/', { timeout: 120_000 })
+  await expect(page.getByTestId('navegacao')).toBeVisible({ timeout: 120_000 })
 
   await page.context().storageState({ path: ARQUIVO_SESSAO })
 })

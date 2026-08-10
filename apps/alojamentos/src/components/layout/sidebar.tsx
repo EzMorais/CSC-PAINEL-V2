@@ -38,8 +38,11 @@ export function Sidebar({ usuario }: { usuario: Usuario }) {
   // Lido só depois de montar — evita descasamento de hidratação (servidor não sabe
   // o que está no localStorage do navegador).
   useEffect(() => {
-    setColapsado(localStorage.getItem(CHAVE_COLAPSADA) === '1')
-    setPronto(true)
+    const frame = window.requestAnimationFrame(() => {
+      setColapsado(localStorage.getItem(CHAVE_COLAPSADA) === '1')
+      setPronto(true)
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [])
 
   function alternarColapso() {

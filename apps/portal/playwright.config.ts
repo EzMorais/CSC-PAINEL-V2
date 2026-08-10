@@ -40,10 +40,14 @@ export default defineConfig({
     command:
       `npx prisma migrate deploy && ` +
       `npx tsx prisma/seed.ts && ` +
-      `npm run dev -- --port ${PORTA}`,
+      `npx next dev --port ${PORTA}`,
     url: `${BASE}/entrar`,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { DATABASE_URL: 'file:./teste.db', AUTH_SECRET: 'segredo-de-teste-com-mais-de-32-caracteres-000' },
+    env: {
+      DATABASE_URL: 'file:./teste.db',
+      AUTH_SECRET: 'segredo-de-teste-com-mais-de-32-caracteres-000',
+      NEXT_DIST_DIR: '.next-e2e',
+    },
   },
 })

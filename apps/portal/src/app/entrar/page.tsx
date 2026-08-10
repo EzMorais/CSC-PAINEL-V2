@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { lerSessao } from '@/lib/auth'
+import { destinoSeguro } from '@/lib/destino-login'
 import { FormularioLogin } from '@/components/entrar/formulario-login'
 
 export const metadata = { title: 'Entrar — Portal Siqueira Campos' }
@@ -12,7 +13,7 @@ export default async function EntrarPage({ searchParams }: Props) {
 
   const { destino } = await searchParams
   // Só caminho relativo passa adiante — ver o comentário em `actions/auth.ts`.
-  const seguro = destino?.startsWith('/') && !destino.startsWith('//') ? destino : ''
+  const seguro = destinoSeguro(destino)
 
   return <FormularioLogin destino={seguro} />
 }

@@ -7,7 +7,7 @@ O repositório tem **várias aplicações**, cada uma numa pasta dentro de `apps
 |---|---|---|---|
 | `apps/portal` | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
 | `apps/programacao` | Programação diária | 3007 | Programação diária de equipes por frente/cliente |
-| `apps/painel-locacao` | Painel de Locação | 3000 | Equipamentos alugados por obra |
+| `apps/painel-locacao` | Painel de Locação | 3001 | Equipamentos alugados por obra |
 | `apps/rh` | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
 | `apps/estoque` | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
 | `apps/frota` | Frota | 3000 | Veículos, manutenções e abastecimento |
@@ -127,7 +127,7 @@ Isso baixa o projeto inteiro (todos os módulos) para o seu computador.
 ## Passo 3 — Abrir o terminal na pasta certa
 
 Cada sistema abaixo precisa de comandos digitados num terminal, dentro da pasta dele
-(`apps/portal`, `apps/painel-locacao`, `apps/rh`, `apps/estoque` ou `apps/frota`).
+(`apps/portal`, `apps/programacao`, `apps/painel-locacao`, `apps/rh`, `apps/estoque` ou `apps/frota`).
 
 Jeito mais simples de abrir o terminal já na pasta certa:
 
@@ -165,7 +165,30 @@ hierarquia funcionando. Apague-as no Portal antes de usar para valer.
 
 ---
 
-## Passo 5 — Painel de Locação
+## Passo 5 — Programação diária
+
+Este é o módulo que recebeu a implementação do antigo `painel-lucas`. Ele usa o mesmo login
+do Portal e mantém apenas o cadastro local complementar necessário para a escala diária.
+Numa janela de terminal aberta dentro de `apps/programacao`:
+
+```bash
+npm install
+copy ..\portal\.env .env
+npx prisma generate
+npx prisma migrate deploy
+npm run db:seed
+npm run dev
+```
+
+Abra **http://localhost:3007**. O quadro permite montar a programação por frente, escalar
+funcionários, avulsos, veículos e máquinas, copiar o dia anterior, detectar conflitos e gerar
+a imagem para compartilhamento.
+
+Mais detalhes do módulo estão em [`apps/programacao/README.md`](apps/programacao/README.md).
+
+---
+
+## Passo 6 — Painel de Locação
 
 Na janela de terminal aberta dentro de `apps/painel-locacao`, digite cada linha e aperte
 Enter, esperando a anterior terminar:
@@ -178,8 +201,7 @@ Demora alguns minutos na primeira vez (baixa as peças que o sistema usa). Depoi
 arquivo de configuração:
 
 ```bash
-echo DATABASE_URL="file:./dev.db" > .env
-node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
+copy ..\portal\.env .env
 ```
 
 Depois:
@@ -197,7 +219,7 @@ npm run dev
 > prepararia o acesso ao banco sozinho. Sem essa linha, tudo instala "com sucesso" e só
 > quebra no comando seguinte, com a mensagem `@prisma/client did not initialize yet`.
 
-Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3000**.
+Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3001**.
 
 **Login:**
 
@@ -215,7 +237,7 @@ clique dentro dela e aperte `Ctrl+C`.
 
 ---
 
-## Passo 6 — RH
+## Passo 7 — RH
 
 Mesma lógica, numa janela de terminal aberta dentro de `apps/rh`:
 
@@ -242,7 +264,7 @@ dois poderem rodar ao mesmo tempo).
 
 ---
 
-## Passo 7 — Almoxarifado
+## Passo 8 — Almoxarifado
 
 Numa janela de terminal dentro de `apps/estoque`. Aqui **não** se cria um segredo novo: ele
 precisa ser o mesmo do RH, senão a entrega de EPI não consegue falar com o RH.
@@ -261,7 +283,7 @@ Abra **http://localhost:3003**. Login: o mesmo dos outros
 
 ---
 
-## Passo 8 — Frota
+## Passo 9 — Frota
 
 O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
 no terminal:
@@ -285,9 +307,8 @@ Deixe a janela do `iniciar.bat` aberta enquanto usa o sistema — fechá-la desl
 Detalhes extras (backup, alertas por e-mail, rodar como serviço do Windows) estão em
 `apps/frota/README.md`.
 
-> **Atenção às portas:** Painel de Locação e Frota usam a mesma porta (3000) por padrão. Para
-> rodar os dois ao mesmo tempo na mesma máquina, mude a porta de um deles — no Painel de
-> Locação: `npm run dev -- --port 3010`.
+> **Atenção às portas:** a Frota usa a porta 3000 e o Painel de Locação usa a porta 3001, então
+> os dois podem rodar ao mesmo tempo na mesma máquina.
 
 ---
 

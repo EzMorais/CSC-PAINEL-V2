@@ -66,16 +66,20 @@ export default defineConfig({
     // sintaxe é POSIX-only e quebra no cmd.exe do Windows. O campo `env` abaixo já
     // aplica a variável ao processo inteiro, incluindo os três comandos encadeados.
     command:
-      `npx prisma migrate deploy && ` +
+      `node scripts/preparar-banco-teste.mjs && ` +
       `npx tsx prisma/seed.ts && ` +
-      `npm run dev -- --port ${PORTA}`,
+      `npx next build && npx next start --port ${PORTA}`,
     // 2. A sonda de prontidão aponta para /importar, que renderiza sem tocar no banco.
     //    Assim ela mede o que precisa medir — se o Next está de pé — em vez de medir se o
     //    banco respondeu. Mantida junto com a preparação acima: se um dia a página passar a
     //    consultar dados, ou o seed falhar, a suíte ainda sobe e falha no teste certo.
     url: `${BASE}/importar`,
     reuseExistingServer: false,
-    timeout: 120_000,
-    env: { DATABASE_URL: 'file:./teste.db' },
+    timeout: 240_000,
+    env: {
+      DATABASE_URL: 'file:./teste.db',
+      NEXT_DIST_DIR: '.next-e2e',
+      NEXT_PUBLIC_URL_APP: BASE,
+    },
   },
 })

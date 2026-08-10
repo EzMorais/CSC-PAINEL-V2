@@ -15,6 +15,7 @@ const COOKIE = 'locacao_sessao'
 
 /** Onde o Portal responde. É ele quem tem a tela de login. */
 const URL_PORTAL = process.env.NEXT_PUBLIC_URL_PORTAL ?? 'http://localhost:3004'
+const URL_APP = process.env.NEXT_PUBLIC_URL_APP ?? 'http://localhost:3002'
 
 /**
  * O segredo é lido a cada uso, não no carregamento do módulo.
@@ -77,7 +78,7 @@ export async function encerrarSessao() {
 
 /** Manda para o login do Portal, guardando para onde a pessoa queria ir. */
 export function urlDeLogin(destino = '/'): string {
-  return `${URL_PORTAL}/entrar?destino=${encodeURIComponent(destino)}`
+  return `${URL_PORTAL}/entrar?destino=${encodeURIComponent(new URL(destino, URL_APP).toString())}`
 }
 
 /**

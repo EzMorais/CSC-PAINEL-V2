@@ -1,7 +1,7 @@
 import { ArrowUpRight, Lock, ShieldCheck, LayoutDashboard } from 'lucide-react'
 import { exigirSessao, temAcesso } from '@/lib/auth'
 import {
-  MODULO, ROTULO_MODULO, URL_MODULO, ROTULO_CARGO, DESCRICAO_CARGO, TOM_CARGO,
+  MODULO, ROTULO_MODULO, URL_MODULO, ROTULO_CARGO, DESCRICAO_CARGO,
   podeAprovar, podeLancar, type Cargo, type Modulo,
 } from '@/lib/dominio/cargos'
 import {
@@ -11,13 +11,6 @@ import {
 
 export const metadata = { title: 'Portal — Construtora Siqueira Campos' }
 export const dynamic = 'force-dynamic'
-
-const COR_TOM: Record<string, string> = {
-  ativa: 'bg-status-ativa/15 text-status-ativa',
-  atencao: 'bg-status-atencao/15 text-status-atencao',
-  vencida: 'bg-status-vencida/15 text-status-vencida',
-  devolvida: 'bg-status-devolvida/15 text-status-devolvida',
-}
 
 const SISTEMAS: Array<{
   modulo: Modulo

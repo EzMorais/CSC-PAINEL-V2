@@ -14,7 +14,14 @@
       "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\node.exe\" --version)",
       "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(node teste-painel-lucas.mjs)",
+      "Bash(rm -f teste-painel-lucas.mjs)",
+      "Bash(curl -s -o /dev/null -w \"portal:%{http_code}\\\\n\" http://localhost:3004)",
+      "Bash(node teste-login-fundo.mjs)",
+      "Bash(rm -f teste-login-fundo.mjs)",
+      "Bash(curl -s -o /dev/null -w \"portal\\(3004\\):%{http_code}\\\\n\" http://localhost:3004)",
+      "Bash(curl -s -o /dev/null -w \"programacao\\(3007\\):%{http_code}\\\\n\" http://localhost:3007)"
     ]
   }
 }
