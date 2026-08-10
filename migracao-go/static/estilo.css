@@ -1,32 +1,147 @@
-/* Subconjunto mínimo de DESIGN-SYSTEM.md — o suficiente pra ler as telas com conforto.
-   Refinamento visual completo (tokens de tile, dark mode com toggle) fica pra depois;
-   aqui o objetivo é corretude de comportamento, não fidelidade pixel a pixel. */
+/* Implementação completa do DESIGN-SYSTEM.md pro binário Go — sidebar fixa escura,
+   tokens neutro+acento por módulo, dark mode. Sem build step: tema (`.escuro` no <html>) e
+   cor de acento por módulo (`data-modulo` no <html>) são decididos em static/app.js, antes da
+   primeira pintura, pra não haver flash — ver esse arquivo pros detalhes. Valores de token
+   copiados de apps/rh/src/app/globals.css (neutro/semânticas/tiles) e de
+   apps/{portal,painel-locacao,estoque}/src/app/globals.css (hue de acento por módulo), pra
+   ficar bit-a-bit igual aos apps Next.js que já implementam o mesmo spec. */
 
 :root {
-  --bg: #f7f8fa;
-  --card: #ffffff;
-  --fg: #1a1d21;
-  --muted: #6b7280;
-  --border: #e2e5e9;
-  --primary: #3457d5;
-  --primary-fg: #ffffff;
-  --danger: #c0392b;
-  --danger-soft: #fbeae8;
-  --success: #1a7f4e;
-  --sidebar: #16181c;
-  --sidebar-fg: #e6e8eb;
+  /* Neutro de verdade — croma quase zero. */
+  --background: oklch(0.99 0.001 260);
+  --foreground: oklch(0.19 0.004 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.004 260);
+  --muted: oklch(0.96 0.002 260);
+  --muted-foreground: oklch(0.50 0.006 260);
+  --border: oklch(0.90 0.003 260);
+  --input: oklch(0.90 0.003 260);
+
+  /* Acento — padrão Identidade/Portal (azul 255). [data-modulo] troca pro Painel/Almoxarifado. */
+  --ring: oklch(0.56 0.19 255);
+  --primary: oklch(0.56 0.19 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.94 0.004 260);
+  --accent-foreground: oklch(0.19 0.004 260);
+  --destructive: oklch(0.58 0.20 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  /* Alias — nome usado direto em alguns templates existentes (ex. dashboard.templ). */
+  --danger: var(--destructive);
+  --danger-soft: oklch(0.95 0.03 27);
+
+  /* Sidebar — sempre escura, não muda com o tema. Fica fora do bloco `.escuro` de propósito. */
+  --sidebar: oklch(0.15 0.006 260);
+  --sidebar-foreground: oklch(0.90 0.004 260);
+  --sidebar-muted-foreground: oklch(0.60 0.01 260);
+  --sidebar-accent: oklch(0.20 0.007 260);
+  --sidebar-accent-foreground: oklch(0.97 0.003 260);
+  --sidebar-border: oklch(0.24 0.008 260);
+
+  /* Semânticas genéricas. */
+  --color-success: oklch(0.60 0.15 150);
+  --color-success-soft: oklch(0.95 0.03 150);
+  --color-warning: oklch(0.72 0.15 80);
+  --color-warning-soft: oklch(0.95 0.04 80);
+  --color-info: oklch(0.60 0.14 235);
+  --color-info-soft: oklch(0.95 0.025 235);
+  --color-purple: oklch(0.58 0.18 296);
+  --color-purple-soft: oklch(0.95 0.03 296);
+  --money: var(--color-success);
+
+  /* Ícone tiles "soft 3D minimal" — gradiente 140°, zero glow. */
+  --ic-blue-1: oklch(0.62 0.16 250); --ic-blue-2: oklch(0.48 0.18 258);
+  --ic-blue-grad: linear-gradient(140deg, var(--ic-blue-1), var(--ic-blue-2));
+  --ic-purple-1: oklch(0.60 0.18 296); --ic-purple-2: oklch(0.46 0.20 300);
+  --ic-purple-grad: linear-gradient(140deg, var(--ic-purple-1), var(--ic-purple-2));
+  --ic-cyan-1: oklch(0.72 0.12 210); --ic-cyan-2: oklch(0.58 0.14 215);
+  --ic-cyan-grad: linear-gradient(140deg, var(--ic-cyan-1), var(--ic-cyan-2));
+  --ic-orange-1: oklch(0.68 0.16 55); --ic-orange-2: oklch(0.56 0.18 45);
+  --ic-orange-grad: linear-gradient(140deg, var(--ic-orange-1), var(--ic-orange-2));
+  --ic-green-1: oklch(0.66 0.15 150); --ic-green-2: oklch(0.52 0.16 155);
+  --ic-green-grad: linear-gradient(140deg, var(--ic-green-1), var(--ic-green-2));
+  --ic-red-1: oklch(0.62 0.19 25); --ic-red-2: oklch(0.50 0.20 20);
+  --ic-red-grad: linear-gradient(140deg, var(--ic-red-1), var(--ic-red-2));
+  --ic-yellow-1: oklch(0.78 0.15 90); --ic-yellow-2: oklch(0.66 0.16 80);
+  --ic-yellow-grad: linear-gradient(140deg, var(--ic-yellow-1), var(--ic-yellow-2));
+  --ic-neutro-1: oklch(0.80 0.004 260); --ic-neutro-2: oklch(0.62 0.006 260);
+  --ic-neutro-grad: linear-gradient(140deg, var(--ic-neutro-1), var(--ic-neutro-2));
+
+  --tile-shadow: 0 1px 2px oklch(0 0 0 / 0.14), inset 0 1px 0 oklch(1 0 0 / 0.22);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+
+  --raio: 0.75rem;
 }
+
+.escuro {
+  --background: oklch(0.17 0.005 260);
+  --foreground: oklch(0.93 0.004 260);
+  --card: oklch(0.21 0.006 260);
+  --card-foreground: oklch(0.93 0.004 260);
+  --muted: oklch(0.25 0.006 260);
+  --muted-foreground: oklch(0.68 0.008 260);
+  --border: oklch(0.30 0.007 260);
+  --input: oklch(0.30 0.007 260);
+
+  --ring: oklch(0.70 0.17 255);
+  --primary: oklch(0.70 0.17 255);
+  --primary-foreground: oklch(0.17 0.02 255);
+  --accent: oklch(0.29 0.007 260);
+  --accent-foreground: oklch(0.93 0.004 260);
+  --destructive: oklch(0.70 0.17 27);
+  --destructive-foreground: oklch(0.17 0.02 260);
+  --danger-soft: oklch(0.30 0.06 27);
+
+  --color-success: oklch(0.68 0.15 150);
+  --color-success-soft: oklch(0.28 0.05 150);
+  --color-warning: oklch(0.78 0.14 85);
+  --color-warning-soft: oklch(0.30 0.06 85);
+  --color-info: oklch(0.68 0.14 235);
+  --color-info-soft: oklch(0.28 0.045 235);
+  --color-purple: oklch(0.68 0.17 296);
+  --color-purple-soft: oklch(0.30 0.06 296);
+
+  --ic-blue-1: oklch(0.66 0.15 250); --ic-blue-2: oklch(0.52 0.17 258);
+  --ic-purple-1: oklch(0.64 0.17 296); --ic-purple-2: oklch(0.50 0.19 300);
+  --ic-cyan-1: oklch(0.74 0.11 210); --ic-cyan-2: oklch(0.60 0.13 215);
+  --ic-orange-1: oklch(0.70 0.15 55); --ic-orange-2: oklch(0.58 0.17 45);
+  --ic-green-1: oklch(0.68 0.14 150); --ic-green-2: oklch(0.54 0.15 155);
+  --ic-red-1: oklch(0.66 0.18 25); --ic-red-2: oklch(0.54 0.19 20);
+  --ic-yellow-1: oklch(0.80 0.14 90); --ic-yellow-2: oklch(0.68 0.15 80);
+  --ic-neutro-1: oklch(0.42 0.006 260); --ic-neutro-2: oklch(0.28 0.007 260);
+
+  --tile-shadow: 0 1px 3px oklch(0 0 0 / 0.35), inset 0 1px 0 oklch(1 0 0 / 0.10);
+}
+
+/* Cor de acento por módulo — DESIGN-SYSTEM.md §3. `[data-modulo="identidade"]` usa o azul do
+   :root, não precisa de bloco próprio. */
+[data-modulo="painel"] { --ring: oklch(0.52 0.22 288); --primary: oklch(0.52 0.22 288); --primary-foreground: oklch(0.99 0 0); }
+.escuro[data-modulo="painel"] { --ring: oklch(0.68 0.19 288); --primary: oklch(0.68 0.19 288); --primary-foreground: oklch(0.16 0.02 288); }
+
+[data-modulo="almoxarifado"] { --ring: oklch(0.60 0.17 45); --primary: oklch(0.60 0.17 45); --primary-foreground: oklch(0.99 0 0); }
+.escuro[data-modulo="almoxarifado"] { --ring: oklch(0.70 0.15 50); --primary: oklch(0.70 0.15 50); --primary-foreground: oklch(0.17 0.02 50); }
+
+/* ── Base ─────────────────────────────────────────────────────────────────────────────── */
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: var(--bg);
-  color: var(--fg);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  transition: background-color var(--duration-base), color var(--duration-base);
 }
 
 a { color: inherit; }
+
+code, .tabular-mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+.money { color: var(--money); }
+
+/* ── Login (sem sidebar) ──────────────────────────────────────────────────────────────── */
 
 .tela-centro {
   min-height: 100dvh;
@@ -35,40 +150,20 @@ a { color: inherit; }
   padding: 1rem;
 }
 
-.cartao-login {
-  width: 100%;
-  max-width: 24rem;
-}
-
-.cartao-login h1 {
-  font-size: 1.25rem;
-  text-align: center;
-  margin-bottom: 0.25rem;
-}
-
-.cartao-login .sub {
-  text-align: center;
-  color: var(--muted);
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-}
+.cartao-login { width: 100%; max-width: 24rem; }
+.cartao-login h1 { font-size: 1.25rem; text-align: center; margin-bottom: 0.25rem; }
+.cartao-login .sub { text-align: center; color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem; }
+.sub { color: var(--muted-foreground); font-size: 0.875rem; }
 
 form.formulario {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--raio);
   padding: 1.5rem;
 }
 
 .campo { margin-bottom: 1rem; }
-
-.campo label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
+.campo label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
 .campo input, .campo select {
   width: 100%;
   padding: 0.5rem 0.75rem;
@@ -76,8 +171,24 @@ form.formulario {
   border-radius: 0.5rem;
   font-size: 0.9rem;
   background: var(--card);
-  color: var(--fg);
+  color: var(--foreground);
 }
+.campo input:focus, .campo select:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 30%, transparent);
+}
+
+.erro {
+  background: var(--danger-soft);
+  color: var(--destructive);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Botões ───────────────────────────────────────────────────────────────────────────── */
 
 button, .botao {
   display: inline-flex;
@@ -90,55 +201,73 @@ button, .botao {
   font-weight: 500;
   cursor: pointer;
   background: var(--card);
-  color: var(--fg);
+  color: var(--foreground);
+  transition: background-color var(--duration-fast), filter var(--duration-fast), box-shadow var(--duration-fast);
 }
+button:hover, .botao:hover { background: var(--accent); }
+button:focus-visible, .botao:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+button:disabled, .botao:disabled { opacity: 0.5; cursor: not-allowed; }
 
 button[type="submit"], .botao-primario {
   background: var(--primary);
-  color: var(--primary-fg);
+  color: var(--primary-foreground);
   border-color: var(--primary);
 }
+button[type="submit"]:hover, .botao-primario:hover { filter: brightness(1.08); background: var(--primary); }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.botao-secundario { background: var(--card); color: var(--foreground); border-color: var(--border); }
+.botao-perigo { background: var(--destructive); color: var(--destructive-foreground); border-color: var(--destructive); }
+.botao-perigo:hover { filter: brightness(1.08); background: var(--destructive); }
+.botao-fantasma { background: transparent; border-color: transparent; color: var(--muted-foreground); }
+.botao-fantasma:hover { background: var(--accent); color: var(--foreground); }
 
-.erro {
-  background: var(--danger-soft);
-  color: var(--danger);
+.botao-icone {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   border-radius: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
+  border: 1px solid var(--sidebar-border);
+  background: transparent;
+  color: var(--sidebar-muted-foreground);
 }
+.botao-icone:hover { background: var(--sidebar-accent); color: var(--sidebar-foreground); }
 
-.cabecalho {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--border);
+/* ── Cards, selos, tabelas ────────────────────────────────────────────────────────────── */
+
+.card {
   background: var(--card);
-}
-
-.cabecalho nav { display: flex; gap: 0.5rem; }
-
-.conteudo {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--raio);
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 .selo {
   display: inline-block;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: var(--border);
+  background: var(--muted);
+  color: var(--foreground);
   font-size: 0.75rem;
   font-weight: 500;
   margin-right: 0.4rem;
+}
+
+.email { color: var(--muted-foreground); font-size: 0.8rem; }
+.descricao { display: block; color: var(--muted-foreground); font-size: 0.85rem; margin-top: 0.25rem; }
+.aviso { color: var(--color-success); font-size: 0.8rem; }
+
+.ic-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 0.5rem;
+  box-shadow: var(--tile-shadow);
+  color: white;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
 }
 
 .grade-sistemas {
@@ -147,22 +276,16 @@ button:disabled {
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
-
 .grade-sistemas a {
   display: block;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--raio);
   padding: 1rem;
   text-decoration: none;
   background: var(--card);
+  transition: border-color var(--duration-fast), background-color var(--duration-fast);
 }
-
-.grade-sistemas .descricao {
-  display: block;
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-}
+.grade-sistemas a:hover { border-color: var(--ring); background: var(--accent); }
 
 .bloqueado {
   display: inline-flex;
@@ -172,41 +295,241 @@ button:disabled {
   border-radius: 0.5rem;
   padding: 0.3rem 0.7rem;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin: 0.2rem 0.4rem 0.2rem 0;
 }
 
-.card {
-  background: var(--card);
+/* Listas de linhas (materiais, locações, usuários, solicitações...) — mesmo padrão visual de
+   uma tabela com header sticky e hover por linha, sem precisar de <table>. */
+.lista-usuarios {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  border-radius: var(--raio);
+  overflow: hidden;
+  background: var(--card);
 }
+.lista-usuarios > li, .lista-usuarios > a {
+  display: block;
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--duration-fast);
+}
+.lista-usuarios > li:last-child, .lista-usuarios > a:last-child { border-bottom: none; }
+.lista-usuarios > a:hover { background: var(--accent); }
 
-.lista-usuarios { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden; }
-.lista-usuarios > li { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; }
-.lista-usuarios > li:last-child { border-bottom: none; }
-.lista-usuarios .linha-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-.lista-usuarios .linha-topo .nome { flex: 1; min-width: 10rem; }
-.lista-usuarios .linha-topo .email { color: var(--muted); font-size: 0.8rem; }
-
-.painel-edicao {
-  margin-top: 0.75rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-  display: grid;
+.linha-topo, .linha-locacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
 }
+.linha-topo .nome, .linha-locacao .nome { flex: 1; min-width: 10rem; }
 
-.checkbox-linha {
+.painel-edicao { margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; display: grid; gap: 0.75rem; }
+.checkbox-linha { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; margin-bottom: 0.3rem; }
+
+table { border-collapse: collapse; width: 100%; }
+table th {
+  position: sticky;
+  top: 0;
+  background: var(--muted);
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  padding: 0.5rem 0.75rem;
+}
+table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+table tbody tr:hover { background: var(--accent); }
+
+/* ── Casca: sidebar + header mobile + conteúdo ───────────────────────────────────────── */
+
+.somente-mobile { display: none; }
+.somente-desktop { display: inline-flex; }
+
+.barra-lateral {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 15rem;
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.3rem;
+  flex-direction: column;
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-right: 1px solid var(--sidebar-border);
+  padding: 1rem;
+  overflow-y: auto;
+  transition: width var(--duration-base), transform var(--duration-base);
 }
 
-.aviso { color: var(--success); font-size: 0.8rem; }
+.barra-lateral-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 1.5rem; }
+.marca { display: flex; flex-direction: column; line-height: 1.2; }
+.marca strong { font-size: 0.95rem; }
+.marca small { color: var(--sidebar-muted-foreground); font-size: 0.75rem; }
 
-.tabular { font-variant-numeric: tabular-nums; }
+.barra-lateral-secoes { display: flex; flex-direction: column; gap: 1.25rem; flex: 1; }
+.secao-nav { display: flex; flex-direction: column; gap: 0.15rem; }
+.secao-titulo {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sidebar-muted-foreground);
+  padding: 0 0.75rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.item-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.4rem;
+  border-left: 2px solid transparent;
+  font-size: 0.875rem;
+  color: var(--sidebar-muted-foreground);
+  text-decoration: none;
+  transition: background-color var(--duration-fast), color var(--duration-fast);
+  white-space: nowrap;
+}
+.item-nav:hover { background: var(--sidebar-accent); color: var(--sidebar-foreground); }
+.item-nav.ativo {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  border-left-color: var(--primary);
+  font-weight: 500;
+}
+.item-nav .icone { width: 1rem; height: 1rem; flex-shrink: 0; }
+.item-nav-botao { width: 100%; background: none; border: none; border-left: 2px solid transparent; text-align: left; }
+
+.barra-lateral-rodape { border-top: 1px solid var(--sidebar-border); padding-top: 0.75rem; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.usuario-info { padding: 0 0.75rem 0.4rem; }
+.usuario-nome { margin: 0; font-size: 0.875rem; font-weight: 500; color: var(--sidebar-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usuario-email { margin: 0; font-size: 0.75rem; color: var(--sidebar-muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ícones que trocam de par (tema, colapsar) — o CSS decide qual metade do par mostra. */
+.icone { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+.icone-tema-claro { display: none; }
+.escuro .icone-tema-escuro { display: none; }
+.escuro .icone-tema-claro { display: block; }
+.icone-expandir { display: none; }
+.icone-externo { width: 0.85rem; height: 0.85rem; margin-left: auto; color: var(--muted-foreground); }
+.icone-fechar { display: none; }
+
+/* Colapsada (desktop) — só ícones, com `title` fazendo de tooltip nativo. */
+.barra-lateral.colapsada { width: 4.5rem; }
+.barra-lateral.colapsada .marca span,
+.barra-lateral.colapsada .secao-titulo,
+.barra-lateral.colapsada .rotulo,
+.barra-lateral.colapsada .usuario-info { display: none; }
+.barra-lateral.colapsada .item-nav { justify-content: center; padding: 0.6rem; }
+.barra-lateral.colapsada .icone-recolher { display: none; }
+.barra-lateral.colapsada .icone-expandir { display: block; }
+
+.area-principal { display: flex; flex-direction: column; min-height: 100dvh; margin-left: 15rem; transition: margin-left var(--duration-base); }
+#barra-lateral.colapsada ~ .area-principal { margin-left: 4.5rem; }
+
+.cabecalho-mobile {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+}
+.marca-texto-mobile { font-weight: 600; font-size: 0.95rem; }
+
+.fundo-menu { display: none; position: fixed; inset: 0; background: rgb(0 0 0 / 0.5); z-index: 40; }
+.fundo-menu.visivel { display: block; }
+
+.conteudo { max-width: 72rem; margin: 0 auto; padding: 1.5rem; width: 100%; }
+
+/* Header antigo (topo, sem sidebar) — ainda existe em telas que não passaram pela reforma. */
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.cabecalho nav { display: flex; gap: 0.5rem; }
+
+/* ── Hub flutuante (troca rápida de sistema) ─────────────────────────────────────────── */
+
+.hub-flutuante { position: fixed; right: 1rem; bottom: 1rem; z-index: 45; }
+.hub-flutuante-botao {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--tile-shadow);
+  cursor: pointer;
+}
+.hub-flutuante-botao .icone { width: 1.25rem; height: 1.25rem; }
+.hub-flutuante-menu {
+  display: none;
+  position: absolute;
+  bottom: 3.75rem;
+  right: 0;
+  width: 16rem;
+  max-width: calc(100vw - 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--raio);
+  background: var(--card);
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.18);
+  overflow: hidden;
+}
+.hub-flutuante.aberto .hub-flutuante-menu { display: block; }
+.hub-flutuante-titulo { margin: 0; padding: 0.6rem 0.9rem; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+.hub-flutuante-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.hub-flutuante-item:hover { background: var(--accent); }
+.hub-flutuante-item.ativo { font-weight: 500; }
+.hub-flutuante-item .icone { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+/* ── Responsivo — ≤720px vira drawer com backdrop (DESIGN-SYSTEM.md §2/§11) ──────────── */
+
+@media (max-width: 720px) {
+  .somente-mobile { display: flex; }
+  .somente-desktop { display: none; }
+
+  .barra-lateral {
+    width: 16rem;
+    transform: translateX(-100%);
+    z-index: 60;
+  }
+  .barra-lateral.aberta { transform: translateX(0); }
+  .barra-lateral.colapsada { width: 16rem; }
+  .barra-lateral.colapsada .marca span,
+  .barra-lateral.colapsada .secao-titulo,
+  .barra-lateral.colapsada .rotulo,
+  .barra-lateral.colapsada .usuario-info { display: revert; }
+  .barra-lateral.colapsada .item-nav { justify-content: flex-start; padding: 0.6rem 0.75rem; }
+
+  .area-principal, #barra-lateral.colapsada ~ .area-principal { margin-left: 0; }
+  .cabecalho-mobile { display: flex; }
+
+  .hub-flutuante { bottom: 4.5rem; }
+}
+
+@media (min-width: 721px) {
+  .cabecalho-mobile { display: none; }
+}

@@ -43,15 +43,7 @@ func Pagina(titulo string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"cabecalho\" data-testid=\"navegacao\"><a href=\"/almoxarifado\">Almoxarifado</a><div style=\"display:flex;gap:0.75rem;align-items:center\"><a href=\"/almoxarifado/materiais\">Materiais</a> <a href=\"/almoxarifado/movimentacoes\">Movimentações</a> <a href=\"/almoxarifado/solicitacoes\">Solicitações</a> <a href=\"/almoxarifado/aprovacoes\">Aprovações</a> <a href=\"/almoxarifado/configuracoes\">Configurações</a><form method=\"POST\" action=\"/sair\" style=\"display:inline\"><button type=\"submit\" data-testid=\"sair\" aria-label=\"Sair\">Sair</button></form></div></nav><main class=\"conteudo\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
 			templ_7745c5c3_Err = templ_7745c5c3_Var1.Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</main>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

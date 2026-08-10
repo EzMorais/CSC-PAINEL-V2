@@ -1,0 +1,56 @@
+package rh
+
+type LinhaAuditoria struct {
+	ID, Titulo, Data, Vinculo string
+}
+
+templ Auditorias(linhas []LinhaAuditoria, obras []OpcaoSelect) {
+	@Pagina("Auditorias") {
+		<div class="linha-topo">
+			<h1>Auditorias</h1>
+		</div>
+
+		<ul data-testid="lista-auditorias">
+			for _, l := range linhas {
+				<li>
+					<a href={ templ.URL("/rh/auditorias/" + l.ID) }>{ l.Titulo } — { l.Data }</a>
+					if l.Vinculo != "" {
+						<span class="email">{ l.Vinculo }</span>
+					}
+				</li>
+			}
+		</ul>
+
+		<details>
+			<summary data-testid="nova-auditoria" class="botao botao-primario">+ Nova auditoria</summary>
+			<form class="formulario" method="POST" action="/rh/auditorias">
+				<div class="campo">
+					<label for="tituloAuditoria">Título</label>
+					<input id="tituloAuditoria" name="titulo"/>
+				</div>
+				<div class="campo">
+					<label for="normaAuditoria">Norma</label>
+					<input id="normaAuditoria" name="norma"/>
+				</div>
+				<div class="campo">
+					<label for="obraIdAuditoria">Obra</label>
+					<select id="obraIdAuditoria" name="obraId">
+						<option value="">— nenhuma —</option>
+						for _, o := range obras {
+							<option value={ o.ID }>{ o.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<div class="campo">
+					<label for="realizadaEmAuditoria">Realizada em</label>
+					<input type="date" id="realizadaEmAuditoria" name="realizadaEm"/>
+				</div>
+				<div class="campo">
+					<label for="responsavelAuditoria">Responsável</label>
+					<input id="responsavelAuditoria" name="responsavel"/>
+				</div>
+				<button type="submit" data-testid="salvar-auditoria">Salvar</button>
+			</form>
+		</details>
+	}
+}

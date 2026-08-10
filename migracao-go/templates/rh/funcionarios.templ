@@ -1,0 +1,35 @@
+package rh
+
+type LinhaFuncionario struct {
+	ID, Matricula, Nome, Status, Obra, Cargo string
+}
+
+templ Funcionarios(linhas []LinhaFuncionario, busca string, podeLancar bool) {
+	@Pagina("Funcionários") {
+		<div class="linha-topo">
+			<h1>Funcionários</h1>
+			if podeLancar {
+				<a href="/rh/funcionarios/novo" class="botao botao-primario" data-testid="novo-funcionario">+ Novo funcionário</a>
+			}
+		</div>
+
+		<form method="GET" action="/rh/funcionarios">
+			<input type="search" name="busca" placeholder="Buscar" value={ busca }/>
+			<button type="submit">Buscar</button>
+		</form>
+
+		<table class="lista-usuarios" data-testid="lista-funcionarios">
+			<tbody>
+				for _, f := range linhas {
+					<tr>
+						<td>{ f.Matricula }</td>
+						<td><a href={ templ.URL("/rh/funcionarios/" + f.ID) } data-testid="nome-funcionario">{ f.Nome }</a></td>
+						<td>{ f.Obra }</td>
+						<td>{ f.Cargo }</td>
+						<td>{ f.Status }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

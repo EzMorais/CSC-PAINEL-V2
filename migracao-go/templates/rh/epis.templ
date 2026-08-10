@@ -1,0 +1,32 @@
+package rh
+
+type LinhaEpi struct {
+	Funcionario, Material, CA, Data string
+}
+
+// Epis — só leitura + link externo pro Almoxarifado, que é quem de fato registra a entrega
+// (COMPORTAMENTO.md §6). Não existe formulário de entrega aqui, de propósito.
+templ Epis(linhas []LinhaEpi, urlEstoque string) {
+	@Pagina("EPIs") {
+		<div class="linha-topo">
+			<h1>EPIs</h1>
+			if urlEstoque != "" {
+				<a href={ templ.URL(urlEstoque + "/movimentacoes") } class="botao" target="_blank" rel="noopener">Registrar no Almoxarifado</a>
+			}
+		</div>
+		<p>Fichas recebidas do Almoxarifado quando um EPI sai para alguém — o RH não registra entrega diretamente.</p>
+
+		<table class="lista-usuarios" data-testid="lista-epis">
+			<tbody>
+				for _, l := range linhas {
+					<tr>
+						<td>{ l.Funcionario }</td>
+						<td>{ l.Material }</td>
+						<td>{ l.CA }</td>
+						<td>{ l.Data }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

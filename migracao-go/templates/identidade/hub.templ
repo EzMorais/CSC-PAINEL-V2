@@ -1,7 +1,5 @@
 package identidade
 
-import "siqueiracampos/servidor/templates/layout"
-
 type ItemSistema struct {
 	Modulo, Rotulo, Descricao, URL string
 }
@@ -16,20 +14,8 @@ templ Hub(
 	podeAprovar bool,
 	ehAdmin bool,
 ) {
-	@layout.Base("Portal — Siqueira Campos") {
-		<header class="cabecalho">
-			<span>Siqueira Campos</span>
-			<nav>
-				if ehAdmin {
-					<a href="/usuarios">Usuários</a>
-				}
-			</nav>
-			<form method="POST" action="/sair">
-				<button type="submit" data-testid="sair" aria-label="Sair">Sair</button>
-			</form>
-		</header>
-		<main class="conteudo">
-			<h1>Olá, { nomePrimeiro }</h1>
+	@Pagina("Hub") {
+		<h1>Olá, { nomePrimeiro }</h1>
 			<p>
 				<span class="selo">{ rotuloCargo }</span>
 				{ descricaoCargo }
@@ -68,7 +54,6 @@ templ Hub(
 					<li>{ marca(ehAdmin) } Cadastrar usuários e definir cargos</li>
 				</ul>
 			</section>
-		</main>
 	}
 }
 

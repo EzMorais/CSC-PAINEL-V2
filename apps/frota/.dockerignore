@@ -1,0 +1,10 @@
+node_modules
+.next
+dados
+frota.db
+frota.db-shm
+frota.db-wal
+.env
+.env.*
+!.env.production.example
+.git

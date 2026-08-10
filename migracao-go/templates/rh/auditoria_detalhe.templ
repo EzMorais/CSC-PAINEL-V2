@@ -1,0 +1,50 @@
+package rh
+
+type LinhaItemAuditoria struct {
+	Descricao, Situacao, Evidencia string
+}
+
+type DetalheAuditoria struct {
+	ID, Titulo, Data, Responsavel string
+	Itens                         []LinhaItemAuditoria
+}
+
+templ AuditoriaDetalhe(a DetalheAuditoria) {
+	@Pagina(a.Titulo) {
+		<h1>{ a.Titulo }</h1>
+		<p>Realizada em: { a.Data }</p>
+		if a.Responsavel != "" {
+			<p>Responsável: { a.Responsavel }</p>
+		}
+
+		<h2>Itens verificados</h2>
+		<ul data-testid="lista-itens-auditoria">
+			for _, it := range a.Itens {
+				<li>{ it.Descricao } — { it.Situacao }</li>
+			}
+		</ul>
+
+		<details>
+			<summary data-testid="novo-item" class="botao botao-primario">+ Novo item</summary>
+			<form class="formulario" method="POST" action={ templ.URL("/rh/auditorias/" + a.ID + "/itens") }>
+				<div class="campo">
+					<label for="descricaoItem">Descrição</label>
+					<input id="descricaoItem" name="descricao"/>
+				</div>
+				<div class="campo">
+					<label for="situacaoItem">Situação</label>
+					<select id="situacaoItem" name="situacao">
+						<option value="CONFORME">Conforme</option>
+						<option value="NAO_CONFORME">Não conforme</option>
+						<option value="NAO_SE_APLICA">Não se aplica</option>
+					</select>
+				</div>
+				<div class="campo">
+					<label for="evidenciaItem">Evidência</label>
+					<input id="evidenciaItem" name="evidencia"/>
+				</div>
+				<button type="submit" data-testid="salvar">Salvar</button>
+			</form>
+		</details>
+	}
+}

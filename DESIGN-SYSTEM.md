@@ -153,3 +153,13 @@ Cada app tem seu próprio `src/app/globals.css` (não é um pacote compartilhado
 rodam sem workspace). Os tokens têm o mesmo nome e a mesma fórmula em todos; só o hue do
 acento muda. Componentes de base (`Button`, `Badge`, `IconTile`) ficam em
 `src/components/ui/` em cada app, mesmo conteúdo replicado.
+
+**`migracao-go`** (Portal/Identidade + Painel de Locação + Almoxarifado, já unificados num
+único binário) implementa a mesma casca server-side, sem React/Tailwind: um único
+`static/estilo.css` com os mesmos tokens (mesmos valores OKLCH), e a cor de acento troca por
+atributo `[data-modulo="identidade|painel|almoxarifado"]` em vez de por app/porta — decidido
+em `static/app.js` a partir de `location.pathname`, no mesmo script bloqueante que evita flash
+de tema. Sidebar/header/hub-flutuante ficam em `templates/layout/` (Templ); ícones são SVG do
+Lucide inlinados à mão (sem bundler). RH, Alojamentos e Frota continuam como processos Next.js
+separados até migrarem — o hub flutuante do Go linka pra eles via `cfg.URLRH`/
+`cfg.URLAlojamentos` (`internal/config/config.go`).

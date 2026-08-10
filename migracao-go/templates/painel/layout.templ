@@ -4,22 +4,6 @@ import "siqueiracampos/servidor/templates/layout"
 
 templ Pagina(titulo string) {
 	@layout.Base(titulo + " — Painel de Locação") {
-		<nav class="cabecalho" data-testid="navegacao">
-			<a href="/painel">Painel de Locação</a>
-			<div style="display:flex;gap:0.75rem;align-items:center">
-				<a href="/painel/locacoes">Locações</a>
-				<a href="/painel/obras">Obras</a>
-				<a href="/painel/fornecedores">Fornecedores</a>
-				<a href="/painel/importar">Importar</a>
-				<a href="/painel/export/xlsx">Exportar Excel</a>
-				<a href="/painel/export/pdf">Exportar PDF</a>
-				<form method="POST" action="/sair" style="display:inline">
-					<button type="submit" data-testid="sair" aria-label="Sair">Sair</button>
-				</form>
-			</div>
-		</nav>
-		<main class="conteudo">
-			{ children... }
-		</main>
+		{ children... }
 	}
 }

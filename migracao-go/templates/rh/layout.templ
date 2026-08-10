@@ -1,0 +1,9 @@
+package rh
+
+import "siqueiracampos/servidor/templates/layout"
+
+templ Pagina(titulo string) {
+	@layout.Base(titulo + " — RH e SST") {
+		{ children... }
+	}
+}

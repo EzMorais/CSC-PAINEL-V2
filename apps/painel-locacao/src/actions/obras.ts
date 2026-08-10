@@ -12,19 +12,24 @@ const esquema = z.object({
   codigo: z.string().trim().min(2, 'Informe o código da obra.'),
   descricao: z.string().trim().min(2, 'Informe a descrição.'),
   responsavel: z.string().trim().optional(),
+  // Nome exato da aba, na planilha de importação, que traz os itens desta obra.
+  // Opcional: quando em branco, usa o código da obra (comportamento de antes desta
+  // mudança, para quem cadastra sem se importar com o nome da aba).
+  abaOrigem: z.string().trim().optional(),
 })
 
 export async function salvarObra(id: string | null, entrada: unknown): Promise<Resultado> {
   await exigirLancamento()
   const parsed = esquema.safeParse(entrada)
   if (!parsed.success) return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
-  const d = { ...parsed.data, responsavel: parsed.data.responsavel || null }
+  const { abaOrigem, ...resto } = parsed.data
+  const d = { ...resto, responsavel: parsed.data.responsavel || null }
 
   try {
     if (id) {
-      await prisma.obra.update({ where: { id }, data: d })
+      await prisma.obra.update({ where: { id }, data: { ...d, ...(abaOrigem ? { abaOrigem } : {}) } })
     } else {
-      await prisma.obra.create({ data: { ...d, abaOrigem: d.codigo } })
+      await prisma.obra.create({ data: { ...d, abaOrigem: abaOrigem || d.codigo } })
     }
     revalidarTelas('/obras', '/locacoes')
     return { ok: true, dados: undefined }

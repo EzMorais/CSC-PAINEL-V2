@@ -9,7 +9,11 @@ templ Locacoes(
 ) {
 	@Pagina("Locações") {
 		<h1>Locações</h1>
-		<p><a href="/painel/locacoes/nova" class="botao botao-primario">+ Nova locação</a></p>
+		<p style="display:flex;gap:0.5rem;flex-wrap:wrap">
+			<a href="/painel/locacoes/nova" class="botao botao-primario">+ Nova locação</a>
+			<a href="/painel/export/xlsx" class="botao botao-secundario">Exportar Excel</a>
+			<a href="/painel/export/pdf" class="botao botao-secundario">Exportar PDF</a>
+		</p>
 
 		<form method="GET" action="/painel/locacoes" class="card" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:end">
 			<div class="campo" style="margin:0">

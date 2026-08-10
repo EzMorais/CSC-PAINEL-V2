@@ -1,0 +1,49 @@
+package rh
+
+type LinhaParticipante struct {
+	ID, Nome string
+}
+
+type DetalheTreinamento struct {
+	ID, Descricao, Norma, Instrutor, RealizadoEm, ValidadeEm string
+	Participantes                                            []LinhaParticipante
+	Elegiveis                                                []OpcaoSelect
+}
+
+templ TreinamentoDetalhe(t DetalheTreinamento) {
+	@Pagina(t.Descricao) {
+		<h1>{ t.Descricao }</h1>
+		<p>Norma: { t.Norma }</p>
+		if t.Instrutor != "" {
+			<p>Instrutor: { t.Instrutor }</p>
+		}
+		<p>Realizado em: { t.RealizadoEm }</p>
+		if t.ValidadeEm != "" {
+			<p>Válido até: { t.ValidadeEm }</p>
+		} else {
+			<p>Sem prazo de validade</p>
+		}
+
+		<h2>Participantes</h2>
+		<ul data-testid="lista-participantes">
+			for _, p := range t.Participantes {
+				<li>{ p.Nome }</li>
+			}
+		</ul>
+
+		<details>
+			<summary data-testid="adicionar-participante" class="botao">+ Adicionar participante</summary>
+			<form method="POST" action={ templ.URL("/rh/treinamentos/" + t.ID + "/participantes") }>
+				<div class="campo">
+					<label for="participanteId">Participante</label>
+					<select id="participanteId" name="funcionarioId">
+						for _, o := range t.Elegiveis {
+							<option value={ o.ID }>{ o.Rotulo }</option>
+						}
+					</select>
+				</div>
+				<button type="submit" data-testid="salvar-participante">Adicionar</button>
+			</form>
+		</details>
+	}
+}

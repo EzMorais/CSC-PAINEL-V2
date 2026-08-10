@@ -38,4 +38,4 @@ export function construirMapa(obras: { codigo: string; abaOrigem: string }[]): M
 }
 
 /** Abas que existem no arquivo mas não contêm locações. */
-export const ABAS_IGNORADAS = new Set(['RESUMO'])
+export const ABAS_IGNORADAS = new Set(['RESUMO', 'DASHBOARD'])

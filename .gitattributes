@@ -1,0 +1,4 @@
+# Scripts que rodam DENTRO de contêiner Linux — quebra de linha CRLF (comum ao editar no
+# Windows com core.autocrlf=true) faz o "#!/bin/sh" falhar silenciosamente no Docker.
+*.sh text eol=lf
+Dockerfile text eol=lf

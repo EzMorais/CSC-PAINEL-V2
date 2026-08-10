@@ -21,7 +21,13 @@
       "Bash(node teste-login-fundo.mjs)",
       "Bash(rm -f teste-login-fundo.mjs)",
       "Bash(curl -s -o /dev/null -w \"portal\\(3004\\):%{http_code}\\\\n\" http://localhost:3004)",
-      "Bash(curl -s -o /dev/null -w \"programacao\\(3007\\):%{http_code}\\\\n\" http://localhost:3007)"
+      "Bash(curl -s -o /dev/null -w \"programacao\\(3007\\):%{http_code}\\\\n\" http://localhost:3007)",
+      "PowerShell(go version)",
+      "PowerShell(Get-Command winget -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command choco -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command scoop -ErrorAction SilentlyContinue)",
+      "PowerShell(winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements)",
+      "Bash(git -C \"c:\\\\Users\\\\TÉCNICO\\\\Documents\\\\GitHub\\\\CSC-PAINEL\" check-ignore -v apps/painel-locacao/dados/Maquinas_Alugadas_Controle_REVISADA.xlsx)"
     ]
   }
 }

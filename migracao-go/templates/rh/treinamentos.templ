@@ -1,0 +1,37 @@
+package rh
+
+import "fmt"
+
+type LinhaTreinamento struct {
+	ID, Descricao, Norma, Validade string
+}
+
+templ Treinamentos(linhas []LinhaTreinamento, alertas []LinhaTreinamento, busca string) {
+	@Pagina("Treinamentos") {
+		<h1>Treinamentos</h1>
+
+		<form method="GET" action="/rh/treinamentos">
+			<input type="search" name="busca" placeholder="Buscar" value={ busca } data-testid="busca-turma"/>
+			<button type="submit">Buscar</button>
+		</form>
+
+		<p>Total: <span data-testid="contagem-turmas">{ fmt.Sprint(len(linhas)) }</span></p>
+
+		if len(alertas) > 0 {
+			<div data-testid="alertas-vencimento" role="alert">
+				<p>Vencidos ou vencendo em 30 dias:</p>
+				<ul>
+					for _, a := range alertas {
+						<li>{ a.Descricao } — { a.Validade }</li>
+					}
+				</ul>
+			</div>
+		}
+
+		<ul data-testid="lista-turmas">
+			for _, t := range linhas {
+				<li><a href={ templ.URL("/rh/treinamentos/" + t.ID) }>{ t.Descricao } ({ t.Norma })</a></li>
+			}
+		</ul>
+	}
+}

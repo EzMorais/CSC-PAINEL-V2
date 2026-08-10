@@ -1,0 +1,70 @@
+package rh
+
+type LinhaTimeline struct {
+	Descricao, Quando string
+}
+
+type DetalheFuncionario struct {
+	ID, Matricula, Nome, CPF, Status, Obra, Cargo, Telefone, Email string
+	PodeExcluir                                                    bool
+	ErroExclusao                                                   string
+	Timeline                                                       []LinhaTimeline
+	Documentos                                                     []string
+	Epis                                                           []string
+}
+
+templ FuncionarioDetalhe(f DetalheFuncionario) {
+	@Pagina(f.Nome) {
+		<div class="linha-topo">
+			<h1>{ f.Nome }</h1>
+			<a href={ templ.URL("/rh/funcionarios/" + f.ID + "/editar") } class="botao" data-testid="editar">Editar</a>
+		</div>
+
+		<p>Matrícula: <strong data-testid="matricula-funcionario">{ f.Matricula }</strong></p>
+		<p>CPF: { f.CPF }</p>
+		<p>Situação: { f.Status }</p>
+		if f.Obra != "" {
+			<p>Obra: { f.Obra }</p>
+		}
+		if f.Cargo != "" {
+			<p>Cargo: { f.Cargo }</p>
+		}
+		if f.Telefone != "" {
+			<p>Telefone: { f.Telefone }</p>
+		}
+
+		<h2>Documentos</h2>
+		<ul data-testid="checklist-documentos">
+			for _, categoria := range f.Documentos {
+				<li>{ categoria }</li>
+			}
+		</ul>
+
+		<h2>EPIs entregues</h2>
+		<ul data-testid="lista-epis-funcionario">
+			for _, material := range f.Epis {
+				<li>{ material }</li>
+			}
+		</ul>
+
+		<h2>Linha do tempo</h2>
+		<ul data-testid="lista-timeline">
+			for _, ev := range f.Timeline {
+				<li data-testid="linha-timeline">{ ev.Descricao } <span class="email">{ ev.Quando }</span></li>
+			}
+		</ul>
+
+		if f.PodeExcluir {
+			<details open?={ f.ErroExclusao != "" }>
+				<summary data-testid="excluir-funcionario" class="botao botao-perigo">Excluir cadastro</summary>
+				<form method="POST" action={ templ.URL("/rh/funcionarios/" + f.ID + "/excluir") }>
+					<p>Tem certeza? Esta ação não pode ser desfeita.</p>
+					if f.ErroExclusao != "" {
+						<p role="alert">{ f.ErroExclusao }</p>
+					}
+					<button type="submit" data-testid="confirmar-exclusao">Confirmar exclusão</button>
+				</form>
+			</details>
+		}
+	}
+}

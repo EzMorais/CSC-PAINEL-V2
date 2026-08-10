@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -16,6 +18,7 @@ import (
 	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	dominio "siqueiracampos/servidor/internal/domain/identidade"
 	painel "siqueiracampos/servidor/internal/domain/painel"
+	rh "siqueiracampos/servidor/internal/domain/rh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
 )
 
@@ -45,6 +48,13 @@ func main() {
 		tabelas := []string{
 			"registros_acesso", "acessos_modulo", "usuarios",
 			"aprovacoes_estoque", "itens_solicitacao", "solicitacoes_compra", "movimentacoes_estoque", "materiais", "configuracao_email_estoque",
+			// RH — filhos antes de pais (foreign_keys = ON): nao_conformidades referencia
+			// auditoria_itens, que referencia auditorias; documentos/exames/entregas_*/
+			// eventos/dependentes referenciam funcionarios, que referencia obras/cargos/
+			// departamentos.
+			"nao_conformidades", "auditoria_itens", "auditorias",
+			"documentos", "exames", "entregas_epi", "treinamento_participantes", "treinamentos", "entregas_uniforme",
+			"eventos", "dependentes", "funcionarios", "departamentos", "cargos",
 			"movimentacoes_locacao", "locacoes", "fornecedor_aliases", "fornecedores", "obras",
 		}
 		for _, tabela := range tabelas {
@@ -67,6 +77,19 @@ func main() {
 	repoSolicitacoes := database.NovoEstoqueSolicitacaoRepositorio(db)
 	repoAprovacoesEstoque := database.NovoEstoqueAprovacaoRepositorio(db)
 	semearEstoque(ctx, repoObras, repoMateriais, repoMovimentacoesEstoque, repoSolicitacoes, repoAprovacoesEstoque)
+
+	repoRHCargos := database.NovoRHCargoRepositorio(db)
+	repoRHDepartamentos := database.NovoRHDepartamentoRepositorio(db)
+	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
+	repoRHEventos := database.NovoRHEventoRepositorio(db)
+	repoRHTreinamentos := database.NovoRHTreinamentoRepositorio(db)
+	repoRHUniformes := database.NovoRHUniformeRepositorio(db)
+	repoRHExames := database.NovoRHExameRepositorio(db)
+	repoRHDocumentos := database.NovoRHDocumentoRepositorio(db)
+	repoRHAuditorias := database.NovoRHAuditoriaRepositorio(db)
+	repoRHNaoConformidades := database.NovoRHNaoConformidadeRepositorio(db)
+	repoRHEpi := database.NovoRHEpiRepositorio(db)
+	semearRH(ctx, repoObras, repoRHCargos, repoRHDepartamentos, repoRHFuncionarios, repoRHEventos, repoRHTreinamentos, repoRHUniformes, repoRHExames, repoRHDocumentos, repoRHAuditorias, repoRHNaoConformidades, repoRHEpi)
 }
 
 // semearAdmin usa Criar (que checa duplicidade), nunca upsert — rodar de novo não pode
@@ -308,4 +331,503 @@ func semearEstoque(
 	}
 
 	log.Printf("Almoxarifado: %d materiais de exemplo criados, com histórico, 1 solicitação e 1 aprovação pendente.", criados)
+}
+
+type cargoExemploRH struct {
+	nome, cbo, risco string
+}
+
+// Mesmos 10 cargos de prisma/dados-exemplo.ts do RH Next.js — ver rh/COMPORTAMENTO.md §10.
+var cargosExemploRH = []cargoExemploRH{
+	{"Pedreiro", "7152-10", rh.RiscoNormal},
+	{"Servente de obras", "7170-20", rh.RiscoNormal},
+	{"Carpinteiro", "7155-10", rh.RiscoNormal},
+	{"Armador de ferragem", "7153-05", rh.RiscoNormal},
+	{"Eletricista de obras", "7156-15", rh.RiscoPericuloso},
+	{"Soldador", "7243-15", rh.RiscoInsalubre},
+	{"Operador de máquinas", "7151-20", rh.RiscoPericuloso},
+	{"Mestre de obras", "7102-10", rh.RiscoNormal},
+	{"Técnico em segurança", "3516-05", rh.RiscoNormal},
+	{"Auxiliar administrativo", "4110-05", rh.RiscoNormal},
+}
+
+type funcionarioExemploRH struct {
+	nome, cpf, obraCodigo, cargoNome, status, telefone string
+	admitidoHaDias                                     int
+}
+
+// Mesmos 14 funcionários de prisma/dados-exemplo.ts do RH Next.js (mesmos códigos de obra
+// do Painel — é assim que os dois cadastros se reconhecem) — ver rh/COMPORTAMENTO.md §10 e
+// apps/rh/e2e/apoio.go.ts `ESPERADO`/`FIXTURE` (a suíte Playwright depende exatamente
+// destes nomes/CPFs/obras/cargos/status).
+var funcionariosExemploRH = []funcionarioExemploRH{
+	{"JOÃO BATISTA SILVEIRA", "52998224725", "EX-1001-25", "Mestre de obras", rh.StatusAtivo, "(11) 90000-0001", 940},
+	{"ANTÔNIO PEREIRA LIMA", "11144477735", "EX-1001-25", "Pedreiro", rh.StatusAtivo, "(11) 90000-0002", 620},
+	{"CARLOS EDUARDO ROCHA", "39053344705", "EX-1001-25", "Servente de obras", rh.StatusAtivo, "(11) 90000-0003", 410},
+	{"MARCOS VINÍCIUS ALVES", "69331867093", "EX-1002-25", "Eletricista de obras", rh.StatusAtivo, "(11) 90000-0004", 300},
+	{"PAULO HENRIQUE COSTA", "04546487070", "EX-1002-25", "Soldador", rh.StatusAtivo, "(11) 90000-0005", 250},
+	{"RAFAEL AUGUSTO MENDES", "85770693037", "EX-1010-25A", "Carpinteiro", rh.StatusAtivo, "(11) 90000-0006", 180},
+	{"FERNANDA APARECIDA DIAS", "15350946056", "EX-1010-25A", "Técnico em segurança", rh.StatusAtivo, "(11) 90000-0007", 150},
+	{"JOSÉ ROBERTO NASCIMENTO", "20688429041", "EX-1010-25B", "Armador de ferragem", rh.StatusFerias, "(11) 90000-0008", 720},
+	{"LUCIANA MARTINS SOUZA", "47817148031", "EX-1010-25B", "Auxiliar administrativo", rh.StatusAtivo, "(11) 90000-0009", 90},
+	{"SEBASTIÃO GOMES FARIA", "35045179560", "EX-1020-26", "Operador de máquinas", rh.StatusAfastado, "(11) 90000-0010", 520},
+	{"ADRIANO CÉSAR BARBOSA", "62491959046", "EX-1020-26", "Pedreiro", rh.StatusAtivo, "(11) 90000-0011", 60},
+	{"WELLINGTON SANTOS CRUZ", "93713237018", "EX-1020-26", "Servente de obras", rh.StatusAtivo, "(11) 90000-0012", 25},
+	// Sem obra e sem cargo de propósito — alimenta o indicador de cadastro incompleto.
+	{"DIEGO FERREIRA PINTO", "29585903059", "", "", rh.StatusAtivo, "", 10},
+	{"MARIA DE LOURDES RAMOS", "83219432093", "EX-1001-25", "Servente de obras", rh.StatusDesligado, "(11) 90000-0014", 800},
+}
+
+// nivelObraDoCargo espelha `nivelDoCargo()` de prisma/seed.ts do RH Next.js — só para os
+// dados de exemplo terem algo plausível, não é regra de negócio (ver rh/COMPORTAMENTO.md §3:
+// profissão e nível são eixos independentes).
+func nivelObraDoCargo(cargoNome string) string {
+	n := strings.ToLower(cargoNome)
+	switch {
+	case strings.Contains(n, "mestre"):
+		return "MESTRE_DE_OBRAS"
+	case strings.Contains(n, "encarregado"):
+		return "ENCARREGADO"
+	case strings.Contains(n, "engenheiro"):
+		return "ENGENHEIRO"
+	case strings.Contains(n, "servente"), strings.Contains(n, "ajudante"):
+		return "SERVENTE_AJUDANTE"
+	case strings.Contains(n, "auxiliar"), strings.Contains(n, "técnico"):
+		return "" // escritório
+	case n == "":
+		return ""
+	}
+	return "OFICIAL"
+}
+
+func haDiasRH(dias int) time.Time {
+	agora := time.Now().UTC()
+	hoje := time.Date(agora.Year(), agora.Month(), agora.Day(), 0, 0, 0, 0, time.UTC)
+	return hoje.AddDate(0, 0, -dias)
+}
+
+func semearRH(
+	ctx context.Context,
+	obras *database.ObraRepositorio,
+	cargos *database.RHCargoRepositorio,
+	departamentos *database.RHDepartamentoRepositorio,
+	funcionarios *database.RHFuncionarioRepositorio,
+	eventos *database.RHEventoRepositorio,
+	treinamentos rh.TreinamentoRepositorio,
+	uniformes rh.EntregaUniformeRepositorio,
+	exames rh.ExameRepositorio,
+	documentos rh.DocumentoRepositorio,
+	auditorias rh.AuditoriaRepositorio,
+	naoConformidades rh.NaoConformidadeRepositorio,
+	epi rh.EntregaEpiRepositorio,
+) {
+	idsCargos := map[string]string{}
+	criadosCargos := 0
+	for _, e := range cargosExemploRH {
+		if existente, _ := cargos.BuscarPorNome(ctx, e.nome); existente != nil {
+			idsCargos[e.nome] = existente.ID
+			continue
+		}
+		cbo := e.cbo
+		c := &rh.Cargo{Nome: e.nome, CBO: &cbo, Risco: e.risco}
+		if err := cargos.Criar(ctx, c); err != nil {
+			log.Fatalf("criar cargo %s: %v", e.nome, err)
+		}
+		idsCargos[e.nome] = c.ID
+		criadosCargos++
+	}
+
+	// Organograma reduzido — 2 ramos + 2 setores cada (versão completa do Next.js tem 19
+	// setores; aqui só o suficiente pra validar os dois níveis). "Obras" é o setor que
+	// nivelObraDoCargo aponta pra quem trabalha em canteiro — ver rh/COMPORTAMENTO.md §10.
+	organogramaRH := map[string][]string{
+		"Administrativo": {"RH", "Financeiro"},
+		"Engenharia":     {"Obras", "Planejamento"},
+	}
+	idsDepartamentos := map[string]string{}
+	criadosDepartamentos := 0
+	for ramo, setores := range organogramaRH {
+		idRamo, ja := idsDepartamentos[ramo]
+		if !ja {
+			if existente, _ := departamentos.BuscarPorNome(ctx, ramo); existente != nil {
+				idRamo = existente.ID
+			} else {
+				d := &rh.Departamento{Nome: ramo}
+				if err := departamentos.Criar(ctx, d); err != nil {
+					log.Fatalf("criar ramo %s: %v", ramo, err)
+				}
+				idRamo = d.ID
+				criadosDepartamentos++
+			}
+			idsDepartamentos[ramo] = idRamo
+		}
+		for _, setor := range setores {
+			if existente, _ := departamentos.BuscarPorNome(ctx, setor); existente != nil {
+				idsDepartamentos[setor] = existente.ID
+				continue
+			}
+			d := &rh.Departamento{Nome: setor, PaiID: &idRamo}
+			if err := departamentos.Criar(ctx, d); err != nil {
+				log.Fatalf("criar setor %s: %v", setor, err)
+			}
+			idsDepartamentos[setor] = d.ID
+			criadosDepartamentos++
+		}
+	}
+	idSetorObras := idsDepartamentos["Obras"]
+
+	idsFuncionarios := map[string]string{}
+	criadosFuncionarios, pulados := 0, 0
+	for i, e := range funcionariosExemploRH {
+		if existente, _ := funcionarios.BuscarPorCPF(ctx, e.cpf); existente != nil {
+			idsFuncionarios[e.nome] = existente.ID
+			pulados++
+			continue
+		}
+
+		var obraID, cargoID, departamentoID, nivelObra *string
+		if e.obraCodigo != "" {
+			if o, _ := obras.BuscarPorCodigo(ctx, e.obraCodigo); o != nil {
+				id := o.ID
+				obraID = &id
+			}
+		}
+		if e.cargoNome != "" {
+			if id, ok := idsCargos[e.cargoNome]; ok {
+				cargoID = &id
+			}
+		}
+		if nivel := nivelObraDoCargo(e.cargoNome); nivel != "" {
+			nivelObra = &nivel
+			departamentoID = &idSetorObras
+		}
+
+		admitidoEm := haDiasRH(e.admitidoHaDias)
+		var telefone *string
+		if e.telefone != "" {
+			t := e.telefone
+			telefone = &t
+		}
+		matricula := fmt.Sprintf("SC-%04d", i+1)
+
+		f := &rh.Funcionario{
+			Matricula: matricula, Nome: e.nome, CPF: e.cpf, Status: e.status, AdmitidoEm: admitidoEm,
+			TipoContrato: "CLT", Telefone: telefone, ObraID: obraID, CargoID: cargoID,
+			DepartamentoID: departamentoID, NivelObra: nivelObra,
+		}
+		registradoPor := "Seed"
+		descricao := "Admitido"
+		if obraID != nil {
+			descricao = "Admitido na obra " + e.obraCodigo
+		}
+		evento := &rh.Evento{
+			Tipo: rh.EventoAdmissao, DescricaoHumana: descricao, OcorridoEm: admitidoEm,
+			RegistradoPor: &registradoPor, ObraID: obraID,
+		}
+		if err := funcionarios.Criar(ctx, f, evento); err != nil {
+			log.Fatalf("criar funcionário %s: %v", e.nome, err)
+		}
+		idsFuncionarios[e.nome] = f.ID
+		criadosFuncionarios++
+	}
+	_ = eventos // reservado para próximas fatias (exames/documentos/auditorias lançam eventos próprios)
+
+	log.Printf("RH: %d cargos, %d departamentos, %d funcionários criados%s.",
+		criadosCargos, criadosDepartamentos, criadosFuncionarios,
+		condicional(pulados > 0, fmt.Sprintf(" (%d já existiam)", pulados), ""))
+
+	semearRHTreinamentos(ctx, treinamentos, idsFuncionarios)
+	semearRHUniformes(ctx, uniformes, idsFuncionarios)
+	semearRHExames(ctx, exames, idsFuncionarios)
+	semearRHDocumentos(ctx, documentos, obras, idsFuncionarios)
+	semearRHAuditorias(ctx, auditorias, naoConformidades, obras)
+	semearRHEpi(ctx, epi, idsFuncionarios)
+}
+
+// semearRHEpi — fixture nova, simula uma ficha já recebida do Almoxarifado (o RH nunca cria
+// isso sozinho, COMPORTAMENTO.md §6). Idempotente por movimentacaoId.
+func semearRHEpi(ctx context.Context, repo rh.EntregaEpiRepositorio, idsFuncionarios map[string]string) {
+	const movimentacaoID = "mov-exemplo-001"
+	if existente, _ := repo.BuscarPorMovimentacaoID(ctx, movimentacaoID); existente != nil {
+		log.Printf("RH: entrega de EPI de exemplo já existia.")
+		return
+	}
+	id, ok := idsFuncionarios["PAULO HENRIQUE COSTA"]
+	if !ok {
+		log.Fatalf("entrega de EPI: funcionário PAULO HENRIQUE COSTA não encontrado no seed")
+	}
+	ca := "31469"
+	validadeCA := "2027-12-31"
+	e := &rh.EntregaEpi{
+		MovimentacaoID: movimentacaoID, MaterialCodigo: "MAT-0004", MaterialNome: "Capacete de segurança",
+		CA: &ca, ValidadeCA: &validadeCA, Quantidade: 1, Unidade: "UN", EntregueEm: time.Now().UTC(), FuncionarioID: id,
+	}
+	if err := repo.Criar(ctx, e); err != nil {
+		log.Fatalf("criar entrega de EPI de exemplo: %v", err)
+	}
+	log.Printf("RH: 1 entrega de EPI de exemplo criada.")
+}
+
+// semearRHAuditorias — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`:
+// 1 auditoria com 3 itens (2 CONFORME, 1 NAO_CONFORME que gera NC automaticamente) + 1 NC
+// solta. Idempotente: pula se já existir alguma auditoria.
+func semearRHAuditorias(ctx context.Context, repoAuditorias rh.AuditoriaRepositorio, repoNC rh.NaoConformidadeRepositorio, obras *database.ObraRepositorio) {
+	existentes, err := repoAuditorias.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar auditorias: %v", err)
+	}
+	if len(existentes) > 0 {
+		log.Printf("RH: auditorias de exemplo já existiam.")
+		return
+	}
+
+	var obraID *string
+	if o, _ := obras.BuscarPorCodigo(ctx, "EX-1001-25"); o != nil {
+		id := o.ID
+		obraID = &id
+	}
+	responsavel := "Técnico de Segurança"
+	a := &rh.Auditoria{Titulo: "Inspeção de canteiro — EPI e sinalização", RealizadaEm: haDiasRH(15), Responsavel: &responsavel, ObraID: obraID}
+	if err := repoAuditorias.Criar(ctx, a); err != nil {
+		log.Fatalf("criar auditoria: %v", err)
+	}
+
+	itens := []struct{ descricao, situacao string }{
+		{"Uso de capacete pela equipe", rh.SituacaoConforme},
+		{"Sinalização de área de risco", rh.SituacaoConforme},
+		{"Extintor de incêndio dentro da validade", rh.SituacaoNaoConforme},
+	}
+	for _, it := range itens {
+		item := &rh.AuditoriaItem{Descricao: it.descricao, Situacao: it.situacao, AuditoriaID: a.ID}
+		if err := repoAuditorias.CriarItem(ctx, item); err != nil {
+			log.Fatalf("criar item de auditoria %q: %v", it.descricao, err)
+		}
+		if it.situacao == rh.SituacaoNaoConforme {
+			nc := &rh.NaoConformidade{
+				Titulo: it.descricao, Descricao: it.descricao, Gravidade: rh.GravidadeMedia,
+				Status: rh.StatusNCAberta, AuditoriaItemID: &item.ID,
+			}
+			if err := repoNC.Criar(ctx, nc); err != nil {
+				log.Fatalf("criar NC do item %q: %v", it.descricao, err)
+			}
+		}
+	}
+
+	solta := &rh.NaoConformidade{
+		Titulo: "Vazamento de óleo no pátio de máquinas", Descricao: "Vazamento de óleo identificado próximo ao abastecimento",
+		Gravidade: rh.GravidadeAlta, Status: rh.StatusNCAberta,
+	}
+	if err := repoNC.Criar(ctx, solta); err != nil {
+		log.Fatalf("criar NC solta: %v", err)
+	}
+
+	log.Printf("RH: 1 auditoria (3 itens) e 2 não conformidades de exemplo criadas.")
+}
+
+// semearRHDocumentos — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação título+categoria+vínculo (mesma regra de versionamento
+// do domínio, COMPORTAMENTO.md §3).
+func semearRHDocumentos(ctx context.Context, repo rh.DocumentoRepositorio, obras *database.ObraRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar documentos: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, d := range existentes {
+		jaExiste[d.Titulo+"|"+d.Categoria] = true
+	}
+
+	criar := func(titulo, categoria string, obraCodigo, funcionarioNome string, validoAteHaDias *int) {
+		if jaExiste[titulo+"|"+categoria] {
+			return
+		}
+		var obraID, funcionarioID *string
+		if obraCodigo != "" {
+			if o, _ := obras.BuscarPorCodigo(ctx, obraCodigo); o != nil {
+				id := o.ID
+				obraID = &id
+			}
+		}
+		if funcionarioNome != "" {
+			id, ok := idsFuncionarios[funcionarioNome]
+			if !ok {
+				log.Fatalf("documento %s: funcionário %s não encontrado no seed", titulo, funcionarioNome)
+			}
+			funcionarioID = &id
+		}
+		var validoAte *time.Time
+		if validoAteHaDias != nil {
+			v := haDiasRH(*validoAteHaDias)
+			validoAte = &v
+		}
+		vigenteDesde := haDiasRH(30)
+		registradoPor := "Seed"
+		d := &rh.Documento{
+			Categoria: categoria, Titulo: titulo, Versao: 1, VigenteDesde: &vigenteDesde, ValidoAte: validoAte,
+			RegistradoPor: &registradoPor, ObraID: obraID, FuncionarioID: funcionarioID,
+		}
+		if err := repo.Criar(ctx, d); err != nil {
+			log.Fatalf("criar documento %s: %v", titulo, err)
+		}
+	}
+
+	menos10 := -10
+	criar("PGR", rh.DocEmpresaPGR, "EX-1001-25", "", nil)
+	criar("PCMSO", rh.DocEmpresaPCMSO, "EX-1002-25", "", &menos10)
+	criar("RG", rh.DocPessoalRG, "", "PAULO HENRIQUE COSTA", nil)
+
+	log.Printf("RH: documentos de exemplo verificados (PGR/PCMSO/RG).")
+}
+
+// semearRHExames — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação funcionário+tipo.
+func semearRHExames(ctx context.Context, repo rh.ExameRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar exames: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, e := range existentes {
+		jaExiste[e.FuncionarioNome+"|"+e.Tipo] = true
+	}
+
+	type exameExemplo struct {
+		funcionario, tipo, resultado string
+		realizadoHaDias              int
+		validadeHaDias               *int // negativo = no futuro (haDiasRH inverte o sinal)
+	}
+	menos5, menos20, menos185 := -5, -20, -185
+	exemplos := []exameExemplo{
+		{"PAULO HENRIQUE COSTA", rh.ExamePeriodico, rh.ResultadoApto, 360, &menos5},
+		{"FERNANDA APARECIDA DIAS", rh.ExamePeriodico, rh.ResultadoApto, 345, &menos20},
+		{"RAFAEL AUGUSTO MENDES", rh.ExameAdmissional, rh.ResultadoAptoComRestricao, 180, &menos185},
+	}
+
+	criados := 0
+	for _, ex := range exemplos {
+		if jaExiste[ex.funcionario+"|"+ex.tipo] {
+			continue
+		}
+		id, ok := idsFuncionarios[ex.funcionario]
+		if !ok {
+			log.Fatalf("exame: funcionário %s não encontrado no seed", ex.funcionario)
+		}
+		var validadeEm *time.Time
+		if ex.validadeHaDias != nil {
+			v := haDiasRH(*ex.validadeHaDias)
+			validadeEm = &v
+		}
+		registradoPor := "Seed"
+		e := &rh.Exame{
+			Tipo: ex.tipo, RealizadoEm: haDiasRH(ex.realizadoHaDias), ValidadeEm: validadeEm,
+			Resultado: ex.resultado, RegistradoPor: &registradoPor, FuncionarioID: id,
+		}
+		if err := repo.Criar(ctx, e); err != nil {
+			log.Fatalf("criar exame de %s: %v", ex.funcionario, err)
+		}
+		criados++
+	}
+	log.Printf("RH: %d exames de exemplo criados.", criados)
+}
+
+// semearRHTreinamentos — fixture nova (o Next.js não tinha treinamentos), plano exato
+// documentado em apps/rh/e2e/apoio.go.ts `FIXTURE`. Idempotente: pula pela Descricao.
+func semearRHTreinamentos(ctx context.Context, repo rh.TreinamentoRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx, "")
+	if err != nil {
+		log.Fatalf("listar treinamentos: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, t := range existentes {
+		jaExiste[t.Descricao] = true
+	}
+
+	type turmaExemplo struct {
+		norma, descricao          string
+		realizadoHaDias           int
+		validadeHaDias            *int // negativo = no futuro (haDiasRH inverte o sinal)
+		participantes             []string
+	}
+	menos15, menos35 := -15, 35
+	turmas := []turmaExemplo{
+		{rh.NormaNR35, "Trabalho em Altura — Turma A", 400, &menos35, []string{"JOÃO BATISTA SILVEIRA", "ANTÔNIO PEREIRA LIMA"}},
+		{rh.NormaNR18, "Construção Civil — Turma B", 350, &menos15, []string{"PAULO HENRIQUE COSTA", "RAFAEL AUGUSTO MENDES"}},
+		{rh.NormaNR10, "Segurança em Eletricidade — Integração", 100, nil, []string{"MARCOS VINÍCIUS ALVES"}},
+	}
+
+	criadas := 0
+	for _, tu := range turmas {
+		if jaExiste[tu.descricao] {
+			continue
+		}
+		var validadeEm *time.Time
+		if tu.validadeHaDias != nil {
+			v := haDiasRH(*tu.validadeHaDias)
+			validadeEm = &v
+		}
+		t := &rh.Treinamento{Norma: tu.norma, Descricao: tu.descricao, RealizadoEm: haDiasRH(tu.realizadoHaDias), ValidadeEm: validadeEm}
+		if err := repo.Criar(ctx, t); err != nil {
+			log.Fatalf("criar treinamento %s: %v", tu.descricao, err)
+		}
+		for _, nome := range tu.participantes {
+			id, ok := idsFuncionarios[nome]
+			if !ok {
+				log.Fatalf("treinamento %s: funcionário %s não encontrado no seed", tu.descricao, nome)
+			}
+			if err := repo.AdicionarParticipante(ctx, &rh.TreinamentoParticipante{TreinamentoID: t.ID, FuncionarioID: id}); err != nil {
+				log.Fatalf("matricular %s em %s: %v", nome, tu.descricao, err)
+			}
+		}
+		criadas++
+	}
+	log.Printf("RH: %d turmas de treinamento de exemplo criadas.", criadas)
+}
+
+// semearRHUniformes — fixture nova, plano exato em apps/rh/e2e/apoio.go.ts `FIXTURE`.
+// Idempotente: pula pela combinação funcionário+peça+motivo.
+func semearRHUniformes(ctx context.Context, repo rh.EntregaUniformeRepositorio, idsFuncionarios map[string]string) {
+	existentes, err := repo.Listar(ctx)
+	if err != nil {
+		log.Fatalf("listar entregas de uniforme: %v", err)
+	}
+	jaExiste := map[string]bool{}
+	for _, e := range existentes {
+		jaExiste[e.FuncionarioNome+"|"+e.Peca+"|"+e.Motivo] = true
+	}
+
+	type entregaExemplo struct {
+		funcionario, peca, tamanho, motivo string
+	}
+	entregas := []entregaExemplo{
+		{"PAULO HENRIQUE COSTA", rh.PecaCamisa, "M", rh.MotivoAdmissao},
+		{"RAFAEL AUGUSTO MENDES", rh.PecaCalcado, "42", rh.MotivoReposicao},
+	}
+
+	criadas := 0
+	for _, ex := range entregas {
+		if jaExiste[ex.funcionario+"|"+ex.peca+"|"+ex.motivo] {
+			continue
+		}
+		id, ok := idsFuncionarios[ex.funcionario]
+		if !ok {
+			log.Fatalf("entrega de uniforme: funcionário %s não encontrado no seed", ex.funcionario)
+		}
+		registradoPor := "Seed"
+		e := &rh.EntregaUniforme{
+			Peca: ex.peca, Tamanho: ex.tamanho, Quantidade: 1, Motivo: ex.motivo,
+			EntregueEm: time.Now().UTC(), RegistradoPor: &registradoPor, FuncionarioID: id,
+		}
+		if err := repo.Criar(ctx, e); err != nil {
+			log.Fatalf("criar entrega de uniforme para %s: %v", ex.funcionario, err)
+		}
+		criadas++
+	}
+	log.Printf("RH: %d entregas de uniforme de exemplo criadas.", criadas)
+}
+
+func condicional(cond bool, seSim, seNao string) string {
+	if cond {
+		return seSim
+	}
+	return seNao
 }

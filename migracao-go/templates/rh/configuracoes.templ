@@ -1,0 +1,80 @@
+package rh
+
+type LinhaCargo struct {
+	ID, Nome, CBO, Risco string
+}
+
+type LinhaRamo struct {
+	ID, Nome string
+}
+
+type LinhaSetor struct {
+	ID, Nome, Ramo string
+}
+
+templ Configuracoes(cargos []LinhaCargo, ramos []LinhaRamo, setores []LinhaSetor, erroCargo string, erroSetor string) {
+	@Pagina("Configurações") {
+		<h1>Configurações</h1>
+
+		<h2>Cargos</h2>
+		<form class="formulario" method="POST" action="/rh/cargos">
+			<div class="campo">
+				<label for="novo-cargo-nome">Nome do cargo</label>
+				<input id="novo-cargo-nome" name="nome" data-testid="novo-cargo-nome"/>
+			</div>
+			<div class="campo">
+				<label for="novo-cargo-cbo">CBO</label>
+				<input id="novo-cargo-cbo" name="cbo"/>
+			</div>
+			<div class="campo">
+				<label for="novo-cargo-risco">Risco</label>
+				<select id="novo-cargo-risco" name="risco" data-testid="novo-cargo-risco">
+					<option value="NORMAL">Normal</option>
+					<option value="INSALUBRE">Insalubre</option>
+					<option value="PERICULOSO">Periculoso</option>
+				</select>
+			</div>
+			if erroCargo != "" {
+				<p role="alert">{ erroCargo }</p>
+			}
+			<button type="submit" data-testid="criar-cargo">Adicionar cargo</button>
+		</form>
+		<ul data-testid="lista-cargos">
+			for _, c := range cargos {
+				<li>{ c.Nome } · { c.Risco }</li>
+			}
+		</ul>
+
+		<h2>Departamentos</h2>
+		<form class="formulario" method="POST" action="/rh/departamentos/ramos">
+			<div class="campo">
+				<label for="novo-ramo-nome">Novo ramo</label>
+				<input id="novo-ramo-nome" name="nome" data-testid="novo-ramo-nome"/>
+			</div>
+			<button type="submit" data-testid="criar-ramo">Adicionar ramo</button>
+		</form>
+		<form class="formulario" method="POST" action="/rh/departamentos/setores">
+			<div class="campo">
+				<label for="novo-setor-nome">Novo setor</label>
+				<input id="novo-setor-nome" name="nome" data-testid="novo-setor-nome"/>
+			</div>
+			<div class="campo">
+				<label for="novo-setor-ramo">Ramo</label>
+				<select id="novo-setor-ramo" name="ramoId" data-testid="novo-setor-ramo">
+					for _, ramo := range ramos {
+						<option value={ ramo.ID }>{ ramo.Nome }</option>
+					}
+				</select>
+			</div>
+			if erroSetor != "" {
+				<p role="alert">{ erroSetor }</p>
+			}
+			<button type="submit" data-testid="criar-setor">Adicionar setor</button>
+		</form>
+		<ul data-testid="lista-setores">
+			for _, s := range setores {
+				<li>{ s.Ramo } · { s.Nome }</li>
+			}
+		</ul>
+	}
+}
