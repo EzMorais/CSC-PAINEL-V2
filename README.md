@@ -41,8 +41,11 @@ funcional antes de desligar o Next.js daquele módulo.
 | **Portal** (`/` ou `/portal`) | ✅ | ✅ 20/20 | ✅ login, usuários, hub | ⬜ convivendo (4 apps Next.js seguem no ar) |
 | **Painel de Locação** (`/painel`) | ✅ | ✅ 18/18 | ✅ CRUD completo + importador/exportador Excel/PDF | ⬜ convivendo |
 | **Almoxarifado** (`/almoxarifado`) | ✅ | ✅ 24/24 | ✅ materiais, movimentações, aprovações, compras, e-mail, EPIs | ⬜ convivendo |
-| **RH e SST** (`/rh`) | ⬜ | ⬜ | ⬜ (em andamento) | ⬜ |
+| **RH e SST** (`/rh`) | ✅ | ✅ 65/65 | ✅ funcionários, uniformes, treinamentos, exames, documentos, auditorias, importação, relatórios, integração de EPI | ⬜ convivendo |
 | **Alojamentos** (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+
+> Módulo novo `compras` (`/compras`, contas a pagar) entrou no binário Go sem equivalente em
+> Next.js e ainda sem testes automatizados — ver [`migracao-go/README.md`](migracao-go/README.md#compras--módulo-novo-fora-do-escopo-original-de-migração-2026-08-11).
 
 **Decisões-chave do V2:**
 
@@ -149,7 +152,8 @@ de início original. Importador validado byte-exato contra a planilha real (305 
 Funcionários com linha do tempo, uniformes com assinatura digital, treinamentos com turmas
 e certificados (reciclagem vencida em destaque), exames ASO, documentos da empresa/obra
 (PGR, PCMSO, LTCAT) com versionamento, checklist de admissão, auditorias que abrem não
-conformidades. EPIs: a entrega vem **só** do Almoxarifado.
+conformidades. EPIs: a entrega vem **só** do Almoxarifado. Migrado para Go com a suíte de
+referência inteira passando (65/65 testes).
 
 ### Almoxarifado — materiais, saldos e compras
 **Não existe campo de saldo editável** — o saldo é sempre somado do livro-razão. Conferência

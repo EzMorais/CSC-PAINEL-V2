@@ -58,8 +58,24 @@ segundo módulo — o Portal não tem `Obra`.
 | **Portal** (`/` ou `/portal`) | ✅ [`portal/COMPORTAMENTO.md`](portal/COMPORTAMENTO.md) | ✅ `apps/portal/e2e/` — 20/20 contra o Next.js **e** contra o Go (`playwright.go.config.ts`) | ✅ `cmd/servidor`, `cmd/seed` — login, usuários, hub (2026-08-04) | ⬜ ainda convivendo — 4 apps Next.js seguem no ar |
 | **Painel de Locação** (`/painel`) | ✅ [`painel/COMPORTAMENTO.md`](painel/COMPORTAMENTO.md) | ✅ `apps/painel-locacao/e2e/*.go.spec.ts` — 18/18, duas vezes seguidas | ✅ CRUD/ciclo de vida completo + importador Excel (validado byte-exato contra a planilha real: 305/242/63/16/90/20) + exportadores Excel/PDF (2026-08-04) | ⬜ ainda convivendo |
 | **Almoxarifado** (`/almoxarifado`) | ✅ [`estoque/COMPORTAMENTO.md`](estoque/COMPORTAMENTO.md) | ✅ `apps/estoque/e2e/*.go.spec.ts` — 24/24, duas vezes seguidas | ✅ Materiais (saldo sempre somado do livro-razão, nunca gravado) + movimentações (entrada/saída/devolução/perda/ajuste, com bloqueio de saldo negativo) + fila de aprovação propose-then-execute (perda/ajuste/solicitação de compra, com bloqueio de auto-aprovação) + solicitação de compra com sugestão automática + envio de e-mail (SMTP nativo, `net/smtp`) + integração HTTP com o RH pra ficha de EPI (2026-08-04) | ⬜ ainda convivendo |
-| RH e SST (`/rh`) | ⬜ | ⬜ | ⬜ | ⬜ |
+| **RH e SST** (`/rh`) | ✅ [`rh/COMPORTAMENTO.md`](rh/COMPORTAMENTO.md) | ✅ `apps/rh/e2e/*.go.spec.ts` — 65/65 (2026-08-11) | ✅ funcionários com timeline, uniformes com assinatura, treinamentos/turmas, exames ASO, documentos com versionamento, auditorias/NC, importação de funcionários, relatórios Excel/PDF, integração HTTP com o Almoxarifado pra ficha de EPI (2026-08-11) | ⬜ ainda convivendo |
 | Alojamentos (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+
+## Compras — módulo novo, fora do escopo original de migração (2026-08-11)
+
+`internal/domain/compras`, `internal/application/compras`, `internal/handlers/compras`
+(rotas `/compras`) e a migração `0005_compras_financeiro.sql` chegaram no mesmo commit que
+fechou o RH, mas **não são a migração de nenhum app Next.js existente** — não há
+`apps/compras`. É funcionalidade nova: transforma uma `SolicitacaoCompra` aprovada no
+Almoxarifado em `PedidoCompra` (pedido ao fornecedor), registra `RecebimentoCompra` e gera
+`ContaPagar`. Como não migra comportamento de um app já mapeado, o processo de
+COMPORTAMENTO.md → suíte Playwright de referência não se aplica da mesma forma — mas o
+módulo **ainda não tem nenhum teste automatizado** (`go test` confirma: `[no test files]`
+em domain, application e handlers de compras). Antes de considerar o módulo pronto, precisa
+de: (1) um documento curto do comportamento esperado (nem que seja escrito do zero, já que
+não há Next.js de referência), e (2) testes de aplicação/domínio cobrindo pelo menos a
+transição de status do pedido (ABERTO → PARCIAL → RECEBIDO) e a geração da conta a pagar no
+recebimento.
 
 ## Painel de Locação — adaptações conscientes (2026-08-04)
 
