@@ -66,15 +66,18 @@ func TestLer_TokenAdulterado(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Flipa o último caractere da assinatura — tem que continuar sendo um token
+	// Flipa um caractere no meio da assinatura. O último caractere base64url pode ter
+	// bits de padding sem significado e, dependendo do valor, outra letra decodifica para
+	// os mesmos bytes; no meio a alteração sempre muda a assinatura.
 	// sintaticamente válido (3 partes separadas por ponto), só com assinatura errada.
 	partes := strings.Split(token, ".")
 	ultima := partes[2]
+	indice := len(ultima) / 2
 	troca := byte('a')
-	if ultima[len(ultima)-1] == 'a' {
+	if ultima[indice] == 'a' {
 		troca = 'b'
 	}
-	partes[2] = ultima[:len(ultima)-1] + string(troca)
+	partes[2] = ultima[:indice] + string(troca) + ultima[indice+1:]
 	adulterado := strings.Join(partes, ".")
 
 	if _, err := s.Ler(adulterado); err == nil {

@@ -78,6 +78,7 @@ func main() {
 			dominioIdentidade.ModuloFrota:       cfg.URLFrota,
 			dominioIdentidade.ModuloFinanceiro:  "/financeiro",
 			dominioIdentidade.ModuloProgramacao: "/programacao",
+			dominioIdentidade.ModuloCompras:     "/compras",
 		},
 	)
 	mux.HandleFunc("GET /entrar", hIdentidade.Entrar)
@@ -390,6 +391,7 @@ func main() {
 	repoAlojamentos := database.NovoAlojamentosRepositorio(db)
 	hAlojamentos := &handlersAlojamentos.Handlers{
 		Sessoes: sessoes, Repo: repoAlojamentos,
+		Whatsapp: repoAlojamentos, Integracao: servicoIntegracao,
 		Gerenciador: &aplicacaoAlojamentos.Gerenciador{Repo: repoAlojamentos},
 		ListarFuncionarios: func(ctx context.Context) ([]tplAlojamentos.Opcao, error) {
 			fs, err := repoRHFuncionarios.ListarAtivosParaIntegracao(ctx)
@@ -424,6 +426,7 @@ func main() {
 	mux.HandleFunc("GET /alojamentos/rotas", hAlojamentos.Rotas)
 	mux.HandleFunc("POST /alojamentos/rotas", hAlojamentos.RotaCriar)
 	mux.HandleFunc("POST /alojamentos/rotas/{id}/alternar", hAlojamentos.RotaAlternar)
+	mux.HandleFunc("POST /api/integracao/whatsapp/recebida", hAlojamentos.WhatsappRecebida)
 
 	// ── Programação Diária — montada sob /programacao ──
 	// Porta de apps/programacao (Next.js, https://github.com/EzMorais/CSC-PAINEL): quem vai

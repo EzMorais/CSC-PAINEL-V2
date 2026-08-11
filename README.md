@@ -23,7 +23,7 @@ Almoxarifado e Alojamentos num **banco SQLite único** com tabelas compartilhada
 | [`apps/alojamentos`](apps/alojamentos) | **Alojamentos** | 3005 | Gestão de moradores e pedidos de alojamento |
 | [`apps/frota`](apps/frota) | **Frota** | 3000 (web) | Veículos, manutenções e abastecimento (login próprio) |
 | [`apps/whatsapp`](apps/whatsapp) | **WhatsApp** | 3006 | Integração: pedidos do Alojamento via WhatsApp (sem tela) |
-| [`migracao-go`](migracao-go) | **Migração Go** | 9000 (binário único) | Núcleo do ERP em Go: Portal, Painel, Almoxarifado (RH e Alojamentos em andamento) |
+| [`migracao-go`](migracao-go) | **Migração Go** | 9000 (binário único) | Núcleo do ERP em Go: Portal, Painel, Almoxarifado, RH, Alojamentos, Compras, Financeiro e Programação |
 
 > O **Painel de Locação** migrado para Go responde em `/painel` no binário único; o app
 > Next.js original segue na porta 3000 enquanto a migração não é concluída.
@@ -42,10 +42,12 @@ funcional antes de desligar o Next.js daquele módulo.
 | **Painel de Locação** (`/painel`) | ✅ | ✅ 18/18 | ✅ CRUD completo + importador/exportador Excel/PDF | ⬜ convivendo |
 | **Almoxarifado** (`/almoxarifado`) | ✅ | ✅ 24/24 | ✅ materiais, movimentações, aprovações, compras, e-mail, EPIs | ⬜ convivendo |
 | **RH e SST** (`/rh`) | ✅ | ✅ 65/65 | ✅ funcionários, uniformes, treinamentos, exames, documentos, auditorias, importação, relatórios, integração de EPI | ⬜ convivendo |
-| **Alojamentos** (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+| **Alojamentos** (`/alojamentos`) | ✅ | 🟡 regras Go cobertas; Playwright pendente | ✅ gestão completa + webhook/conversa WhatsApp | ⬜ convivendo |
+| **Programação Diária** (`/programacao`) | 🟡 | 🟡 testes Go; Playwright pendente | ✅ quadro diário, frentes, equipes, veículos e funções | ⬜ convivendo |
 
-> Módulo novo `compras` (`/compras`, contas a pagar) entrou no binário Go sem equivalente em
-> Next.js e ainda sem testes automatizados — ver [`migracao-go/README.md`](migracao-go/README.md#compras--módulo-novo-fora-do-escopo-original-de-migração-2026-08-11).
+> O módulo novo `compras` (`/compras`) entrou no binário Go sem equivalente em Next.js.
+> Possui testes de aplicação/integração e controle de acesso próprio; veja
+> [`migracao-go/README.md`](migracao-go/README.md#compras--módulo-novo-fora-do-escopo-original-de-migração-2026-08-11).
 
 **Decisões-chave do V2:**
 

@@ -9,6 +9,7 @@ import (
 	aplicacao "siqueiracampos/servidor/internal/application/alojamentos"
 	dominio "siqueiracampos/servidor/internal/domain/alojamentos"
 	"siqueiracampos/servidor/internal/middleware"
+	"siqueiracampos/servidor/internal/services/integracao"
 	tpl "siqueiracampos/servidor/templates/alojamentos"
 )
 
@@ -17,6 +18,8 @@ type Handlers struct {
 	Gerenciador        *aplicacao.Gerenciador
 	Repo               dominio.Repositorio
 	ListarFuncionarios func(context.Context) ([]tpl.Opcao, error)
+	Whatsapp           dominio.WhatsappRepositorio
+	Integracao         *integracao.Servico
 }
 
 func (h *Handlers) sessao(w http.ResponseWriter, r *http.Request) (string, bool) {

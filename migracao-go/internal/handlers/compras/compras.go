@@ -39,12 +39,24 @@ func Novo(
 }
 
 func (h *Handlers) exigirLancamento(w http.ResponseWriter, r *http.Request) (*identidade.Sessao, bool) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.exigirAcesso(w, r)
 	if !ok {
 		return nil, false
 	}
 	if !identidade.PodeLancar(sess.Cargo) {
 		http.Error(w, "Seu cargo permite apenas consultar.", http.StatusForbidden)
+		return nil, false
+	}
+	return sess, true
+}
+
+func (h *Handlers) exigirAcesso(w http.ResponseWriter, r *http.Request) (*identidade.Sessao, bool) {
+	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	if !ok {
+		return nil, false
+	}
+	if !identidade.TemAcesso(*sess, identidade.ModuloCompras) {
+		http.Error(w, "Sem acesso ao módulo Compras.", http.StatusForbidden)
 		return nil, false
 	}
 	return sess, true
@@ -233,7 +245,7 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 </html>`))
 
 func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	ctx := r.Context()
@@ -280,7 +292,7 @@ func (h *Handlers) PedidoCriar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) PedidoDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

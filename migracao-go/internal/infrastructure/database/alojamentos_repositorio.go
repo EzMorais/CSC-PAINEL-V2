@@ -3,11 +3,98 @@ package database
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	dominio "siqueiracampos/servidor/internal/domain/alojamentos"
 )
+
+func telefoneDigitos(s string) string {
+	var b strings.Builder
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			b.WriteRune(c)
+		}
+	}
+	v := b.String()
+	if strings.HasPrefix(v, "55") {
+		v = v[2:]
+	}
+	return v
+}
+
+func (r *AlojamentosRepositorio) RegistrarMensagem(ctx context.Context, externoID, telefone string, grupoID *string, texto string) (bool, error) {
+	if externoID != "" {
+		var n int
+		if err := r.DB.QueryRowContext(ctx, `SELECT count(*) FROM mensagens_whatsapp_alojamento WHERE externo_id=? AND direcao='RECEBIDA'`, externoID).Scan(&n); err != nil {
+			return false, err
+		}
+		if n > 0 {
+			return true, nil
+		}
+	}
+	_, err := r.DB.ExecContext(ctx, `INSERT INTO mensagens_whatsapp_alojamento(id,telefone,grupo_id,direcao,texto,externo_id,criado_em) VALUES(?,?,?,'RECEBIDA',?,?,?)`, uuid.NewString(), telefone, grupoID, func() any {
+		if externoID == "" {
+			return nil
+		}
+		return externoID
+	}(), time.Now().UTC().Format(time.RFC3339))
+	return false, err
+}
+func (r *AlojamentosRepositorio) BuscarMoradorPorTelefone(ctx context.Context, telefone string) (*dominio.MoradorWhatsapp, error) {
+	rows, err := r.DB.QueryContext(ctx, `SELECT x.id,x.funcionario_nome,x.telefone,a.id,a.nome FROM alocacoes x JOIN alojamentos a ON a.id=x.alojamento_id WHERE x.status='ATIVA' AND x.telefone IS NOT NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	alvo := telefoneDigitos(telefone)
+	for rows.Next() {
+		var m dominio.MoradorWhatsapp
+		var tel string
+		if err := rows.Scan(&m.AlocacaoID, &m.Nome, &tel, &m.AlojamentoID, &m.AlojamentoNome); err != nil {
+			return nil, err
+		}
+		if telefoneDigitos(tel) == alvo {
+			return &m, nil
+		}
+	}
+	return nil, rows.Err()
+}
+func (r *AlojamentosRepositorio) BuscarAlojamentoPorGrupo(ctx context.Context, grupo string) (*dominio.Alojamento, error) {
+	a, e := scanAloj(r.DB.QueryRowContext(ctx, selAloj+` WHERE a.grupo_whatsapp_id=?`, grupo))
+	if e == sql.ErrNoRows {
+		return nil, nil
+	}
+	return a, e
+}
+func (r *AlojamentosRepositorio) BuscarConversa(ctx context.Context, telefone string, agora time.Time) (*dominio.EstadoConversa, error) {
+	var e dominio.EstadoConversa
+	var tipo, desc sql.NullString
+	var exp string
+	err := r.DB.QueryRowContext(ctx, `SELECT passo,tipo_escolhido,descricao,expira_em FROM conversas_whatsapp_alojamento WHERE telefone=?`, telefone).Scan(&e.Passo, &tipo, &desc, &exp)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !tempo(exp).After(agora) {
+		return nil, nil
+	}
+	e.Tipo = tipo.String
+	e.Descricao = desc.String
+	return &e, nil
+}
+func (r *AlojamentosRepositorio) SalvarConversa(ctx context.Context, telefone, alocacaoID string, e *dominio.EstadoConversa, exp time.Time) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := r.DB.ExecContext(ctx, `INSERT INTO conversas_whatsapp_alojamento(id,telefone,passo,tipo_escolhido,descricao,alocacao_id,expira_em,criado_em,atualizado_em) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(telefone) DO UPDATE SET passo=excluded.passo,tipo_escolhido=excluded.tipo_escolhido,descricao=excluded.descricao,alocacao_id=excluded.alocacao_id,expira_em=excluded.expira_em,atualizado_em=excluded.atualizado_em`, uuid.NewString(), telefone, e.Passo, e.Tipo, e.Descricao, alocacaoID, exp.Format(time.RFC3339), now, now)
+	return err
+}
+func (r *AlojamentosRepositorio) LimparConversa(ctx context.Context, telefone string) error {
+	_, e := r.DB.ExecContext(ctx, `DELETE FROM conversas_whatsapp_alojamento WHERE telefone=?`, telefone)
+	return e
+}
 
 type AlojamentosRepositorio struct{ DB *sql.DB }
 

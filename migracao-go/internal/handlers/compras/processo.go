@@ -55,7 +55,7 @@ func (h *Handlers) renderProcesso(w http.ResponseWriter, v processoView) {
 	}
 }
 func (h *Handlers) Cotacoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	cs, e := h.RepoProcesso.ListarCotacoes(r.Context())
@@ -79,7 +79,7 @@ func (h *Handlers) CotacaoCriar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compras/cotacoes/"+c.ID, 303)
 }
 func (h *Handlers) CotacaoDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	c, e := h.RepoProcesso.BuscarCotacao(r.Context(), r.PathValue("id"))
@@ -230,7 +230,7 @@ func (h *Handlers) FornecedorAvaliar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compras/pedidos/"+p.ID, 303)
 }
 func (h *Handlers) Divergencias(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	ds, e := h.RepoProcesso.ListarDivergencias(r.Context(), "")
@@ -252,7 +252,7 @@ func (h *Handlers) DivergenciaResolver(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compras/divergencias", 303)
 }
 func (h *Handlers) Devolucoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	devolucoes, e := h.RepoProcesso.ListarDevolucoes(r.Context())
@@ -301,7 +301,7 @@ func (h *Handlers) DevolucaoCriar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compras/devolucoes", 303)
 }
 func (h *Handlers) Contratos(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	cs, e := h.RepoProcesso.ListarContratos(r.Context())
@@ -334,7 +334,7 @@ func (h *Handlers) ContratoCriar(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/compras/contratos", 303)
 }
 func (h *Handlers) Relatorios(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.exigirAcesso(w, r); !ok {
 		return
 	}
 	i, e := h.RepoProcesso.Indicadores(r.Context())
