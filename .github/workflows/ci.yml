@@ -167,7 +167,10 @@ jobs:
 
   e2e:
     name: Playwright · ${{ matrix.app }}
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_e2e == true)
+    # Roda em PR (gate antes do merge) e em push pra main (rede de segurança pra push direto),
+    # além do disparo manual — ver ERP_BRIEFING_MELHORIA.md P1 item 4: antes só rodava em main,
+    # então uma quebra só aparecia depois de já mergeado.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_e2e == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -180,6 +183,16 @@ jobs:
             config: playwright.config.ts
           - app: apps/painel-locacao
             config: playwright.config.ts
+          # RH e Almoxarifado já têm suíte de referência completa contra o binário Go
+          # (apps/<módulo>/e2e/*.go.spec.ts — ver migracao-go/README.md). Alojamentos e
+          # Programação Diária ainda não têm suíte Playwright nenhuma (não é troca de config,
+          # é escrever a suíte do zero), então continuam de fora até isso existir.
+          - app: apps/rh
+            config: playwright.go.config.ts
+            needsGo: true
+          - app: apps/estoque
+            config: playwright.go.config.ts
+            needsGo: true
     defaults:
       run:
         working-directory: ${{ matrix.app }}
@@ -198,6 +211,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      # Suítes .go.spec.ts sobem o binário migracao-go via webServer do Playwright
+      # (`go run ./cmd/seed && go run ./cmd/servidor` — ver apps/<módulo>/playwright.go.config.ts),
+      # então o runner precisa do toolchain Go, não só do Node.
+      - name: Configurar Go
+        if: matrix.needsGo
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: migracao-go/go.sum
 
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
