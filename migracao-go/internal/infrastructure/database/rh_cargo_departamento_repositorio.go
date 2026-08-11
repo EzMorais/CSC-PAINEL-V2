@@ -26,17 +26,21 @@ type RHCargoRepositorio struct{ DB *sql.DB }
 
 func NovoRHCargoRepositorio(db *sql.DB) *RHCargoRepositorio { return &RHCargoRepositorio{DB: db} }
 
-const colunasCargo = `id, nome, cbo, risco, ativo, criado_em`
+const colunasCargo = `id, nome, cbo, risco, descricao, responsabilidades, requisitos, documentos_obrigatorios, ativo, criado_em`
 
 func lerCargo(linha linhaEscaneavel) (*rh.Cargo, error) {
 	var c rh.Cargo
-	var cbo sql.NullString
+	var cbo, descricao, responsabilidades, requisitos, documentos sql.NullString
 	var ativo int
 	var criadoEm string
-	if err := linha.Scan(&c.ID, &c.Nome, &cbo, &c.Risco, &ativo, &criadoEm); err != nil {
+	if err := linha.Scan(&c.ID, &c.Nome, &cbo, &c.Risco, &descricao, &responsabilidades, &requisitos, &documentos, &ativo, &criadoEm); err != nil {
 		return nil, err
 	}
 	c.CBO = txt(cbo)
+	c.Descricao = txt(descricao)
+	c.Responsabilidades = txt(responsabilidades)
+	c.Requisitos = txt(requisitos)
+	c.DocumentosObrigatorios = txt(documentos)
 	c.Ativo = ativo != 0
 	c.CriadoEm, _ = time.Parse(time.RFC3339, criadoEm)
 	return &c, nil
@@ -81,8 +85,9 @@ func (r *RHCargoRepositorio) Criar(ctx context.Context, c *rh.Cargo) error {
 	id := uuid.NewString()
 	agora := time.Now().UTC().Format(time.RFC3339)
 	_, err := r.DB.ExecContext(ctx, `
-		INSERT INTO cargos (id, nome, cbo, risco, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)`,
-		id, c.Nome, c.CBO, c.Risco, agora)
+		INSERT INTO cargos (id, nome, cbo, risco, descricao, responsabilidades, requisitos, documentos_obrigatorios, ativo, criado_em)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+		id, c.Nome, c.CBO, c.Risco, c.Descricao, c.Responsabilidades, c.Requisitos, c.DocumentosObrigatorios, agora)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: cargos.nome") {
 			return rh.ErrCargoDuplicado
@@ -95,8 +100,8 @@ func (r *RHCargoRepositorio) Criar(ctx context.Context, c *rh.Cargo) error {
 }
 
 func (r *RHCargoRepositorio) Atualizar(ctx context.Context, c *rh.Cargo) error {
-	_, err := r.DB.ExecContext(ctx, `UPDATE cargos SET nome = ?, cbo = ?, risco = ? WHERE id = ?`,
-		c.Nome, c.CBO, c.Risco, c.ID)
+	_, err := r.DB.ExecContext(ctx, `UPDATE cargos SET nome = ?, cbo = ?, risco = ?, descricao = ?, responsabilidades = ?, requisitos = ?, documentos_obrigatorios = ? WHERE id = ?`,
+		c.Nome, c.CBO, c.Risco, c.Descricao, c.Responsabilidades, c.Requisitos, c.DocumentosObrigatorios, c.ID)
 	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed: cargos.nome") {
 		return rh.ErrCargoDuplicado
 	}

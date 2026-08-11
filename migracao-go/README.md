@@ -51,6 +51,20 @@ domínio. Detalhe de execução em `ARQUITETURA.md` §2. O desenho de schema exa
 coluna, o campo de geocodificação que só Alojamentos tem) fica pra quando a migração chegar no
 segundo módulo — o Portal não tem `Obra`.
 
+## Importação do cadastro operacional da Programação
+
+Listas tabuladas com as seções `FUNCIONÁRIOS` e `Veiculo` podem ser carregadas de forma
+idempotente no banco do servidor. O comando cria funções por sigla, atualiza pessoas pelo nome
+normalizado e atualiza veículos pela placa (ou pelo modelo quando a placa estiver ausente):
+
+```powershell
+$env:DATABASE_PATH = 'servidor.db'
+go run ./cmd/importar-programacao 'caminho\lista.txt'
+```
+
+Esse cadastro é operacional e não substitui o RH: sem CPF, matrícula e dados admissionais, a
+pessoa não pode ser criada como funcionário formal.
+
 ## Status por módulo
 
 | Módulo | Comportamento mapeado | Testes de referência | Implementação Go | Next.js removido |

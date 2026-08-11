@@ -1,81 +1,42 @@
 package painel
 
-type Kpis struct {
-	ValorEmLocacao, Ativos, VencemEm7Dias, Vencidos, Perdidos, AConfirmar string
-}
+type Kpis struct { ValorEmLocacao, Ativos, VencemEm7Dias, Vencidos, Perdidos, AConfirmar string }
+type LinhaVencimento struct { Descricao, ObraTexto, DataFim, Valor string }
+type LinhaAgregadaView struct{ Nome, Valor string }
 
-type LinhaVencimento struct {
-	Descricao, ObraTexto, DataFim, Valor string
-}
-
-templ Dashboard(kpis Kpis, vencimentos []LinhaVencimento, porObra, porFornecedor []LinhaAgregadaView) {
+templ Dashboard(k Kpis, vencimentos []LinhaVencimento, porObra, porFornecedor []LinhaAgregadaView) {
 	@Pagina("Dashboard") {
-		<h1>Dashboard</h1>
-
-		<div class="grade-sistemas" data-testid="kpis">
-			<div class="card">
-				<p class="email">EM LOCAÇÃO</p>
-				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-valor">{ kpis.ValorEmLocacao }</p>
-			</div>
-			<div class="card">
-				<p class="email">ITENS ATIVOS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-ativos">{ kpis.Ativos }</p>
-			</div>
-			<div class="card">
-				<p class="email">VENCEM EM 7 DIAS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-vencem-7">{ kpis.VencemEm7Dias }</p>
-			</div>
-			<div class="card">
-				<p class="email">VENCIDOS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-vencidos">{ kpis.Vencidos }</p>
-			</div>
-			<div class="card">
-				<p class="email">ITENS PERDIDOS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-perdidos">{ kpis.Perdidos }</p>
-			</div>
-			<div class="card">
-				<p class="email">OBRA A CONFIRMAR</p>
-				<p style="font-size:1.4rem" data-testid="kpi-a-confirmar">{ kpis.AConfirmar }</p>
-			</div>
+		<header class="pagina-cabecalho"><div><span class="pagina-sobretitulo">Visão de contratos</span><h1>Locações</h1><p>Custos ativos, vencimentos e concentração por obra e fornecedor.</p></div><a class="botao botao-primario" href="/painel/locacoes/nova">+ Nova locação</a></header>
+		<div class="grade-kpis painel-kpis" data-testid="kpis">
+			<div class="cartao-kpi kpi-financeiro"><span class="rotulo-kpi">Valor em locação</span><strong class="valor-kpi tabular money" data-testid="kpi-valor">{ k.ValorEmLocacao }</strong><span class="kpi-nota">compromisso atual</span></div>
+			<div class="cartao-kpi kpi-destaque"><span class="rotulo-kpi">Itens ativos</span><strong class="valor-kpi" data-testid="kpi-ativos">{ k.Ativos }</strong><span class="kpi-nota">em operação</span></div>
+			<div class="cartao-kpi"><span class="rotulo-kpi">Vencem em 7 dias</span><strong class="valor-kpi" data-testid="kpi-vencem-7">{ k.VencemEm7Dias }</strong><span class="kpi-nota">decisão necessária</span></div>
+			<div class="cartao-kpi kpi-alerta"><span class="rotulo-kpi">Vencidos</span><strong class="valor-kpi" data-testid="kpi-vencidos">{ k.Vencidos }</strong><span class="kpi-nota">regularizar agora</span></div>
+			<div class="cartao-kpi kpi-compacto"><span class="rotulo-kpi">Itens perdidos</span><strong class="valor-kpi" data-testid="kpi-perdidos">{ k.Perdidos }</strong></div>
+			<div class="cartao-kpi kpi-compacto"><span class="rotulo-kpi">Obra a confirmar</span><strong class="valor-kpi" data-testid="kpi-a-confirmar">{ k.AConfirmar }</strong></div>
 		</div>
-
-		<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
-			<section class="card">
-				<h2>Valor por obra</h2>
-				<ul data-testid="valor-por-obra" style="list-style:none;padding:0">
-					for _, l := range porObra {
-						<li style="display:flex;justify-content:space-between;padding:0.2rem 0">
-							<span>{ l.Nome }</span><span class="tabular money">{ l.Valor }</span>
-						</li>
-					}
-				</ul>
-			</section>
-			<section class="card">
-				<h2>Valor por fornecedor</h2>
-				<ul data-testid="valor-por-fornecedor" style="list-style:none;padding:0">
-					for _, l := range porFornecedor {
-						<li style="display:flex;justify-content:space-between;padding:0.2rem 0">
-							<span>{ l.Nome }</span><span class="tabular money">{ l.Valor }</span>
-						</li>
-					}
-				</ul>
-			</section>
+		<div class="dashboard-colunas">
+			@agregadoDashboard("Distribuição", "Valor por obra", "/painel/obras", "Ver obras", "valor-por-obra", porObra, "Nenhuma locação ativa por obra.")
+			@agregadoDashboard("Concentração", "Valor por fornecedor", "/painel/fornecedores", "Ver fornecedores", "valor-por-fornecedor", porFornecedor, "Nenhum fornecedor com locação ativa.")
 		</div>
-
-		<section class="card" style="margin-top:1rem">
-			<h2>Vencidos e vencendo em até 7 dias</h2>
-			<table data-testid="tabela-vencimentos" style="width:100%;border-collapse:collapse">
-				for _, v := range vencimentos {
-					<tr style="border-bottom:1px solid var(--border)">
-						<td style="padding:0.4rem 0">{ v.Descricao }</td>
-						<td>{ v.ObraTexto }</td>
-						<td class="tabular">{ v.DataFim }</td>
-						<td class="tabular money" style="text-align:right">{ v.Valor }</td>
-					</tr>
-				}
-			</table>
-		</section>
+		<section class="painel-dados"><header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Agenda crítica</span><h2>Vencidos e próximos 7 dias</h2></div><a href="/painel/locacoes">Ver todas</a></header><div class="tabela-responsiva"><table data-testid="tabela-vencimentos"><thead><tr><th>Item</th><th>Obra</th><th>Fim</th><th>Valor</th></tr></thead><tbody>
+			for _, v := range vencimentos {
+				<tr><td>{ v.Descricao }</td><td>{ v.ObraTexto }</td><td class="tabular">{ v.DataFim }</td><td class="tabular money">{ v.Valor }</td></tr>
+			}
+			if len(vencimentos) == 0 {
+				<tr><td colspan="4" class="estado-vazio">Nenhum vencimento crítico.</td></tr>
+			}
+		</tbody></table></div></section>
 	}
 }
 
-type LinhaAgregadaView struct{ Nome, Valor string }
+templ agregadoDashboard(sobretitulo, titulo, url, link, testid string, linhas []LinhaAgregadaView, vazio string) {
+	<section class="painel-dados"><header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">{ sobretitulo }</span><h2>{ titulo }</h2></div><a href={ templ.URL(url) }>{ link }</a></header><ul class="lista-dashboard" data-testid={ testid }>
+		for _, l := range linhas {
+			<li><span class="item-principal">{ l.Nome }</span><strong class="tabular money item-valor">{ l.Valor }</strong></li>
+		}
+		if len(linhas) == 0 {
+			<li class="estado-vazio">{ vazio }</li>
+		}
+	</ul></section>
+}

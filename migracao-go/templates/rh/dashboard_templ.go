@@ -10,10 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "fmt"
 
-type LinhaEvento struct {
-	Descricao string
-	Quando    string
-}
+type LinhaEvento struct{ Descricao, Quando string }
 
 func Dashboard(ativos, afastados, ferias, desligados, cadastrosIncompletos int, eventos []LinhaEvento) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -48,108 +45,114 @@ func Dashboard(ativos, afastados, ferias, desligados, cadastrosIncompletos int, 
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>RH e SST</h1><div class=\"grade-kpis\"><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Ativos</span> <span class=\"valor-kpi\" data-testid=\"kpi-ativos\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"pagina-cabecalho\"><div><span class=\"pagina-sobretitulo\">Pessoas e conformidade</span><h1>RH e SST</h1><p>Efetivo, disponibilidade e qualidade dos cadastros em uma única visão.</p></div><a class=\"botao botao-primario\" href=\"/rh/funcionarios/novo\">+ Novo funcionário</a></header><div class=\"grade-kpis painel-kpis\"><div class=\"cartao-kpi kpi-destaque\"><span class=\"rotulo-kpi\">Ativos</span><strong class=\"valor-kpi\" data-testid=\"kpi-ativos\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(ativos))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 17, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 11, Col: 149}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Afastados</span> <span class=\"valor-kpi\" data-testid=\"kpi-afastados\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</strong><span class=\"kpi-nota\">disponíveis no quadro</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Afastados</span><strong class=\"valor-kpi\" data-testid=\"kpi-afastados\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(afastados))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 21, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 12, Col: 145}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Férias</span> <span class=\"valor-kpi\" data-testid=\"kpi-ferias\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</strong><span class=\"kpi-nota\">fora da programação</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Férias</span><strong class=\"valor-kpi\" data-testid=\"kpi-ferias\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(ferias))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 25, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 13, Col: 137}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Desligados</span> <span class=\"valor-kpi\" data-testid=\"kpi-desligados\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</strong><span class=\"kpi-nota\">ausências previstas</span></div><div class=\"cartao-kpi kpi-compacto\"><span class=\"rotulo-kpi\">Desligados</span><strong class=\"valor-kpi\" data-testid=\"kpi-desligados\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(desligados))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 29, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 14, Col: 161}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Cadastros incompletos</span> <span class=\"valor-kpi\" data-testid=\"kpi-cadastros-incompletos\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</strong></div><div class=\"cartao-kpi kpi-alerta\"><span class=\"rotulo-kpi\">Cadastros incompletos</span><strong class=\"valor-kpi\" data-testid=\"kpi-cadastros-incompletos\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprint(cadastrosIncompletos))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 33, Col: 102}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 15, Col: 191}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span></div></div><h2>Últimas movimentações</h2><ul data-testid=\"eventos-recentes\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</strong><span class=\"kpi-nota\">sem obra ou cargo</span></div></div><section class=\"painel-dados\"><header class=\"painel-dados-cabecalho\"><div><span class=\"pagina-sobretitulo\">Histórico</span><h2>Últimas movimentações</h2></div><a href=\"/rh/funcionarios\">Ver equipe</a></header><ul class=\"lista-dashboard\" data-testid=\"eventos-recentes\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, e := range eventos {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<li><span class=\"item-principal\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(e.Descricao)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 40, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 19, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " <span class=\"email\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span><time class=\"tabular item-valor\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(e.Quando)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 40, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/rh/dashboard.templ`, Line: 19, Col: 102}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span></li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</time></li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</ul>")
+			if len(eventos) == 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<li class=\"estado-vazio\">Nenhuma movimentação registrada.</li>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</ul></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

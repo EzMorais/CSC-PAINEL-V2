@@ -1,7 +1,7 @@
 package rh
 
 type LinhaCargo struct {
-	ID, Nome, CBO, Risco string
+	ID, Nome, CBO, Risco, Descricao, Responsabilidades, Requisitos, DocumentosObrigatorios string
 }
 
 type LinhaRamo struct {
@@ -34,6 +34,23 @@ templ Configuracoes(cargos []LinhaCargo, ramos []LinhaRamo, setores []LinhaSetor
 					<option value="PERICULOSO">Periculoso</option>
 				</select>
 			</div>
+			<div class="campo">
+				<label for="novo-cargo-descricao">Objetivo da função</label>
+				<textarea id="novo-cargo-descricao" name="descricao" rows="3" placeholder="Por que este cargo existe e qual resultado entrega"></textarea>
+			</div>
+			<div class="campo">
+				<label for="novo-cargo-responsabilidades">Responsabilidades</label>
+				<textarea id="novo-cargo-responsabilidades" name="responsabilidades" rows="5" placeholder="Uma responsabilidade por linha"></textarea>
+			</div>
+			<div class="campo">
+				<label for="novo-cargo-requisitos">Requisitos e capacitações</label>
+				<textarea id="novo-cargo-requisitos" name="requisitos" rows="4" placeholder="Experiência, CBO, NRs e habilitações"></textarea>
+			</div>
+			<div class="campo">
+				<label for="novo-cargo-documentos">Documentos obrigatórios do cargo</label>
+				<textarea id="novo-cargo-documentos" name="documentosObrigatorios" rows="5" placeholder="Um documento por linha: ASO, NR-10, CNH..."></textarea>
+				<small>O RH usa esta lista como matriz documental; informe um item por linha.</small>
+			</div>
 			if erroCargo != "" {
 				<p role="alert">{ erroCargo }</p>
 			}
@@ -41,7 +58,26 @@ templ Configuracoes(cargos []LinhaCargo, ramos []LinhaRamo, setores []LinhaSetor
 		</form>
 		<ul data-testid="lista-cargos">
 			for _, c := range cargos {
-				<li>{ c.Nome } · { c.Risco }</li>
+				<li>
+					<details>
+						<summary>{ c.Nome } · { c.Risco }</summary>
+						if c.CBO != "" {
+							<p><strong>CBO:</strong> { c.CBO }</p>
+						}
+						if c.Descricao != "" {
+							<p><strong>Objetivo:</strong> { c.Descricao }</p>
+						}
+						if c.Responsabilidades != "" {
+							<p class="texto-pre-linha"><strong>Responsabilidades:</strong><br/>{ c.Responsabilidades }</p>
+						}
+						if c.Requisitos != "" {
+							<p class="texto-pre-linha"><strong>Requisitos:</strong><br/>{ c.Requisitos }</p>
+						}
+						if c.DocumentosObrigatorios != "" {
+							<p class="texto-pre-linha"><strong>Documentos obrigatórios:</strong><br/>{ c.DocumentosObrigatorios }</p>
+						}
+					</details>
+				</li>
 			}
 		</ul>
 

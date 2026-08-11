@@ -19,14 +19,14 @@ var tplProcesso = template.Must(template.New("processo").Funcs(template.FuncMap{
 		return ""
 	}
 	return v.Format("02/01/2006")
-}}).Parse(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/estatico/estilo.css"><title>Compras</title></head><body><main class="conteudo"><nav class="abas"><a href="/compras">Pedidos</a><a href="/compras/cotacoes">Cotações</a><a href="/compras/divergencias">Divergências</a><a href="/compras/devolucoes">Devoluções</a><a href="/compras/contratos">Contratos</a><a href="/compras/relatorios">Relatórios</a></nav>
+}}).Parse(`<div class="compras-pagina"><nav class="abas"><a href="/compras">Pedidos</a><a href="/compras/cotacoes">Cotações</a><a href="/compras/divergencias">Divergências</a><a href="/compras/devolucoes">Devoluções</a><a href="/compras/contratos">Contratos</a><a href="/compras/relatorios">Relatórios</a></nav>
 {{if eq .Pagina "cotacoes"}}<h1>Cotações</h1><details><summary class="botao botao-primario">+ Nova cotação</summary><form class="formulario" method="post" action="/compras/cotacoes"><label>Solicitação</label><select name="solicitacaoID">{{range .Solicitacoes}}<option value="{{.ID}}">{{.Numero}}</option>{{end}}</select><label>Prazo</label><input type="date" name="prazoResposta"><label>Fornecedores (mínimo 2)</label>{{range .Fornecedores}}<label><input type="checkbox" name="fornecedorID" value="{{.ID}}"> {{.Nome}}</label>{{end}}<textarea name="observacao" placeholder="Observação"></textarea><button>Criar</button></form></details><table><tbody>{{range .Cotacoes}}<tr><td><a href="/compras/cotacoes/{{.ID}}">{{.Numero}}</a></td><td>{{.Status}}</td><td>{{.SolicitanteNome}}</td></tr>{{end}}</tbody></table>{{end}}
 {{if eq .Pagina "cotacao"}}<h1>{{.Cotacao.Numero}}</h1><p>Status: {{.Cotacao.Status}}</p><h2>Mapa comparativo</h2><table><thead><tr><th>Fornecedor</th><th>Itens</th><th>Frete</th><th>Total</th><th>Prazo</th><th>Ação</th></tr></thead><tbody>{{range .Cotacao.Propostas}}<tr><td>{{.FornecedorNome}}</td><td>{{brlCentavos .ValorItensCentavos}}</td><td>{{brlCentavos .FreteCentavos}}</td><td><strong>{{brlCentavos .TotalCentavos}}</strong></td><td>{{.PrazoDias}} dias</td><td>{{if not .Selecionada}}<form method="post" action="/compras/cotacoes/{{$.Cotacao.ID}}/selecionar"><input type="hidden" name="propostaID" value="{{.ID}}"><input name="motivo" placeholder="Justificativa" required><button>Selecionar e criar pedido</button></form>{{else}}Selecionada{{end}}</td></tr>{{end}}</tbody></table><h2>Registrar proposta</h2><form class="formulario" method="post" action="/compras/cotacoes/{{.Cotacao.ID}}/propostas"><select name="fornecedorID">{{range .Cotacao.Fornecedores}}<option value="{{.FornecedorID}}">{{.FornecedorNome}}</option>{{end}}</select>{{range .Solicitacao.Itens}}<fieldset><legend>{{.MaterialNome}}</legend><input type="hidden" name="materialID" value="{{.MaterialID}}"><label>Quantidade</label><input name="quantidade_{{.MaterialID}}" value="{{.Quantidade}}"><label>Valor unitário (centavos)</label><input name="valor_{{.MaterialID}}" required><label>Marca</label><input name="marca_{{.MaterialID}}"></fieldset>{{end}}<label>Frete (centavos)</label><input name="freteCentavos" value="0"><label>Prazo em dias</label><input type="number" name="prazoDias"><label>Previsão</label><input type="date" name="previsaoEntrega"><label>Condição</label><input name="condicaoPagamento"><label>Validade</label><input type="date" name="validade"><button>Registrar proposta</button></form>{{end}}
 {{if eq .Pagina "cotacao"}}<h2>Documentos</h2><ul>{{range .Documentos}}<li><a href="{{.Conteudo}}" target="_blank" rel="noopener">{{.Nome}}</a> — {{.Tipo}}</li>{{else}}<li>Nenhum documento.</li>{{end}}</ul><form method="post" action="/compras/cotacoes/{{.Cotacao.ID}}/documentos"><select name="tipo"><option>PROPOSTA</option><option>OUTRO</option></select><input name="nome" placeholder="Nome" required><input name="conteudo" type="url" placeholder="URL segura do arquivo" required><button>Anexar referência</button></form>{{end}}
 {{if eq .Pagina "divergencias"}}<h1>Divergências</h1><table><thead><tr><th>Tipo</th><th>Esperado</th><th>Encontrado</th><th>Status</th><th>Decisão</th></tr></thead><tbody>{{range .Divergencias}}<tr><td>{{.Tipo}}</td><td>{{.Esperado}}</td><td>{{.Encontrado}}</td><td>{{.Status}}</td><td>{{if eq .Status "PENDENTE"}}<form method="post" action="/compras/divergencias/{{.ID}}/resolver"><input name="justificativa" required><button name="decisao" value="ACEITA">Aceitar</button><button name="decisao" value="RECUSADA">Recusar</button></form>{{end}}</td></tr>{{end}}</tbody></table>{{end}}
 {{if eq .Pagina "devolucoes"}}<h1>Devoluções ao fornecedor</h1>{{range .OpcoesDevolucao}}<details><summary>Nova devolução do recebimento {{.Recebimento.Numero}} — {{.Pedido.FornecedorNome}}</summary><form method="post" action="/compras/devolucoes"><input type="hidden" name="recebimentoID" value="{{.Recebimento.ID}}"><input type="hidden" name="fornecedorID" value="{{.Pedido.FornecedorID}}"><input name="motivo" placeholder="Motivo" required>{{range .Recebimento.Itens}}<fieldset><input type="hidden" name="materialID" value="{{.MaterialID}}"><label>Material {{.MaterialID}} — quantidade (máx. {{.Quantidade}})</label><input name="quantidade_{{.MaterialID}}"><input type="hidden" name="valor_{{.MaterialID}}" value="{{centavosFloat .ValorUnitario}}"></fieldset>{{end}}<button>Registrar e baixar do estoque</button></form></details>{{end}}<table><thead><tr><th>Número</th><th>Recebimento</th><th>Motivo</th><th>Status</th></tr></thead><tbody>{{range .Devolucoes}}<tr><td>{{.Numero}}</td><td>{{.RecebimentoID}}</td><td>{{.Motivo}}</td><td>{{.Status}}</td></tr>{{end}}</tbody></table>{{end}}
 {{if eq .Pagina "contratos"}}<h1>Contratos</h1><details><summary class="botao botao-primario">+ Contrato</summary><form class="formulario" method="post" action="/compras/contratos"><input name="numero" placeholder="Número" required><select name="fornecedorID">{{range .Fornecedores}}<option value="{{.ID}}" data-nome="{{.Nome}}">{{.Nome}}</option>{{end}}</select><input name="fornecedorNome" placeholder="Nome do fornecedor" required><input name="objeto" placeholder="Objeto" required><input type="date" name="inicio" required><input type="date" name="fim"><input name="valorLimiteCentavos" placeholder="Limite em centavos"><select name="periodicidade"><option>UNICA</option><option>SEMANAL</option><option>MENSAL</option><option>TRIMESTRAL</option><option>ANUAL</option></select><input type="date" name="proximaGeracao"><input name="condicaoPagamento" placeholder="Condição"><button>Criar</button></form></details><table><tbody>{{range .Contratos}}<tr><td>{{.Numero}}</td><td>{{.FornecedorNome}}</td><td>{{.Objeto}}</td><td>{{data .Fim}}</td><td>{{.Periodicidade}}</td></tr>{{end}}</tbody></table>{{end}}
-{{if eq .Pagina "relatorios"}}<h1>Indicadores de Compras</h1><div class="grade-kpis"><div class="bloco"><p>Aprovações pendentes</p><strong>{{.Indicadores.PedidosPendentes}}</strong></div><div class="bloco"><p>Pedidos atrasados</p><strong>{{.Indicadores.PedidosAtrasados}}</strong></div><div class="bloco"><p>Cotações abertas</p><strong>{{.Indicadores.CotacoesAbertas}}</strong></div><div class="bloco"><p>Divergências</p><strong>{{.Indicadores.DivergenciasPendentes}}</strong></div><div class="bloco"><p>Total comprado</p><strong>{{brlCentavos .Indicadores.TotalCompradoCentavos}}</strong></div><div class="bloco"><p>Economia em cotações</p><strong>{{brlCentavos .Indicadores.EconomiaCotacoesCentavos}}</strong></div><div class="bloco"><p>Lead time médio</p><strong>{{printf "%.1f" .Indicadores.LeadTimeMedioDias}} dias</strong></div></div><h2>Desempenho de fornecedores</h2><table><thead><tr><th>Fornecedor</th><th>Avaliações</th><th>Prazo</th><th>Qualidade</th><th>Atendimento</th><th>Pedidos</th><th>Total</th></tr></thead><tbody>{{range .Desempenhos}}<tr><td>{{.FornecedorNome}}</td><td>{{.QuantidadeAvaliacoes}}</td><td>{{printf "%.1f" .MediaPrazo}}</td><td>{{printf "%.1f" .MediaQualidade}}</td><td>{{printf "%.1f" .MediaAtendimento}}</td><td>{{.QuantidadePedidos}}</td><td>{{brlCentavos .TotalCompradoCentavos}}</td></tr>{{end}}</tbody></table>{{end}}</main></body></html>`))
+{{if eq .Pagina "relatorios"}}<h1>Indicadores de Compras</h1><div class="grade-kpis"><div class="bloco"><p>Aprovações pendentes</p><strong>{{.Indicadores.PedidosPendentes}}</strong></div><div class="bloco"><p>Pedidos atrasados</p><strong>{{.Indicadores.PedidosAtrasados}}</strong></div><div class="bloco"><p>Cotações abertas</p><strong>{{.Indicadores.CotacoesAbertas}}</strong></div><div class="bloco"><p>Divergências</p><strong>{{.Indicadores.DivergenciasPendentes}}</strong></div><div class="bloco"><p>Total comprado</p><strong>{{brlCentavos .Indicadores.TotalCompradoCentavos}}</strong></div><div class="bloco"><p>Economia em cotações</p><strong>{{brlCentavos .Indicadores.EconomiaCotacoesCentavos}}</strong></div><div class="bloco"><p>Lead time médio</p><strong>{{printf "%.1f" .Indicadores.LeadTimeMedioDias}} dias</strong></div></div><h2>Desempenho de fornecedores</h2><table><thead><tr><th>Fornecedor</th><th>Avaliações</th><th>Prazo</th><th>Qualidade</th><th>Atendimento</th><th>Pedidos</th><th>Total</th></tr></thead><tbody>{{range .Desempenhos}}<tr><td>{{.FornecedorNome}}</td><td>{{.QuantidadeAvaliacoes}}</td><td>{{printf "%.1f" .MediaPrazo}}</td><td>{{printf "%.1f" .MediaQualidade}}</td><td>{{printf "%.1f" .MediaAtendimento}}</td><td>{{.QuantidadePedidos}}</td><td>{{brlCentavos .TotalCompradoCentavos}}</td></tr>{{end}}</tbody></table>{{end}}</div>`))
 
 type processoView struct {
 	Pagina          string
@@ -49,8 +49,8 @@ type opcaoDevolucao struct {
 	Pedido      *dominio.PedidoCompra
 }
 
-func (h *Handlers) renderProcesso(w http.ResponseWriter, v processoView) {
-	if err := tplProcesso.Execute(w, v); err != nil {
+func (h *Handlers) renderProcesso(w http.ResponseWriter, r *http.Request, v processoView) {
+	if err := renderNaCasca(w, r, tplProcesso, v); err != nil {
 		http.Error(w, "erro interno", 500)
 	}
 }
@@ -64,7 +64,7 @@ func (h *Handlers) Cotacoes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, _ := h.Gerenciador.Resumo(r.Context())
-	h.renderProcesso(w, processoView{Pagina: "cotacoes", Cotacoes: cs, Solicitacoes: res.Solicitacoes, Fornecedores: res.Fornecedores})
+	h.renderProcesso(w, r, processoView{Pagina: "cotacoes", Cotacoes: cs, Solicitacoes: res.Solicitacoes, Fornecedores: res.Fornecedores})
 }
 func (h *Handlers) CotacaoCriar(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.exigirLancamento(w, r)
@@ -89,7 +89,7 @@ func (h *Handlers) CotacaoDetalhe(w http.ResponseWriter, r *http.Request) {
 	}
 	s, _ := h.Gerenciador.Solicitacoes.BuscarPorID(r.Context(), c.SolicitacaoID)
 	documentos, _ := h.RepoProcesso.ListarDocumentos(r.Context(), "", c.ID)
-	h.renderProcesso(w, processoView{Pagina: "cotacao", Cotacao: c, Solicitacao: s, Documentos: documentos})
+	h.renderProcesso(w, r, processoView{Pagina: "cotacao", Cotacao: c, Solicitacao: s, Documentos: documentos})
 }
 func (h *Handlers) PropostaRegistrar(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.exigirLancamento(w, r)
@@ -238,7 +238,7 @@ func (h *Handlers) Divergencias(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, e.Error(), 500)
 		return
 	}
-	h.renderProcesso(w, processoView{Pagina: "divergencias", Divergencias: ds})
+	h.renderProcesso(w, r, processoView{Pagina: "divergencias", Divergencias: ds})
 }
 func (h *Handlers) DivergenciaResolver(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.exigirLancamento(w, r)
@@ -272,7 +272,7 @@ func (h *Handlers) Devolucoes(w http.ResponseWriter, r *http.Request) {
 			opcoes = append(opcoes, opcaoDevolucao{Recebimento: recebimento, Pedido: pedido})
 		}
 	}
-	h.renderProcesso(w, processoView{Pagina: "devolucoes", Devolucoes: devolucoes, OpcoesDevolucao: opcoes})
+	h.renderProcesso(w, r, processoView{Pagina: "devolucoes", Devolucoes: devolucoes, OpcoesDevolucao: opcoes})
 }
 func (h *Handlers) DevolucaoCriar(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.exigirLancamento(w, r)
@@ -310,7 +310,7 @@ func (h *Handlers) Contratos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, _ := h.Gerenciador.Resumo(r.Context())
-	h.renderProcesso(w, processoView{Pagina: "contratos", Contratos: cs, Fornecedores: res.Fornecedores})
+	h.renderProcesso(w, r, processoView{Pagina: "contratos", Contratos: cs, Fornecedores: res.Fornecedores})
 }
 func (h *Handlers) ContratoCriar(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.exigirLancamento(w, r)
@@ -347,5 +347,5 @@ func (h *Handlers) Relatorios(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, e.Error(), 500)
 		return
 	}
-	h.renderProcesso(w, processoView{Pagina: "relatorios", Indicadores: i, Desempenhos: desempenhos})
+	h.renderProcesso(w, r, processoView{Pagina: "relatorios", Indicadores: i, Desempenhos: desempenhos})
 }

@@ -41,136 +41,136 @@ func Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMo
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Dashboard</h1><div class=\"grade-sistemas\" data-testid=\"kpis\"><div class=\"card\"><p class=\"email\">MATERIAIS ATIVOS</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-total\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"pagina-cabecalho\"><div><span class=\"pagina-sobretitulo\">Visão operacional</span><h1>Almoxarifado</h1><p>Acompanhe saldos, reposição e movimentações do estoque central.</p></div><a href=\"/almoxarifado/movimentacoes\" class=\"botao botao-primario\">Nova movimentação</a></header><div class=\"grade-kpis painel-kpis\" data-testid=\"kpis\"><div class=\"cartao-kpi kpi-destaque\"><span class=\"rotulo-kpi\">Materiais ativos</span> <strong class=\"valor-kpi\" data-testid=\"kpi-total\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.TotalMateriais)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 10, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 17, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p></div><div class=\"card\"><p class=\"email\">SEM ESTOQUE</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-sem-estoque\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</strong> <span class=\"kpi-nota\">itens cadastrados</span></div><div class=\"cartao-kpi kpi-alerta\"><span class=\"rotulo-kpi\">Sem estoque</span> <strong class=\"valor-kpi\" data-testid=\"kpi-sem-estoque\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.SemEstoque)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 14, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 22, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p></div><div class=\"card\"><p class=\"email\">ABAIXO DO MÍNIMO</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-abaixo-minimo\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</strong> <span class=\"kpi-nota\">pedem atenção</span></div><div class=\"cartao-kpi\"><span class=\"rotulo-kpi\">Abaixo do mínimo</span> <strong class=\"valor-kpi\" data-testid=\"kpi-abaixo-minimo\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.AbaixoDoMinimo)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 18, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 27, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p></div><div class=\"card\"><p class=\"email\">VALOR EM ESTOQUE</p><p class=\"tabular money\" style=\"font-size:1.4rem\" data-testid=\"kpi-valor\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</strong> <span class=\"kpi-nota\">repor em breve</span></div><div class=\"cartao-kpi kpi-financeiro\"><span class=\"rotulo-kpi\">Valor em estoque</span> <strong class=\"valor-kpi tabular\" data-testid=\"kpi-valor\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.ValorEmEstoque)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 22, Col: 99}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 32, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p></div><div class=\"card\"><p class=\"email\">ENTRADAS NO MÊS</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-entradas\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</strong> <span class=\"kpi-nota\">valor estimado</span></div><div class=\"cartao-kpi kpi-compacto\"><span class=\"rotulo-kpi\">Entradas no mês</span> <strong class=\"valor-kpi\" data-testid=\"kpi-entradas\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.EntradasDoMes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 26, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 37, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</p></div><div class=\"card\"><p class=\"email\">SAÍDAS NO MÊS</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-saidas\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</strong></div><div class=\"cartao-kpi kpi-compacto\"><span class=\"rotulo-kpi\">Saídas no mês</span> <strong class=\"valor-kpi\" data-testid=\"kpi-saidas\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.SaidasDoMes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 30, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 41, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</p></div><div class=\"card\"><p class=\"email\">APROVAÇÕES PENDENTES</p><p style=\"font-size:1.4rem\" data-testid=\"kpi-aprovacoes-pendentes\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</strong></div><div class=\"cartao-kpi kpi-compacto\"><span class=\"rotulo-kpi\">Aprovações pendentes</span> <strong class=\"valor-kpi\" data-testid=\"kpi-aprovacoes-pendentes\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(kpis.AprovacoesPendentes)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 34, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 45, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</p></div></div><section class=\"card\" style=\"margin-top:1rem\"><h2>Materiais para repor</h2><ul data-testid=\"para-repor\" style=\"list-style:none;padding:0\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</strong></div></div><div class=\"dashboard-colunas\"><section class=\"painel-dados\"><header class=\"painel-dados-cabecalho\"><div><span class=\"pagina-sobretitulo\">Prioridade</span><h2>Materiais para repor</h2></div><a href=\"/almoxarifado/materiais\">Ver inventário</a></header><ul class=\"lista-dashboard\" data-testid=\"para-repor\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, m := range paraRepor {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<li style=\"display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)\"><span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<li><span class=\"item-principal\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(m.Nome)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 43, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 55, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " (")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<small>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(m.Codigo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 43, Col: 34}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 55, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, ")</span> <span class=\"selo\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</small></span> <span class=\"selo\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background:" + m.SituacaoCor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 44, Col: 62}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 56, Col: 62}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -183,20 +183,20 @@ func Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMo
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(m.SituacaoRotulo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 44, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 56, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</span> <span class=\"tabular\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</span> <strong class=\"tabular item-valor\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(m.Saldo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 45, Col: 37}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 57, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -209,30 +209,30 @@ func Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMo
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(m.Unidade)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 45, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 57, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span></li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</strong></li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</ul></section><section class=\"card\" style=\"margin-top:1rem\"><h2>Movimentações recentes</h2><ul data-testid=\"movimentacoes-recentes\" style=\"list-style:none;padding:0\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</ul></section><section class=\"painel-dados\"><header class=\"painel-dados-cabecalho\"><div><span class=\"pagina-sobretitulo\">Atividade</span><h2>Movimentações recentes</h2></div><a href=\"/almoxarifado/movimentacoes\">Ver histórico</a></header><ul class=\"lista-dashboard\" data-testid=\"movimentacoes-recentes\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, m := range recentes {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<li style=\"display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)\"><span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<li><span class=\"item-principal\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(m.MaterialTexto)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 56, Col: 29}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 68, Col: 52}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -245,7 +245,7 @@ func Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMo
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background:" + m.TipoCor)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 57, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 69, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -258,31 +258,31 @@ func Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMo
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(m.TipoRotulo)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 57, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 69, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</span> <span class=\"tabular\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</span> <strong class=\"tabular item-valor\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(m.Quantidade)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 58, Col: 42}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/estoque/dashboard.templ`, Line: 70, Col: 55}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</span></li>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</strong></li>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</ul></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</ul></section></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

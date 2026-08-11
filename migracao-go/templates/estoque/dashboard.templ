@@ -2,63 +2,76 @@ package estoque
 
 templ Dashboard(kpis KpisDashboard, paraRepor []LinhaMaterial, recentes []LinhaMovimentacao) {
 	@Pagina("Dashboard") {
-		<h1>Dashboard</h1>
+		<header class="pagina-cabecalho">
+			<div>
+				<span class="pagina-sobretitulo">Visão operacional</span>
+				<h1>Almoxarifado</h1>
+				<p>Acompanhe saldos, reposição e movimentações do estoque central.</p>
+			</div>
+			<a href="/almoxarifado/movimentacoes" class="botao botao-primario">Nova movimentação</a>
+		</header>
 
-		<div class="grade-sistemas" data-testid="kpis">
-			<div class="card">
-				<p class="email">MATERIAIS ATIVOS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-total">{ kpis.TotalMateriais }</p>
+		<div class="grade-kpis painel-kpis" data-testid="kpis">
+			<div class="cartao-kpi kpi-destaque">
+				<span class="rotulo-kpi">Materiais ativos</span>
+				<strong class="valor-kpi" data-testid="kpi-total">{ kpis.TotalMateriais }</strong>
+				<span class="kpi-nota">itens cadastrados</span>
 			</div>
-			<div class="card">
-				<p class="email">SEM ESTOQUE</p>
-				<p style="font-size:1.4rem" data-testid="kpi-sem-estoque">{ kpis.SemEstoque }</p>
+			<div class="cartao-kpi kpi-alerta">
+				<span class="rotulo-kpi">Sem estoque</span>
+				<strong class="valor-kpi" data-testid="kpi-sem-estoque">{ kpis.SemEstoque }</strong>
+				<span class="kpi-nota">pedem atenção</span>
 			</div>
-			<div class="card">
-				<p class="email">ABAIXO DO MÍNIMO</p>
-				<p style="font-size:1.4rem" data-testid="kpi-abaixo-minimo">{ kpis.AbaixoDoMinimo }</p>
+			<div class="cartao-kpi">
+				<span class="rotulo-kpi">Abaixo do mínimo</span>
+				<strong class="valor-kpi" data-testid="kpi-abaixo-minimo">{ kpis.AbaixoDoMinimo }</strong>
+				<span class="kpi-nota">repor em breve</span>
 			</div>
-			<div class="card">
-				<p class="email">VALOR EM ESTOQUE</p>
-				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-valor">{ kpis.ValorEmEstoque }</p>
+			<div class="cartao-kpi kpi-financeiro">
+				<span class="rotulo-kpi">Valor em estoque</span>
+				<strong class="valor-kpi tabular" data-testid="kpi-valor">{ kpis.ValorEmEstoque }</strong>
+				<span class="kpi-nota">valor estimado</span>
 			</div>
-			<div class="card">
-				<p class="email">ENTRADAS NO MÊS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-entradas">{ kpis.EntradasDoMes }</p>
+			<div class="cartao-kpi kpi-compacto">
+				<span class="rotulo-kpi">Entradas no mês</span>
+				<strong class="valor-kpi" data-testid="kpi-entradas">{ kpis.EntradasDoMes }</strong>
 			</div>
-			<div class="card">
-				<p class="email">SAÍDAS NO MÊS</p>
-				<p style="font-size:1.4rem" data-testid="kpi-saidas">{ kpis.SaidasDoMes }</p>
+			<div class="cartao-kpi kpi-compacto">
+				<span class="rotulo-kpi">Saídas no mês</span>
+				<strong class="valor-kpi" data-testid="kpi-saidas">{ kpis.SaidasDoMes }</strong>
 			</div>
-			<div class="card">
-				<p class="email">APROVAÇÕES PENDENTES</p>
-				<p style="font-size:1.4rem" data-testid="kpi-aprovacoes-pendentes">{ kpis.AprovacoesPendentes }</p>
+			<div class="cartao-kpi kpi-compacto">
+				<span class="rotulo-kpi">Aprovações pendentes</span>
+				<strong class="valor-kpi" data-testid="kpi-aprovacoes-pendentes">{ kpis.AprovacoesPendentes }</strong>
 			</div>
 		</div>
 
-		<section class="card" style="margin-top:1rem">
-			<h2>Materiais para repor</h2>
-			<ul data-testid="para-repor" style="list-style:none;padding:0">
+		<div class="dashboard-colunas">
+		<section class="painel-dados">
+			<header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Prioridade</span><h2>Materiais para repor</h2></div><a href="/almoxarifado/materiais">Ver inventário</a></header>
+			<ul class="lista-dashboard" data-testid="para-repor">
 				for _, m := range paraRepor {
-					<li style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)">
-						<span>{ m.Nome } ({ m.Codigo })</span>
+					<li>
+						<span class="item-principal">{ m.Nome }<small>{ m.Codigo }</small></span>
 						<span class="selo" style={ "background:" + m.SituacaoCor }>{ m.SituacaoRotulo }</span>
-						<span class="tabular">{ m.Saldo } { m.Unidade }</span>
+						<strong class="tabular item-valor">{ m.Saldo } { m.Unidade }</strong>
 					</li>
 				}
 			</ul>
 		</section>
 
-		<section class="card" style="margin-top:1rem">
-			<h2>Movimentações recentes</h2>
-			<ul data-testid="movimentacoes-recentes" style="list-style:none;padding:0">
+		<section class="painel-dados">
+			<header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Atividade</span><h2>Movimentações recentes</h2></div><a href="/almoxarifado/movimentacoes">Ver histórico</a></header>
+			<ul class="lista-dashboard" data-testid="movimentacoes-recentes">
 				for _, m := range recentes {
-					<li style="display:flex;justify-content:space-between;padding:0.3rem 0;border-bottom:1px solid var(--border)">
-						<span>{ m.MaterialTexto }</span>
+					<li>
+						<span class="item-principal">{ m.MaterialTexto }</span>
 						<span class="selo" style={ "background:" + m.TipoCor }>{ m.TipoRotulo }</span>
-						<span class="tabular">{ m.Quantidade }</span>
+						<strong class="tabular item-valor">{ m.Quantidade }</strong>
 					</li>
 				}
 			</ul>
 		</section>
+		</div>
 	}
 }

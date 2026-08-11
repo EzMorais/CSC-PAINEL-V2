@@ -1,6 +1,7 @@
 package compras
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/google/uuid"
 	aplicacao "siqueiracampos/servidor/internal/application/compras"
 	"siqueiracampos/servidor/internal/domain/cadastro"
@@ -16,6 +18,7 @@ import (
 	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	identidade "siqueiracampos/servidor/internal/domain/identidade"
 	"siqueiracampos/servidor/internal/middleware"
+	layout "siqueiracampos/servidor/templates/layout"
 )
 
 type Handlers struct {
@@ -91,15 +94,9 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 		}
 		return fmt.Sprintf("%.2f", *v)
 	},
-}).Parse(`<!doctype html>
-<html lang="pt-BR" data-modulo="almoxarifado">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Compras</title>
-	<link rel="stylesheet" href="/estatico/estilo.css">
+}).Parse(`<div class="compras-pagina">
 	<style>
-		main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+		.compras-pagina { max-width: 1280px; margin: 0 auto; }
 		.grade { display: grid; gap: 16px; }
 		.grade.kpis { grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); }
 		.grade.principal { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
@@ -117,9 +114,6 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 		.dupla { display:grid; gap:12px; }
 		@media (max-width: 1000px) { .grade.principal { grid-template-columns: 1fr; } }
 	</style>
-</head>
-<body>
-<main>
 	<nav class="abas"><a href="/compras">Pedidos</a><a href="/compras/cotacoes">Cotações</a><a href="/compras/divergencias">Divergências</a><a href="/compras/contratos">Contratos</a><a href="/compras/relatorios">Relatórios</a></nav>
 	{{if .Mensagem}}<div class="erro" style="border-color:var(--color-success); color:var(--color-success); background:var(--color-success-soft)">{{.Mensagem}}</div>{{end}}
 	{{if .Erro}}<div class="erro">{{.Erro}}</div>{{end}}
@@ -240,9 +234,16 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 			{{end}}
 		</div>
 	</section>
-</main>
-</body>
-</html>`))
+</div>`))
+
+func renderNaCasca(w http.ResponseWriter, r *http.Request, modelo *template.Template, dados any) error {
+	var parcial bytes.Buffer
+	if err := modelo.Execute(&parcial, dados); err != nil {
+		return err
+	}
+	ctx := templ.WithChildren(r.Context(), templ.Raw(parcial.String()))
+	return layout.Base("Compras · Siqueira Campos").Render(ctx, w)
+}
 
 func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.exigirAcesso(w, r); !ok {
@@ -261,7 +262,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if pedido == nil && len(resumo.PedidosRecentes) > 0 {
 		pedido = &resumo.PedidosRecentes[0]
 	}
-	if err := tplCompras.Execute(w, paginaComprasView{
+	if err := renderNaCasca(w, r, tplCompras, paginaComprasView{
 		Resumo: resumo, Pedido: pedido,
 		Solicitacoes: resumo.Solicitacoes, Fornecedores: resumo.Fornecedores,
 		ChaveRecebimento: uuid.NewString(),
@@ -315,7 +316,7 @@ func (h *Handlers) PedidoDetalhe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "erro interno", http.StatusInternalServerError)
 		return
 	}
-	if err := tplCompras.Execute(w, paginaComprasView{
+	if err := renderNaCasca(w, r, tplCompras, paginaComprasView{
 		Resumo: resumo, Pedido: pedido,
 		Solicitacoes: resumo.Solicitacoes, Fornecedores: resumo.Fornecedores,
 		ChaveRecebimento: uuid.NewString(), Documentos: documentos,

@@ -39,7 +39,9 @@ func (h *Handlers) renderConfiguracoes(w http.ResponseWriter, r *http.Request, e
 		if c.CBO != nil {
 			cbo = *c.CBO
 		}
-		linhasCargo[i] = tpl.LinhaCargo{ID: c.ID, Nome: c.Nome, CBO: cbo, Risco: c.Risco}
+		linhasCargo[i] = tpl.LinhaCargo{ID: c.ID, Nome: c.Nome, CBO: cbo, Risco: c.Risco,
+			Descricao: textoCargo(c.Descricao), Responsabilidades: textoCargo(c.Responsabilidades),
+			Requisitos: textoCargo(c.Requisitos), DocumentosObrigatorios: textoCargo(c.DocumentosObrigatorios)}
 	}
 	linhasRamo := make([]tpl.LinhaRamo, len(ramos))
 	for i, r := range ramos {
@@ -73,12 +75,21 @@ func (h *Handlers) CargoCriar(w http.ResponseWriter, r *http.Request) {
 	}
 	entrada := aplicacao.EntradaCargo{
 		Nome: r.PostFormValue("nome"), CBO: r.PostFormValue("cbo"), Risco: r.PostFormValue("risco"),
+		Descricao: r.PostFormValue("descricao"), Responsabilidades: r.PostFormValue("responsabilidades"),
+		Requisitos: r.PostFormValue("requisitos"), DocumentosObrigatorios: r.PostFormValue("documentosObrigatorios"),
 	}
 	if err := h.Cargos.Salvar(r.Context(), "", entrada); err != nil {
 		h.renderConfiguracoes(w, r, err.Error(), "")
 		return
 	}
 	http.Redirect(w, r, "/rh/configuracoes", http.StatusSeeOther)
+}
+
+func textoCargo(valor *string) string {
+	if valor == nil {
+		return ""
+	}
+	return *valor
 }
 
 func (h *Handlers) DepartamentoRamoCriar(w http.ResponseWriter, r *http.Request) {

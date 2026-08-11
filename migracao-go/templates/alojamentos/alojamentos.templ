@@ -27,18 +27,31 @@ templ Pagina(titulo string) {
 
 templ Dashboard(i dominio.Indicadores, programacao []dominio.Programacao, pedidos []dominio.Pedido) {
 	@Pagina("Alojamentos") {
-		<h1>Alojamentos</h1>
-		<div class="grade-kpis"><div class="bloco"><p>Alojamentos ativos</p><strong>{ fmt.Sprint(i.AlojamentosAtivos) }</strong></div><div class="bloco"><p>Moradores</p><strong>{ fmt.Sprint(i.Moradores) }</strong></div><div class="bloco"><p>Vagas</p><strong>{ fmt.Sprint(i.Vagas) }</strong></div><div class="bloco"><p>Pedidos abertos</p><strong>{ fmt.Sprint(i.PedidosAbertos) }</strong></div></div>
-		<h2>Próxima programação</h2><ul>
-			for _, p := range programacao {
-				<li>{ p.Data.Format("02/01") } — { p.Titulo }</li>
-			}
-		</ul>
-		<h2>Pedidos recentes</h2><ul>
-			for _, p := range pedidos {
-				<li>{ p.AlojamentoNome } — { p.Titulo } — { p.Status }</li>
-			}
-		</ul>
+		<header class="pagina-cabecalho"><div><span class="pagina-sobretitulo">Hospedagem e logística</span><h1>Alojamentos</h1><p>Ocupação, vagas, solicitações e agenda operacional.</p></div><a class="botao botao-primario" href="/alojamentos/moradores">+ Alocar morador</a></header>
+		<div class="grade-kpis painel-kpis">
+			<div class="cartao-kpi kpi-destaque"><span class="rotulo-kpi">Alojamentos ativos</span><strong class="valor-kpi">{ fmt.Sprint(i.AlojamentosAtivos) }</strong><span class="kpi-nota">unidades disponíveis</span></div>
+			<div class="cartao-kpi"><span class="rotulo-kpi">Moradores</span><strong class="valor-kpi">{ fmt.Sprint(i.Moradores) }</strong><span class="kpi-nota">ocupações vigentes</span></div>
+			<div class="cartao-kpi"><span class="rotulo-kpi">Vagas</span><strong class="valor-kpi">{ fmt.Sprint(i.Vagas) }</strong><span class="kpi-nota">capacidade livre</span></div>
+			<div class="cartao-kpi kpi-alerta"><span class="rotulo-kpi">Pedidos abertos</span><strong class="valor-kpi">{ fmt.Sprint(i.PedidosAbertos) }</strong><span class="kpi-nota">aguardando atendimento</span></div>
+		</div>
+		<div class="dashboard-colunas">
+			<section class="painel-dados"><header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Agenda</span><h2>Próxima programação</h2></div><a href="/alojamentos/programacao">Ver agenda</a></header><ul class="lista-dashboard">
+				for _, p := range programacao {
+					<li><time class="selo">{ p.Data.Format("02/01") }</time><span class="item-principal">{ p.Titulo }</span></li>
+				}
+				if len(programacao) == 0 {
+					<li class="estado-vazio">Nenhuma programação futura.</li>
+				}
+			</ul></section>
+			<section class="painel-dados"><header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Atendimento</span><h2>Pedidos recentes</h2></div><a href="/alojamentos/pedidos">Ver pedidos</a></header><ul class="lista-dashboard">
+				for _, p := range pedidos {
+					<li><span class="item-principal">{ p.Titulo }<small>{ p.AlojamentoNome }</small></span><span class="selo">{ p.Status }</span></li>
+				}
+				if len(pedidos) == 0 {
+					<li class="estado-vazio">Nenhum pedido recente.</li>
+				}
+			</ul></section>
+		</div>
 	}
 }
 

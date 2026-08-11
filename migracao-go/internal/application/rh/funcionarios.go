@@ -83,6 +83,44 @@ func (g *GerenciadorFuncionarios) validar(ctx context.Context, e EntradaFunciona
 		erros = append(erros, "CPF inválido — confira os dígitos.")
 	}
 	cpf := dominio.ApenasDigitos(e.CPF)
+	if strings.TrimSpace(e.RG) == "" {
+		erros = append(erros, "Informe o RG ou documento de identificação.")
+	}
+	dataNascimento, errNascimento := dataCalendario(e.DataNascimento)
+	if errNascimento != nil || dataNascimento == nil {
+		erros = append(erros, "Informe a data de nascimento.")
+	} else if dataNascimento.After(time.Now().UTC()) {
+		erros = append(erros, "Data de nascimento não pode estar no futuro.")
+	}
+	if strings.TrimSpace(e.Telefone) == "" {
+		erros = append(erros, "Informe o telefone.")
+	} else if n := len(dominio.ApenasDigitos(e.Telefone)); n < 10 || n > 11 {
+		erros = append(erros, "Telefone deve ter DDD e 10 ou 11 dígitos.")
+	}
+	if len(dominio.ApenasDigitos(e.CEP)) != 8 {
+		erros = append(erros, "Informe um CEP válido com 8 dígitos.")
+	}
+	if strings.TrimSpace(e.Logradouro) == "" {
+		erros = append(erros, "Informe o logradouro.")
+	}
+	if strings.TrimSpace(e.Numero) == "" {
+		erros = append(erros, "Informe o número do endereço.")
+	}
+	if strings.TrimSpace(e.Bairro) == "" {
+		erros = append(erros, "Informe o bairro.")
+	}
+	if strings.TrimSpace(e.Cidade) == "" {
+		erros = append(erros, "Informe a cidade.")
+	}
+	if len(strings.TrimSpace(e.UF)) != 2 {
+		erros = append(erros, "Informe a UF com 2 letras.")
+	}
+	if strings.TrimSpace(e.CargoID) == "" {
+		erros = append(erros, "Escolha o cargo.")
+	}
+	if strings.TrimSpace(e.DepartamentoID) == "" {
+		erros = append(erros, "Escolha o departamento/setor.")
+	}
 
 	admitidoEm, err := dataCalendario(e.AdmitidoEm)
 	if err != nil || admitidoEm == nil {
@@ -98,6 +136,10 @@ func (g *GerenciadorFuncionarios) validar(ctx context.Context, e EntradaFunciona
 	if tipoContrato == "" {
 		tipoContrato = "CLT"
 	}
+	tiposContrato := map[string]bool{"CLT": true, "PJ": true, "TEMPORARIO": true, "ESTAGIO": true, "APRENDIZ": true}
+	if !tiposContrato[tipoContrato] {
+		erros = append(erros, "Tipo de contrato inválido.")
+	}
 
 	if e.NivelObra != "" && !dominio.NivelObraValido(e.NivelObra) {
 		erros = append(erros, "Nível de obra inválido.")
@@ -106,10 +148,20 @@ func (g *GerenciadorFuncionarios) validar(ctx context.Context, e EntradaFunciona
 	var salario *float64
 	if strings.TrimSpace(e.Salario) != "" {
 		v, err := strconv.ParseFloat(strings.TrimSpace(e.Salario), 64)
-		if err != nil || v < 0 {
-			erros = append(erros, "Salário não pode ser negativo.")
+		if err != nil || v <= 0 {
+			erros = append(erros, "Informe um salário válido maior que zero.")
 		} else {
 			salario = &v
+		}
+	} else {
+		erros = append(erros, "Informe o salário.")
+	}
+	if e.Email != "" && (!strings.Contains(e.Email, "@") || strings.HasPrefix(e.Email, "@") || strings.HasSuffix(e.Email, "@")) {
+		erros = append(erros, "E-mail inválido.")
+	}
+	if e.Banco != "" || e.Agencia != "" || e.Conta != "" || e.TipoConta != "" {
+		if e.Banco == "" || e.Agencia == "" || e.Conta == "" || e.TipoConta == "" {
+			erros = append(erros, "Preencha banco, agência, conta e tipo de conta em conjunto.")
 		}
 	}
 
@@ -130,9 +182,7 @@ func (g *GerenciadorFuncionarios) validar(ctx context.Context, e EntradaFunciona
 		Observacoes: ponteiro(e.Observacoes), NivelObra: ponteiro(e.NivelObra),
 		ObraID: ponteiro(e.ObraID), CargoID: ponteiro(e.CargoID), DepartamentoID: ponteiro(e.DepartamentoID),
 	}
-	if dn, err := dataCalendario(e.DataNascimento); err == nil {
-		f.DataNascimento = dn
-	}
+	f.DataNascimento = dataNascimento
 	return f, nil
 }
 

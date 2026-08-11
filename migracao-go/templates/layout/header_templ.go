@@ -8,10 +8,7 @@ package layout
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Header — barra superior visível só no mobile (≤720px, ver DESIGN-SYSTEM.md §11), com o
-// botão que abre o drawer da sidebar e o toggle de tema. No desktop o toggle equivalente vive
-// dentro da própria Sidebar (ver sidebar.templ) — mesmo padrão de
-// apps/rh/src/components/layout/sidebar.tsx (header só aparece em `lg:hidden`).
+// Header identifica o contexto atual e mantém as ações globais sempre acessíveis.
 func Header() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -33,7 +30,7 @@ func Header() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"cabecalho-mobile somente-mobile\"><button type=\"button\" class=\"botao-icone\" data-abrir-menu aria-label=\"Abrir menu\" aria-expanded=\"false\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header class=\"cabecalho-principal\"><button type=\"button\" class=\"botao-menu-mobile\" data-abrir-menu aria-label=\"Abrir menu\" aria-expanded=\"false\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -41,7 +38,15 @@ func Header() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</button> <span class=\"marca-texto-mobile\">Siqueira Campos</span> <button type=\"button\" class=\"botao-icone\" data-alternar-tema aria-label=\"Alternar tema\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</button><div class=\"contexto-pagina\"><span class=\"contexto-sistema\">CSC Painel</span> <strong data-modulo-label>Sistemas internos</strong></div><div class=\"acoes-globais\"><a href=\"/\" class=\"atalho-hub\" data-nav>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = IconeGrade("icone").Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span>Todos os módulos</span></a> <button type=\"button\" class=\"botao-tema\" data-alternar-tema aria-label=\"Alternar tema\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -53,7 +58,7 @@ func Header() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</button></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</button></div></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

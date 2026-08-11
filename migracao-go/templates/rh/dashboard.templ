@@ -2,43 +2,25 @@ package rh
 
 import "fmt"
 
-type LinhaEvento struct {
-	Descricao string
-	Quando    string
-}
+type LinhaEvento struct { Descricao, Quando string }
 
 templ Dashboard(ativos, afastados, ferias, desligados, cadastrosIncompletos int, eventos []LinhaEvento) {
 	@Pagina("Dashboard") {
-		<h1>RH e SST</h1>
-
-		<div class="grade-kpis">
-			<div class="cartao-kpi">
-				<span class="rotulo-kpi">Ativos</span>
-				<span class="valor-kpi" data-testid="kpi-ativos">{ fmt.Sprint(ativos) }</span>
-			</div>
-			<div class="cartao-kpi">
-				<span class="rotulo-kpi">Afastados</span>
-				<span class="valor-kpi" data-testid="kpi-afastados">{ fmt.Sprint(afastados) }</span>
-			</div>
-			<div class="cartao-kpi">
-				<span class="rotulo-kpi">Férias</span>
-				<span class="valor-kpi" data-testid="kpi-ferias">{ fmt.Sprint(ferias) }</span>
-			</div>
-			<div class="cartao-kpi">
-				<span class="rotulo-kpi">Desligados</span>
-				<span class="valor-kpi" data-testid="kpi-desligados">{ fmt.Sprint(desligados) }</span>
-			</div>
-			<div class="cartao-kpi">
-				<span class="rotulo-kpi">Cadastros incompletos</span>
-				<span class="valor-kpi" data-testid="kpi-cadastros-incompletos">{ fmt.Sprint(cadastrosIncompletos) }</span>
-			</div>
+		<header class="pagina-cabecalho"><div><span class="pagina-sobretitulo">Pessoas e conformidade</span><h1>RH e SST</h1><p>Efetivo, disponibilidade e qualidade dos cadastros em uma única visão.</p></div><a class="botao botao-primario" href="/rh/funcionarios/novo">+ Novo funcionário</a></header>
+		<div class="grade-kpis painel-kpis">
+			<div class="cartao-kpi kpi-destaque"><span class="rotulo-kpi">Ativos</span><strong class="valor-kpi" data-testid="kpi-ativos">{ fmt.Sprint(ativos) }</strong><span class="kpi-nota">disponíveis no quadro</span></div>
+			<div class="cartao-kpi"><span class="rotulo-kpi">Afastados</span><strong class="valor-kpi" data-testid="kpi-afastados">{ fmt.Sprint(afastados) }</strong><span class="kpi-nota">fora da programação</span></div>
+			<div class="cartao-kpi"><span class="rotulo-kpi">Férias</span><strong class="valor-kpi" data-testid="kpi-ferias">{ fmt.Sprint(ferias) }</strong><span class="kpi-nota">ausências previstas</span></div>
+			<div class="cartao-kpi kpi-compacto"><span class="rotulo-kpi">Desligados</span><strong class="valor-kpi" data-testid="kpi-desligados">{ fmt.Sprint(desligados) }</strong></div>
+			<div class="cartao-kpi kpi-alerta"><span class="rotulo-kpi">Cadastros incompletos</span><strong class="valor-kpi" data-testid="kpi-cadastros-incompletos">{ fmt.Sprint(cadastrosIncompletos) }</strong><span class="kpi-nota">sem obra ou cargo</span></div>
 		</div>
-
-		<h2>Últimas movimentações</h2>
-		<ul data-testid="eventos-recentes">
+		<section class="painel-dados"><header class="painel-dados-cabecalho"><div><span class="pagina-sobretitulo">Histórico</span><h2>Últimas movimentações</h2></div><a href="/rh/funcionarios">Ver equipe</a></header><ul class="lista-dashboard" data-testid="eventos-recentes">
 			for _, e := range eventos {
-				<li>{ e.Descricao } <span class="email">{ e.Quando }</span></li>
+				<li><span class="item-principal">{ e.Descricao }</span><time class="tabular item-valor">{ e.Quando }</time></li>
 			}
-		</ul>
+			if len(eventos) == 0 {
+				<li class="estado-vazio">Nenhuma movimentação registrada.</li>
+			}
+		</ul></section>
 	}
 }

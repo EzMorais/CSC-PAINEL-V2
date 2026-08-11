@@ -30,7 +30,7 @@ type GerenciadorCargos struct {
 }
 
 type EntradaCargo struct {
-	Nome, CBO, Risco string
+	Nome, CBO, Risco, Descricao, Responsabilidades, Requisitos, DocumentosObrigatorios string
 }
 
 // Salvar espelha o formulário de cargo em /configuracoes — COMPORTAMENTO.md §2. id vazio cria.
@@ -46,7 +46,11 @@ func (g *GerenciadorCargos) Salvar(ctx context.Context, id string, e EntradaCarg
 	cbo := ponteiro(e.CBO)
 
 	if id == "" {
-		c := &dominio.Cargo{Nome: nome, CBO: cbo, Risco: risco}
+		c := &dominio.Cargo{
+			Nome: nome, CBO: cbo, Risco: risco, Descricao: ponteiro(e.Descricao),
+			Responsabilidades: ponteiro(e.Responsabilidades), Requisitos: ponteiro(e.Requisitos),
+			DocumentosObrigatorios: ponteiro(e.DocumentosObrigatorios),
+		}
 		if err := g.Cargos.Criar(ctx, c); err != nil {
 			return traduzirErroCargo(err)
 		}
@@ -60,6 +64,10 @@ func (g *GerenciadorCargos) Salvar(ctx context.Context, id string, e EntradaCarg
 		return erroValidacao("Cargo não encontrado.")
 	}
 	existente.Nome, existente.CBO, existente.Risco = nome, cbo, risco
+	existente.Descricao = ponteiro(e.Descricao)
+	existente.Responsabilidades = ponteiro(e.Responsabilidades)
+	existente.Requisitos = ponteiro(e.Requisitos)
+	existente.DocumentosObrigatorios = ponteiro(e.DocumentosObrigatorios)
 	if err := g.Cargos.Atualizar(ctx, existente); err != nil {
 		return traduzirErroCargo(err)
 	}

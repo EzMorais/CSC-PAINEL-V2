@@ -71,9 +71,9 @@ func main() {
 		&aplicacaoIdentidade.GerenciadorUsuarios{Usuarios: usuarios},
 		usuarios, registros,
 		map[dominioIdentidade.Modulo]string{
-			dominioIdentidade.ModuloPainel:      cfg.URLPainel,
-			dominioIdentidade.ModuloRH:          cfg.URLRH,
-			dominioIdentidade.ModuloEstoque:     cfg.URLEstoque,
+			dominioIdentidade.ModuloPainel:      "/painel",
+			dominioIdentidade.ModuloRH:          "/rh",
+			dominioIdentidade.ModuloEstoque:     "/almoxarifado",
 			dominioIdentidade.ModuloAlojamentos: "/alojamentos",
 			dominioIdentidade.ModuloFrota:       cfg.URLFrota,
 			dominioIdentidade.ModuloFinanceiro:  "/financeiro",

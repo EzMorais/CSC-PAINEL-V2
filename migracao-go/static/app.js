@@ -18,6 +18,11 @@
   var modulo = 'identidade';
   if (caminho.indexOf('/painel') === 0) modulo = 'painel';
   else if (caminho.indexOf('/almoxarifado') === 0) modulo = 'almoxarifado';
+	else if (caminho.indexOf('/rh') === 0) modulo = 'rh';
+	else if (caminho.indexOf('/alojamentos') === 0) modulo = 'alojamentos';
+	else if (caminho.indexOf('/compras') === 0) modulo = 'compras';
+	else if (caminho.indexOf('/financeiro') === 0) modulo = 'financeiro';
+	else if (caminho.indexOf('/programacao') === 0) modulo = 'programacao';
   raiz.setAttribute('data-modulo', modulo);
 })();
 
@@ -70,15 +75,26 @@ document.addEventListener('DOMContentLoaded', function () {
   // Link ativo — mesma ideia do usePathname() dos apps Next.js (DESIGN-SYSTEM.md §9), aqui
   // por correspondência de prefixo contra os hrefs internos.
   var caminho = location.pathname;
-  document.querySelectorAll('[data-nav]').forEach(function (link) {
+	var candidatos = Array.prototype.slice.call(document.querySelectorAll('[data-nav]')).filter(function (link) {
     var href = link.getAttribute('href');
-    if (!href || href.indexOf('/') !== 0) return; // link externo (RH/Alojamentos) nunca fica ativo
-    var ativo = href === '/' ? caminho === '/' : caminho.indexOf(href) === 0;
-    if (ativo) {
+		return href && href.indexOf('/') === 0 && (href === '/' ? caminho === '/' : caminho.indexOf(href) === 0);
+	});
+	var maior = candidatos.reduce(function (n, link) { return Math.max(n, link.getAttribute('href').length); }, 0);
+	candidatos.forEach(function (link) {
+		if (link.getAttribute('href').length === maior) {
       link.classList.add('ativo');
       link.setAttribute('aria-current', 'page');
     }
   });
+
+	var rotulos = {
+		identidade: 'Visão geral', painel: 'Painel de Locação', almoxarifado: 'Almoxarifado',
+		rh: 'RH e SST', alojamentos: 'Alojamentos', compras: 'Compras', financeiro: 'Financeiro',
+		programacao: 'Programação Diária'
+	};
+	document.querySelectorAll('[data-modulo-label]').forEach(function (alvo) {
+		alvo.textContent = rotulos[raiz.getAttribute('data-modulo')] || 'Sistemas internos';
+	});
 
   // Hub flutuante — abre/fecha, fecha ao clicar fora ou Esc.
   var hub = document.querySelector('[data-hub-flutuante]');

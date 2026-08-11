@@ -2,6 +2,7 @@ package rh
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	aplicacao "siqueiracampos/servidor/internal/application/rh"
@@ -14,6 +15,27 @@ import (
 // dataParaInput formata pro atributo value de <input type="date"> (AAAA-MM-DD) — formato
 // HTML, diferente do DD/MM/AAAA que comum.DataBR devolve pra exibição.
 func dataParaInput(t time.Time) string { return t.UTC().Format("2006-01-02") }
+
+func preencherFormularioFuncionario(form *tpl.FormFuncionario, f *dominio.Funcionario) {
+	texto := func(v *string) string {
+		if v == nil {
+			return ""
+		}
+		return *v
+	}
+	form.RG, form.Sexo, form.EstadoCivil, form.NomeMae, form.Foto = texto(f.RG), texto(f.Sexo), texto(f.EstadoCivil), texto(f.NomeMae), texto(f.Foto)
+	if f.DataNascimento != nil {
+		form.DataNascimento = dataParaInput(*f.DataNascimento)
+	}
+	form.CEP, form.Logradouro, form.Numero = texto(f.CEP), texto(f.Logradouro), texto(f.Numero)
+	form.Complemento, form.Bairro, form.Cidade, form.UF = texto(f.Complemento), texto(f.Bairro), texto(f.Cidade), texto(f.UF)
+	form.DepartamentoID, form.NivelObra = texto(f.DepartamentoID), texto(f.NivelObra)
+	if f.Salario != nil {
+		form.Salario = strconv.FormatFloat(*f.Salario, 'f', 2, 64)
+	}
+	form.Banco, form.Agencia, form.Conta, form.TipoConta, form.ChavePix = texto(f.Banco), texto(f.Agencia), texto(f.Conta), texto(f.TipoConta), texto(f.ChavePix)
+	form.Observacoes = texto(f.Observacoes)
+}
 
 func (h *Handlers) mapaObras(r *http.Request) map[string]string {
 	m := map[string]string{}
@@ -77,8 +99,8 @@ func nomeOuVazio(id *string, mapa map[string]string) string {
 	return mapa[*id]
 }
 
-func (h *Handlers) opcoesFormulario(r *http.Request) ([]tpl.OpcaoSelect, []tpl.OpcaoSelect) {
-	var obrasOpt, cargosOpt []tpl.OpcaoSelect
+func (h *Handlers) opcoesFormulario(r *http.Request) ([]tpl.OpcaoSelect, []tpl.OpcaoSelect, []tpl.OpcaoSelect) {
+	var obrasOpt, cargosOpt, departamentosOpt []tpl.OpcaoSelect
 	if h.ListarObrasAtivas != nil {
 		if obras, err := h.ListarObrasAtivas(r.Context()); err == nil {
 			for _, o := range obras {
@@ -91,15 +113,28 @@ func (h *Handlers) opcoesFormulario(r *http.Request) ([]tpl.OpcaoSelect, []tpl.O
 			cargosOpt = append(cargosOpt, tpl.OpcaoSelect{ID: c.ID, Rotulo: c.Nome})
 		}
 	}
-	return obrasOpt, cargosOpt
+	if departamentos, err := h.RepoDepartamentos.Listar(r.Context()); err == nil {
+		nomes := map[string]string{}
+		for _, d := range departamentos {
+			nomes[d.ID] = d.Nome
+		}
+		for _, d := range departamentos {
+			rotulo := d.Nome
+			if d.PaiID != nil {
+				rotulo = nomes[*d.PaiID] + " · " + d.Nome
+			}
+			departamentosOpt = append(departamentosOpt, tpl.OpcaoSelect{ID: d.ID, Rotulo: rotulo})
+		}
+	}
+	return obrasOpt, cargosOpt, departamentosOpt
 }
 
 func (h *Handlers) FuncionarioNovoForm(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
-	obras, cargos := h.opcoesFormulario(r)
-	tpl.FuncionarioForm(tpl.FormFuncionario{Obras: obras, Cargos: cargos}).Render(r.Context(), w)
+	obras, cargos, departamentos := h.opcoesFormulario(r)
+	tpl.FuncionarioForm(tpl.FormFuncionario{Obras: obras, Cargos: cargos, Departamentos: departamentos}).Render(r.Context(), w)
 }
 
 func entradaFuncionarioDoForm(r *http.Request) aplicacao.EntradaFuncionario {
@@ -121,14 +156,18 @@ func entradaFuncionarioDoForm(r *http.Request) aplicacao.EntradaFuncionario {
 	}
 }
 
-func formularioComErro(entrada aplicacao.EntradaFuncionario, id, erro string, obras, cargos []tpl.OpcaoSelect) tpl.FormFuncionario {
+func formularioComErro(entrada aplicacao.EntradaFuncionario, id, erro string, obras, cargos, departamentos []tpl.OpcaoSelect) tpl.FormFuncionario {
 	return tpl.FormFuncionario{
 		ID: id, Erro: erro, Nome: entrada.Nome, CPF: entrada.CPF, AdmitidoEm: entrada.AdmitidoEm,
-		Status: entrada.Status, TipoContrato: entrada.TipoContrato, Telefone: entrada.Telefone, Email: entrada.Email,
+		RG: entrada.RG, DataNascimento: entrada.DataNascimento, Sexo: entrada.Sexo, EstadoCivil: entrada.EstadoCivil,
+		NomeMae: entrada.NomeMae, Foto: entrada.Foto, Status: entrada.Status, TipoContrato: entrada.TipoContrato,
+		Telefone: entrada.Telefone, Email: entrada.Email, CEP: entrada.CEP, Logradouro: entrada.Logradouro,
+		Numero: entrada.Numero, Complemento: entrada.Complemento, Bairro: entrada.Bairro, Cidade: entrada.Cidade, UF: entrada.UF,
 		ObraID: entrada.ObraID, CargoID: entrada.CargoID, DepartamentoID: entrada.DepartamentoID,
 		NivelObra: entrada.NivelObra, Salario: entrada.Salario,
+		Banco: entrada.Banco, Agencia: entrada.Agencia, Conta: entrada.Conta, TipoConta: entrada.TipoConta, ChavePix: entrada.ChavePix,
 		TamanhoCamisa: entrada.TamanhoCamisa, TamanhoCalca: entrada.TamanhoCalca, TamanhoCalcado: entrada.TamanhoCalcado,
-		Obras: obras, Cargos: cargos,
+		Observacoes: entrada.Observacoes, Obras: obras, Cargos: cargos, Departamentos: departamentos,
 	}
 }
 
@@ -145,8 +184,8 @@ func (h *Handlers) FuncionarioCriar(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.Funcionarios.Criar(r.Context(), entrada, sess.Nome)
 	if err != nil {
-		obras, cargos := h.opcoesFormulario(r)
-		tpl.FuncionarioForm(formularioComErro(entrada, "", err.Error(), obras, cargos)).Render(r.Context(), w)
+		obras, cargos, departamentos := h.opcoesFormulario(r)
+		tpl.FuncionarioForm(formularioComErro(entrada, "", err.Error(), obras, cargos, departamentos)).Render(r.Context(), w)
 		return
 	}
 	http.Redirect(w, r, "/rh/funcionarios/"+id, http.StatusSeeOther)
@@ -239,10 +278,10 @@ func (h *Handlers) FuncionarioEditarForm(w http.ResponseWriter, r *http.Request)
 		http.NotFound(w, r)
 		return
 	}
-	obras, cargos := h.opcoesFormulario(r)
+	obras, cargos, departamentos := h.opcoesFormulario(r)
 	form := tpl.FormFuncionario{
 		ID: f.ID, Nome: f.Nome, CPF: dominio.FormatarCPF(f.CPF), AdmitidoEm: dataParaInput(f.AdmitidoEm),
-		Status: f.Status, TipoContrato: f.TipoContrato, Obras: obras, Cargos: cargos,
+		Status: f.Status, TipoContrato: f.TipoContrato, Obras: obras, Cargos: cargos, Departamentos: departamentos,
 	}
 	if f.Telefone != nil {
 		form.Telefone = *f.Telefone
@@ -250,6 +289,7 @@ func (h *Handlers) FuncionarioEditarForm(w http.ResponseWriter, r *http.Request)
 	if f.Email != nil {
 		form.Email = *f.Email
 	}
+	preencherFormularioFuncionario(&form, f)
 	if f.ObraID != nil {
 		form.ObraID = *f.ObraID
 	}
@@ -281,8 +321,8 @@ func (h *Handlers) FuncionarioEditar(w http.ResponseWriter, r *http.Request) {
 	entrada := entradaFuncionarioDoForm(r)
 
 	if err := h.Funcionarios.Editar(r.Context(), id, entrada, sess.Nome); err != nil {
-		obras, cargos := h.opcoesFormulario(r)
-		tpl.FuncionarioForm(formularioComErro(entrada, id, err.Error(), obras, cargos)).Render(r.Context(), w)
+		obras, cargos, departamentos := h.opcoesFormulario(r)
+		tpl.FuncionarioForm(formularioComErro(entrada, id, err.Error(), obras, cargos, departamentos)).Render(r.Context(), w)
 		return
 	}
 	http.Redirect(w, r, "/rh/funcionarios/"+id, http.StatusSeeOther)

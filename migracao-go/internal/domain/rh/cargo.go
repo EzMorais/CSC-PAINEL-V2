@@ -13,12 +13,16 @@ const (
 // Cargo é a PROFISSÃO (Pedreiro, Eletricista) — não confundir com o cargo de sistema
 // (ADMIN/GERENTE/...) do Portal, nem com NivelObra (ver funcionario.go).
 type Cargo struct {
-	ID       string
-	Nome     string
-	CBO      *string
-	Risco    string
-	Ativo    bool
-	CriadoEm time.Time
+	ID                     string
+	Nome                   string
+	CBO                    *string
+	Risco                  string
+	Descricao              *string
+	Responsabilidades      *string
+	Requisitos             *string
+	DocumentosObrigatorios *string
+	Ativo                  bool
+	CriadoEm               time.Time
 }
 
 // Departamento é o organograma de DOIS NÍVEIS: ramo (PaiID nil) -> setor (PaiID aponta pro

@@ -10,10 +10,10 @@ import "siqueiracampos/servidor/internal/domain/identidade"
 templ Sidebar(sess identidade.Sessao) {
 	<nav class="barra-lateral" id="barra-lateral" data-testid="navegacao">
 		<div class="barra-lateral-topo">
-			<span class="marca">
-				<strong>Siqueira Campos</strong>
-				<small>Sistemas internos</small>
-			</span>
+			<a href="/" class="marca" aria-label="Siqueira Campos — início">
+				<span class="marca-simbolo" aria-hidden="true">S</span>
+				<span class="marca-nome"><strong>Siqueira Campos</strong><small>Gestão integrada</small></span>
+			</a>
 			<button type="button" class="botao-icone somente-mobile" data-fechar-menu aria-label="Fechar menu">
 				@IconeX("icone")
 			</button>
@@ -23,7 +23,7 @@ templ Sidebar(sess identidade.Sessao) {
 			</button>
 		</div>
 		<div class="barra-lateral-secoes">
-			<div class="secao-nav">
+			<div class="secao-nav secao-global">
 				<a href="/" class="item-nav" data-nav title="Hub">
 					@IconeDashboard("icone")
 					<span class="rotulo">Hub</span>
@@ -36,7 +36,7 @@ templ Sidebar(sess identidade.Sessao) {
 				}
 			</div>
 			if identidade.TemAcesso(sess, identidade.ModuloPainel) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="painel">
 					<p class="secao-titulo">Painel de Locação</p>
 					<a href="/painel" class="item-nav" data-nav title="Dashboard">
 						@IconeDashboard("icone")
@@ -61,7 +61,7 @@ templ Sidebar(sess identidade.Sessao) {
 				</div>
 			}
 			if identidade.TemAcesso(sess, identidade.ModuloEstoque) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="almoxarifado">
 					<p class="secao-titulo">Almoxarifado</p>
 					<a href="/almoxarifado" class="item-nav" data-nav title="Dashboard">
 						@IconeDashboard("icone")
@@ -90,7 +90,7 @@ templ Sidebar(sess identidade.Sessao) {
 				</div>
 			}
 			if identidade.TemAcesso(sess, identidade.ModuloRH) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="rh">
 					<p class="secao-titulo">RH e SST</p>
 					<a href="/rh" class="item-nav" data-nav title="Dashboard">
 						@IconeDashboard("icone")
@@ -100,6 +100,13 @@ templ Sidebar(sess identidade.Sessao) {
 						@IconeUsuarios("icone")
 						<span class="rotulo">Funcionários</span>
 					</a>
+					<a href="/rh/treinamentos" class="item-nav" data-nav title="Treinamentos">@IconeCheck("icone")<span class="rotulo">Treinamentos</span></a>
+					<a href="/rh/exames" class="item-nav" data-nav title="Exames">@IconeCheck("icone")<span class="rotulo">Exames</span></a>
+					<a href="/rh/documentos" class="item-nav" data-nav title="Documentos">@IconePasta("icone")<span class="rotulo">Documentos</span></a>
+					<a href="/rh/auditorias" class="item-nav" data-nav title="Auditorias">@IconeCheck("icone")<span class="rotulo">Auditorias</span></a>
+					<a href="/rh/nao-conformidades" class="item-nav" data-nav title="Não conformidades">@IconeX("icone")<span class="rotulo">Não conformidades</span></a>
+					<a href="/rh/uniformes" class="item-nav" data-nav title="Uniformes">@IconePacote("icone")<span class="rotulo">Uniformes</span></a>
+					<a href="/rh/relatorios" class="item-nav" data-nav title="Relatórios">@IconeDashboard("icone")<span class="rotulo">Relatórios</span></a>
 					<a href="/rh/configuracoes" class="item-nav" data-nav title="Configurações">
 						@IconeUsuarios("icone")
 						<span class="rotulo">Configurações</span>
@@ -107,7 +114,7 @@ templ Sidebar(sess identidade.Sessao) {
 				</div>
 			}
 			if identidade.TemAcesso(sess, identidade.ModuloAlojamentos) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="alojamentos">
 					<p class="secao-titulo">Alojamentos</p>
 					<a href="/alojamentos" class="item-nav" data-nav title="Dashboard">
 						@IconeDashboard("icone")
@@ -135,8 +142,18 @@ templ Sidebar(sess identidade.Sessao) {
 					</a>
 				</div>
 			}
+			if identidade.TemAcesso(sess, identidade.ModuloCompras) {
+				<div class="secao-nav secao-contextual" data-secao-modulo="compras">
+					<p class="secao-titulo">Compras</p>
+					<a href="/compras" class="item-nav" data-nav title="Pedidos">@IconePacote("icone")<span class="rotulo">Pedidos</span></a>
+					<a href="/compras/cotacoes" class="item-nav" data-nav title="Cotações">@IconeCifrao("icone")<span class="rotulo">Cotações</span></a>
+					<a href="/compras/divergencias" class="item-nav" data-nav title="Divergências">@IconeCheck("icone")<span class="rotulo">Divergências</span></a>
+					<a href="/compras/contratos" class="item-nav" data-nav title="Contratos">@IconePasta("icone")<span class="rotulo">Contratos</span></a>
+					<a href="/compras/relatorios" class="item-nav" data-nav title="Relatórios">@IconeDashboard("icone")<span class="rotulo">Relatórios</span></a>
+				</div>
+			}
 			if identidade.TemAcesso(sess, identidade.ModuloFinanceiro) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="financeiro">
 					<p class="secao-titulo">Financeiro</p>
 					<a href="/financeiro" class="item-nav" data-nav title="Dashboard">
 						@IconeDashboard("icone")
@@ -161,7 +178,7 @@ templ Sidebar(sess identidade.Sessao) {
 				</div>
 			}
 			if identidade.TemAcesso(sess, identidade.ModuloProgramacao) {
-				<div class="secao-nav">
+				<div class="secao-nav secao-contextual" data-secao-modulo="programacao">
 					<p class="secao-titulo">Programação Diária</p>
 					<a href="/programacao" class="item-nav" data-nav title="Hoje">
 						@IconeCalendario("icone")

@@ -65,6 +65,12 @@ templ HubFlutuante(sess identidade.Sessao, nav middleware.Navegacao) {
 					Alojamentos
 				</a>
 			}
+			if identidade.TemAcesso(sess, identidade.ModuloCompras) {
+				<a href="/compras" class="hub-flutuante-item" data-nav>
+					@IconeCifrao("icone")
+					Compras
+				</a>
+			}
 			if identidade.TemAcesso(sess, identidade.ModuloFrota) {
 				<a href={ templ.URL(nav.URLFrota) } class="hub-flutuante-item">
 					@IconeCaminhao("icone")
