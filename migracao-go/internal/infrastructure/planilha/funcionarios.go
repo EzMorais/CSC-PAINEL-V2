@@ -15,10 +15,10 @@ import (
 )
 
 var apelidosFuncionario = map[string][]string{
-	"nome":           {"nome", "nome completo", "funcionario", "colaborador"},
+	"nome": {"nome", "nome completo", "funcionario", "colaborador"},
 	// "c p f" e "cpf mf" são "C.P.F"/"CPF/MF" já normalizados — NormalizarCabecalho troca
 	// pontuação por espaço, então o apelido precisa estar na forma pós-normalização.
-	"cpf": {"cpf", "c p f", "cpf mf"},
+	"cpf":            {"cpf", "c p f", "cpf mf"},
 	"matricula":      {"matricula", "registro", "chapa"},
 	"rg":             {"rg", "identidade"},
 	"dataNascimento": {"data de nascimento", "nascimento", "dt nascimento", "data nascimento"},
@@ -44,23 +44,23 @@ var statusAceitosFuncionario = map[string]string{
 }
 
 type LinhaFuncionarioImportado struct {
-	Linha                                             int
-	Nome, CPF                                         string
-	Matricula                                         *string
-	AdmitidoEm                                        *time.Time
-	Cargo, Obra                                       *string
-	Status                                             string
-	RG                                                 *string
-	DataNascimento                                     *time.Time
-	Telefone, Email, Sexo                              *string
-	Salario                                            *float64
-	TipoContrato, Cidade, UF                           *string
-	TamanhoCamisa, TamanhoCalca, TamanhoCalcado         *string
+	Linha                                       int
+	Nome, CPF                                   string
+	Matricula                                   *string
+	AdmitidoEm                                  *time.Time
+	Cargo, Obra                                 *string
+	Status                                      string
+	RG                                          *string
+	DataNascimento                              *time.Time
+	Telefone, Email, Sexo                       *string
+	Salario                                     *float64
+	TipoContrato, Cidade, UF                    *string
+	TamanhoCamisa, TamanhoCalca, TamanhoCalcado *string
 }
 
 type LinhaFuncionarioIgnorada struct {
-	Linha   int
-	Motivo  string
+	Linha    int
+	Motivo   string
 	Conteudo string
 }
 
@@ -251,7 +251,7 @@ func semTraco(s string) string {
 }
 
 var (
-	errPlanilhaVazia         = planilhaErro("A planilha está vazia.")
+	errPlanilhaVazia          = planilhaErro("A planilha está vazia.")
 	errCabecalhoNaoEncontrado = planilhaErro("Não encontrei as colunas \"Nome\" e \"CPF\" nas primeiras linhas. Confira se a planilha tem uma linha de cabeçalho com esses nomes.")
 )
 

@@ -1,0 +1,232 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Executar as suítes Playwright (demorado)
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.26.5"
+  NODE_VERSION: "24"
+  CI: "true"
+
+jobs:
+  go:
+    name: Go · formato, vet e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: migracao-go
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: migracao-go/go.sum
+
+      - name: Verificar formatação
+        shell: bash
+        run: |
+          arquivos="$(gofmt -l .)"
+          if [[ -n "$arquivos" ]]; then
+            echo "Arquivos Go fora do padrão gofmt:"
+            echo "$arquivos"
+            exit 1
+          fi
+
+      - name: Executar go vet
+        run: go vet ./...
+
+      - name: Executar testes com cobertura
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic
+
+      - name: Publicar cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: migracao-go/coverage.out
+          if-no-files-found: ignore
+
+  discover-node:
+    name: Descobrir aplicações Node
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Encontrar aplicações com package.json
+        id: set
+        shell: bash
+        run: |
+          mapfile -t encontrados < <(find apps -mindepth 2 -maxdepth 2 -type f -name package.json -printf '%h\n' | sort)
+          if [[ "${#encontrados[@]}" -eq 0 ]]; then
+            echo 'Nenhuma aplicação Node encontrada em apps/' >&2
+            exit 1
+          fi
+          printf '%s\n' "${encontrados[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))' > apps.json
+          echo "apps=$(cat apps.json)" >> "$GITHUB_OUTPUT"
+
+  node-quality:
+    name: Node · ${{ matrix.app }}
+    needs: discover-node
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.discover-node.outputs.apps) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    env:
+      AUTH_SECRET: ci-secret-with-at-least-32-characters-000
+      DATABASE_URL: file:./ci.db
+      NEXT_PUBLIC_URL_APP: http://localhost:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+
+      - name: Gerar cliente Prisma
+        shell: bash
+        run: |
+          if [[ -f prisma/schema.prisma ]]; then
+            npx prisma generate
+          else
+            echo "Sem schema Prisma; etapa ignorada"
+          fi
+
+      - name: Executar lint
+        shell: bash
+        run: |
+          if jq -e '.scripts.lint' package.json >/dev/null 2>&1; then
+            npm run lint
+          else
+            echo "Sem script lint; etapa ignorada"
+          fi
+
+      - name: Executar typecheck
+        shell: bash
+        run: |
+          if jq -e '.scripts.typecheck' package.json >/dev/null 2>&1; then
+            npm run typecheck
+          else
+            echo "Sem script typecheck; etapa ignorada"
+          fi
+
+      - name: Executar testes unitários
+        shell: bash
+        run: |
+          script="$(jq -r '.scripts.test // empty' package.json)"
+          if [[ -n "$script" && "$script" != *playwright* ]]; then
+            npm test --silent
+          else
+            echo "Sem teste unitário separado; E2E é executado no job Playwright"
+          fi
+
+      - name: Validar build
+        shell: bash
+        run: |
+          if jq -e '.scripts.build' package.json >/dev/null 2>&1; then
+            npm run build
+          else
+            echo "Sem script build; etapa ignorada"
+          fi
+
+  e2e:
+    name: Playwright · ${{ matrix.app }}
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_e2e == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: apps/frota
+            config: playwright.config.ts
+          - app: apps/portal
+            config: playwright.config.ts
+          - app: apps/painel-locacao
+            config: playwright.config.ts
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    env:
+      AUTH_SECRET: ci-secret-with-at-least-32-characters-000
+      DATABASE_URL: file:./ci-e2e.db
+      SENHA_ADMIN: ci-admin-2026
+      NEXT_PUBLIC_URL_APP: http://localhost:3100
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+
+      - name: Gerar cliente Prisma
+        shell: bash
+        run: |
+          if [[ -f prisma/schema.prisma ]]; then
+            npx prisma generate
+          fi
+
+      - name: Instalar navegador Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Preparar Frota para o servidor de teste
+        if: matrix.app == 'apps/frota'
+        run: |
+          npm run build
+          npm run seed
+
+      - name: Executar E2E
+        run: npx playwright test --config=${{ matrix.config }}
+
+      - name: Publicar relatório Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.app }}
+          path: |
+            ${{ matrix.app }}/playwright-report
+            ${{ matrix.app }}/test-results
+          if-no-files-found: ignore

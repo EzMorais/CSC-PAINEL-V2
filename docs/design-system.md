@@ -33,17 +33,19 @@ separado do collapse de desktop.
 ## 3. Cores — neutro + acento colorido (estilo Anytype/Notion/Discord)
 
 A base é uma escala **neutra de verdade** (croma quase zero) para fundo, texto, bordas e
-cartões — nada de neutros puxados pra azul. A cor entra só como **acento**: botão primário,
-link ativo, tile de ícone, badge. Cada app mantém sua identidade de cor (é o que já
-diferenciava os 5 sistemas antes desta reforma), só ficou mais saturada/viva:
+cartões — nada de neutros puxados pra azul. A referência visual é a Programação (porta 3007):
+todos os módulos usam o mesmo acento âmbar, botão primário, link ativo, tile de ícone e badge.
+As rotas e navegações continuam específicas de cada módulo, mas o tema não muda ao trocar de
+aba:
 
 App | Acento | Hue (OKLCH)
 ---|---|---
-Portal | azul | 255
-Painel de Locação | índigo | 288
-RH e SST | verde-azulado | 172
-Almoxarifado | terracota | 45
+Portal | âmbar | 85
+Painel de Locação | âmbar | 85
+RH e SST | âmbar | 85
+Almoxarifado | âmbar | 85
 Alojamentos | âmbar | 85
+Programação (referência) | âmbar | 85
 
 A sidebar é **sempre escura** (near-black, ligeiramente mais escura que o `--background` do
 tema escuro) — não muda com o toggle de tema. É o mesmo truque do Discord/Notion/Linear: a
@@ -67,9 +69,8 @@ Espaçamento, raio e sombra usam a escala nativa do Tailwind v4 (`p-4`, `rounded
 
 ## 4. Tipografia
 
-**Inter** e **JetBrains Mono**, via `next/font/google` (self-hosted automaticamente pelo
-Next no build — mesmo resultado do `@font-face` manual do sistema original, sem gerenciar
-`.woff2` à mão). Substitui a Geist que os apps usavam antes.
+**Geist** e **Geist Mono**, via `next/font/google` (self-hosted automaticamente pelo Next no
+build). A tipografia é a mesma da Programação (porta 3007) em todas as aplicações Next.
 
 | Uso | Peso |
 |---|---|

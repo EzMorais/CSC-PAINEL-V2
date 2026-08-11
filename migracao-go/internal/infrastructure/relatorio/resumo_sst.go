@@ -13,10 +13,10 @@ import (
 // ResumoSST — indicadores já contados pela camada de aplicação (GerenciadorRelatorios) —
 // este pacote só desenha, mesma separação de GerarPDF para o Painel.
 type ResumoSST struct {
-	Ativos, Afastados, Ferias             int
+	Ativos, Afastados, Ferias            int
 	TreinamentosVencendo, ExamesVencendo int
-	NCAbertas, NCVencidas                 int
-	Auditorias                            int
+	NCAbertas, NCVencidas                int
+	Auditorias                           int
 }
 
 // GerarResumoSST espelha `gerarResumoPdf` — ver migracao-go/rh/COMPORTAMENTO.md §7. PDF de

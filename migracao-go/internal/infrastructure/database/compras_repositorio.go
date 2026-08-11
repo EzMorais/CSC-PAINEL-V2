@@ -29,10 +29,10 @@ func NovoContasPagarRepositorio(db *sql.DB) *ContasPagarRepositorio {
 	return &ContasPagarRepositorio{DB: db}
 }
 
-const colunasPedidoCompra = `id, numero, status, solicitacao_id, fornecedor_id, fornecedor_nome, observacao, criado_em, recebido_em, total_estimado, total_recebido`
+const colunasPedidoCompra = `id, numero, status, solicitacao_id, fornecedor_id, fornecedor_nome, observacao, criado_em, recebido_em, total_estimado, total_recebido, solicitante_id, solicitante_nome, aprovador_id, aprovador_nome, aprovado_em, enviado_em, previsao_entrega, condicao_pagamento, cotacao_id, motivo_escolha, cancelado_em, cancelado_por, motivo_cancelamento`
 const colunasItemPedidoCompra = `id, pedido_id, material_id, material_codigo, material_nome, material_unidade, quantidade_solicitada, quantidade_recebida, preco_unitario, observacao`
-const colunasRecebimentoCompra = `id, pedido_id, numero, recebido_em, recebido_por, nota_fiscal, observacao, conta_pagar_id`
-const colunasItemRecebimentoCompra = `id, recebimento_id, pedido_item_id, material_id, quantidade, valor_unitario`
+const colunasRecebimentoCompra = `id, pedido_id, numero, recebido_em, recebido_por, nota_fiscal, observacao, conta_pagar_id, chave_idempotencia, data_emissao_nf, chave_nf, valor_nf_centavos, status_conferencia`
+const colunasItemRecebimentoCompra = `id, recebimento_id, pedido_item_id, material_id, quantidade, valor_unitario, quantidade_nf, valor_nf_unitario_centavos`
 const colunasContaPagar = `id, numero, pedido_id, recebimento_id, fornecedor_id, fornecedor_nome, valor_total, valor_aberto, vencimento, status, criado_em, pago_em, observacao`
 
 func lerPedidoCompra(linha linhaEscaneavel) (*compras.PedidoCompra, error) {
@@ -41,10 +41,12 @@ func lerPedidoCompra(linha linhaEscaneavel) (*compras.PedidoCompra, error) {
 	var solicitacaoID sql.NullString
 	var recebidoEm sql.NullString
 	var observacao sql.NullString
+	var solicitanteID, solicitanteNome, aprovadorID, aprovadorNome, aprovadoEm, enviadoEm, previsao, condicao, cotacaoID, motivoEscolha, canceladoEm, canceladoPor, motivoCancelamento sql.NullString
 	var criadoEm string
 	if err := linha.Scan(
 		&p.ID, &p.Numero, &status, &solicitacaoID, &p.FornecedorID, &p.FornecedorNome,
 		&observacao, &criadoEm, &recebidoEm, &p.TotalEstimado, &p.TotalRecebido,
+		&solicitanteID, &solicitanteNome, &aprovadorID, &aprovadorNome, &aprovadoEm, &enviadoEm, &previsao, &condicao, &cotacaoID, &motivoEscolha, &canceladoEm, &canceladoPor, &motivoCancelamento,
 	); err != nil {
 		return nil, err
 	}
@@ -60,6 +62,14 @@ func lerPedidoCompra(linha linhaEscaneavel) (*compras.PedidoCompra, error) {
 		t, _ := time.Parse(time.RFC3339, recebidoEm.String)
 		p.RecebidoEm = &t
 	}
+	p.SolicitanteID, p.SolicitanteNome = solicitanteID.String, solicitanteNome.String
+	p.AprovadorID, p.AprovadorNome = txt(aprovadorID), txt(aprovadorNome)
+	p.AprovadoEm = parseTempoNulo(aprovadoEm)
+	p.EnviadoEm = parseTempoNulo(enviadoEm)
+	p.PrevisaoEntrega = parseTempoNulo(previsao)
+	p.CondicaoPagamento, p.CotacaoID, p.MotivoEscolha = txt(condicao), txt(cotacaoID), txt(motivoEscolha)
+	p.CanceladoEm = parseTempoNulo(canceladoEm)
+	p.CanceladoPor, p.MotivoCancelamento = txt(canceladoPor), txt(motivoCancelamento)
 	return &p, nil
 }
 
@@ -88,9 +98,12 @@ func lerRecebimentoCompra(linha linhaEscaneavel) (*compras.RecebimentoCompra, er
 	var notaFiscal sql.NullString
 	var observacao sql.NullString
 	var contaPagarID sql.NullString
+	var chaveIdempotencia, dataEmissaoNF, chaveNF, statusConferencia sql.NullString
+	var valorNFCentavos sql.NullInt64
 	var recebidoEm string
 	if err := linha.Scan(
 		&r.ID, &r.PedidoID, &r.Numero, &recebidoEm, &r.RecebidoPor, &notaFiscal, &observacao, &contaPagarID,
+		&chaveIdempotencia, &dataEmissaoNF, &chaveNF, &valorNFCentavos, &statusConferencia,
 	); err != nil {
 		return nil, err
 	}
@@ -104,13 +117,36 @@ func lerRecebimentoCompra(linha linhaEscaneavel) (*compras.RecebimentoCompra, er
 	if contaPagarID.Valid {
 		r.ContaPagarID = &contaPagarID.String
 	}
+	if chaveIdempotencia.Valid {
+		r.ChaveIdempotencia = &chaveIdempotencia.String
+	}
+	if dataEmissaoNF.Valid {
+		r.DataEmissaoNF = &dataEmissaoNF.String
+	}
+	if chaveNF.Valid {
+		r.ChaveNF = &chaveNF.String
+	}
+	if valorNFCentavos.Valid {
+		r.ValorNFCentavos = &valorNFCentavos.Int64
+	}
+	if statusConferencia.Valid {
+		r.StatusConferencia = &statusConferencia.String
+	}
 	return &r, nil
 }
 
 func lerItemRecebimentoCompra(linha linhaEscaneavel) (*compras.ItemRecebimentoCompra, error) {
 	var item compras.ItemRecebimentoCompra
-	if err := linha.Scan(&item.ID, &item.RecebimentoID, &item.PedidoItemID, &item.MaterialID, &item.Quantidade, &item.ValorUnitario); err != nil {
+	var quantidadeNF sql.NullFloat64
+	var valorNF sql.NullInt64
+	if err := linha.Scan(&item.ID, &item.RecebimentoID, &item.PedidoItemID, &item.MaterialID, &item.Quantidade, &item.ValorUnitario, &quantidadeNF, &valorNF); err != nil {
 		return nil, err
+	}
+	if quantidadeNF.Valid {
+		item.QuantidadeNF = &quantidadeNF.Float64
+	}
+	if valorNF.Valid {
+		item.ValorNFUnitarioCentavos = &valorNF.Int64
 	}
 	return &item, nil
 }
@@ -252,9 +288,9 @@ func (r *ComprasPedidoRepositorio) Criar(ctx context.Context, p *compras.PedidoC
 
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO compras_pedidos
-			(id, numero, status, solicitacao_id, fornecedor_id, fornecedor_nome, observacao, criado_em, total_estimado, total_recebido)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, p.Numero, string(p.Status), p.SolicitacaoID, p.FornecedorID, p.FornecedorNome, p.Observacao, agora, p.TotalEstimado, p.TotalRecebido,
+			(id, numero, status, solicitacao_id, fornecedor_id, fornecedor_nome, observacao, criado_em, total_estimado, total_recebido,solicitante_id,solicitante_nome,cotacao_id,motivo_escolha)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, p.Numero, string(p.Status), p.SolicitacaoID, p.FornecedorID, p.FornecedorNome, p.Observacao, agora, p.TotalEstimado, p.TotalRecebido, p.SolicitanteID, p.SolicitanteNome, p.CotacaoID, p.MotivoEscolha,
 	); err != nil {
 		return err
 	}
@@ -316,6 +352,23 @@ func (r *ComprasRecebimentoRepositorio) BuscarPorID(ctx context.Context, id stri
 	return rq, nil
 }
 
+func (r *ComprasRecebimentoRepositorio) BuscarPorChave(ctx context.Context, chave string) (*compras.RecebimentoCompra, error) {
+	linha := r.DB.QueryRowContext(ctx, `SELECT `+colunasRecebimentoCompra+` FROM compras_recebimentos WHERE chave_idempotencia = ?`, chave)
+	recebimento, err := lerRecebimentoCompra(linha)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	itens, err := r.buscarItens(ctx, recebimento.ID)
+	if err != nil {
+		return nil, err
+	}
+	recebimento.Itens = itens
+	return recebimento, nil
+}
+
 func (r *ComprasRecebimentoRepositorio) Listar(ctx context.Context) ([]compras.RecebimentoCompra, error) {
 	linhas, err := r.DB.QueryContext(ctx, `SELECT `+colunasRecebimentoCompra+` FROM compras_recebimentos ORDER BY recebido_em DESC LIMIT 200`)
 	if err != nil {
@@ -368,18 +421,19 @@ func (r *ComprasRecebimentoRepositorio) Criar(ctx context.Context, rq *compras.R
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO compras_recebimentos (id, pedido_id, numero, recebido_em, recebido_por, nota_fiscal, observacao)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO compras_recebimentos (id, pedido_id, numero, recebido_em, recebido_por, nota_fiscal, observacao, chave_idempotencia, data_emissao_nf, chave_nf, valor_nf_centavos, status_conferencia)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, rq.PedidoID, rq.Numero, agora, rq.RecebidoPor, rq.NotaFiscal, rq.Observacao,
+		rq.ChaveIdempotencia, rq.DataEmissaoNF, rq.ChaveNF, rq.ValorNFCentavos, rq.StatusConferencia,
 	); err != nil {
 		return err
 	}
 
 	for _, item := range rq.Itens {
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO compras_recebimento_itens (id, recebimento_id, pedido_item_id, material_id, quantidade, valor_unitario)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-			uuid.NewString(), id, item.PedidoItemID, item.MaterialID, item.Quantidade, item.ValorUnitario,
+			INSERT INTO compras_recebimento_itens (id, recebimento_id, pedido_item_id, material_id, quantidade, valor_unitario, quantidade_nf, valor_nf_unitario_centavos)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			uuid.NewString(), id, item.PedidoItemID, item.MaterialID, item.Quantidade, item.ValorUnitario, item.QuantidadeNF, item.ValorNFUnitarioCentavos,
 		); err != nil {
 			return err
 		}
@@ -400,6 +454,11 @@ func (r *ComprasRecebimentoRepositorio) AtualizarContaPagar(ctx context.Context,
 		WHERE id = ?`,
 		contaPagarID, recebimentoID,
 	)
+	return err
+}
+
+func (r *ComprasRecebimentoRepositorio) AtualizarConferencia(ctx context.Context, recebimentoID, status string) error {
+	_, err := r.DB.ExecContext(ctx, `UPDATE compras_recebimentos SET status_conferencia=? WHERE id=?`, status, recebimentoID)
 	return err
 }
 

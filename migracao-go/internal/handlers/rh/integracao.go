@@ -14,17 +14,17 @@ import (
 // handler não importa o pacote estoque de propósito, RH não conhece Almoxarifado, só o
 // contrato JSON entre os dois (COMPORTAMENTO.md §6).
 type corpoFichaEpi struct {
-	MovimentacaoID string   `json:"movimentacaoId"`
-	FuncionarioID  string   `json:"funcionarioId"`
-	MaterialCodigo string   `json:"materialCodigo"`
-	MaterialNome   string   `json:"materialNome"`
-	Unidade        string   `json:"unidade"`
-	Quantidade     float64  `json:"quantidade"`
-	CA             *string  `json:"ca"`
-	ValidadeCA     *string  `json:"validadeCA"`
-	EntregueEm     string   `json:"entregueEm"`
-	EntreguePor    *string  `json:"entreguePor"`
-	Observacao     *string  `json:"observacao"`
+	MovimentacaoID string  `json:"movimentacaoId"`
+	FuncionarioID  string  `json:"funcionarioId"`
+	MaterialCodigo string  `json:"materialCodigo"`
+	MaterialNome   string  `json:"materialNome"`
+	Unidade        string  `json:"unidade"`
+	Quantidade     float64 `json:"quantidade"`
+	CA             *string `json:"ca"`
+	ValidadeCA     *string `json:"validadeCA"`
+	EntregueEm     string  `json:"entregueEm"`
+	EntreguePor    *string `json:"entreguePor"`
+	Observacao     *string `json:"observacao"`
 }
 
 // IntegracaoEntregaEpiCriar — POST /api/integracao/entregas-epi, SEM prefixo /rh (contrato

@@ -224,6 +224,68 @@
   --tile-shadow: 0 1px 3px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.10);
 }
 
+/* Tema de referência da Programação (porta 3007), aplicado também ao Frota. Os nomes
+   industriais antigos continuam existindo para não quebrar componentes; apenas seus valores
+   passam a usar o mesmo neutro/âmbar dos demais módulos. */
+:root {
+  --fonte-cond: var(--font-geist-sans), system-ui, sans-serif;
+  --fonte-corpo: var(--font-geist-sans), system-ui, sans-serif;
+  --fonte-dado: var(--font-geist-mono), ui-monospace, monospace;
+  --cor-grafite: 33 34 41;
+  --cor-grafite-800: 45 46 56;
+  --cor-grafite-700: 68 69 80;
+  --cor-grafite-600: 90 91 104;
+  --cor-concreto: 248 249 251;
+  --cor-concreto-100: 240 241 244;
+  --cor-concreto-200: 226 228 234;
+  --cor-concreto-300: 210 213 221;
+  --cor-superficie: 255 255 255;
+  --cor-barra: 28 29 36;
+  --cor-barra-800: 42 43 52;
+  --cor-barra-700: 63 64 76;
+  --cor-barra-texto: 244 245 248;
+  --cor-barra-suave: 194 196 207;
+  --cor-hivis: 205 155 50;
+  --cor-hivis-escuro: 166 116 22;
+  --cor-hivis-fraco: 250 243 218;
+  --cor-sinal: 205 155 50;
+  --cor-sinal-fraco: 250 243 218;
+  --cor-ambar: 205 155 50;
+  --cor-ambar-fraco: 250 243 218;
+}
+
+.dark {
+  --cor-grafite: 242 243 246;
+  --cor-grafite-800: 220 222 229;
+  --cor-grafite-700: 182 185 196;
+  --cor-grafite-600: 150 153 166;
+  --cor-concreto: 31 32 40;
+  --cor-concreto-100: 43 44 54;
+  --cor-concreto-200: 58 59 70;
+  --cor-concreto-300: 75 76 89;
+  --cor-superficie: 37 38 47;
+  --cor-barra: 23 24 30;
+  --cor-barra-800: 37 38 47;
+  --cor-barra-700: 58 59 70;
+  --cor-barra-texto: 242 243 246;
+  --cor-barra-suave: 190 192 204;
+  --cor-hivis: 226 177 73;
+  --cor-hivis-escuro: 244 196 92;
+  --cor-hivis-fraco: 61 49 22;
+  --cor-sinal: 226 177 73;
+  --cor-sinal-fraco: 61 49 22;
+  --cor-ambar: 226 177 73;
+  --cor-ambar-fraco: 61 49 22;
+}
+
+body {
+  background: rgb(var(--cor-concreto));
+  font-family: var(--fonte-corpo);
+}
+
+.cartao { border-radius: 1rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.14); }
+.campo, .botao, .selo { border-radius: 0.625rem; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

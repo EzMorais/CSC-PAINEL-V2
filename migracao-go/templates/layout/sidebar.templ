@@ -106,6 +106,85 @@ templ Sidebar(sess identidade.Sessao) {
 					</a>
 				</div>
 			}
+			if identidade.TemAcesso(sess, identidade.ModuloAlojamentos) {
+				<div class="secao-nav">
+					<p class="secao-titulo">Alojamentos</p>
+					<a href="/alojamentos" class="item-nav" data-nav title="Dashboard">
+						@IconeDashboard("icone")
+						<span class="rotulo">Dashboard</span>
+					</a>
+					<a href="/alojamentos/cadastros" class="item-nav" data-nav title="Alojamentos">
+						@IconeCasa("icone")
+						<span class="rotulo">Alojamentos</span>
+					</a>
+					<a href="/alojamentos/moradores" class="item-nav" data-nav title="Moradores">
+						@IconeUsuarios("icone")
+						<span class="rotulo">Moradores</span>
+					</a>
+					<a href="/alojamentos/pedidos" class="item-nav" data-nav title="Pedidos">
+						@IconePacote("icone")
+						<span class="rotulo">Pedidos</span>
+					</a>
+					<a href="/alojamentos/programacao" class="item-nav" data-nav title="Programação">
+						@IconeDashboard("icone")
+						<span class="rotulo">Programação</span>
+					</a>
+					<a href="/alojamentos/rotas" class="item-nav" data-nav title="Rotas">
+						@IconePredio("icone")
+						<span class="rotulo">Rotas</span>
+					</a>
+				</div>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloFinanceiro) {
+				<div class="secao-nav">
+					<p class="secao-titulo">Financeiro</p>
+					<a href="/financeiro" class="item-nav" data-nav title="Dashboard">
+						@IconeDashboard("icone")
+						<span class="rotulo">Dashboard</span>
+					</a>
+					<a href="/financeiro/faturamento" class="item-nav" data-nav title="Faturamento">
+						@IconeCifrao("icone")
+						<span class="rotulo">Faturamento</span>
+					</a>
+					<a href="/financeiro/fiscal" class="item-nav" data-nav title="Fiscal / SEFAZ">
+						@IconePacote("icone")
+						<span class="rotulo">Fiscal / SEFAZ</span>
+					</a>
+					<a href="/financeiro/contas-pagar" class="item-nav" data-nav title="Contas a pagar">
+						@IconeCifrao("icone")
+						<span class="rotulo">Contas a pagar</span>
+					</a>
+					<a href="/financeiro/contas-receber" class="item-nav" data-nav title="Contas a receber">
+						@IconeCifrao("icone")
+						<span class="rotulo">Contas a receber</span>
+					</a>
+				</div>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloProgramacao) {
+				<div class="secao-nav">
+					<p class="secao-titulo">Programação Diária</p>
+					<a href="/programacao" class="item-nav" data-nav title="Hoje">
+						@IconeCalendario("icone")
+						<span class="rotulo">Hoje</span>
+					</a>
+					<a href="/programacao/frentes" class="item-nav" data-nav title="Frentes">
+						@IconePredio("icone")
+						<span class="rotulo">Frentes</span>
+					</a>
+					<a href="/programacao/funcionarios" class="item-nav" data-nav title="Funcionários">
+						@IconeUsuarios("icone")
+						<span class="rotulo">Funcionários</span>
+					</a>
+					<a href="/programacao/veiculos" class="item-nav" data-nav title="Veículos">
+						@IconePacote("icone")
+						<span class="rotulo">Veículos</span>
+					</a>
+					<a href="/programacao/funcoes" class="item-nav" data-nav title="Funções">
+						@IconeUsuarios("icone")
+						<span class="rotulo">Funções</span>
+					</a>
+				</div>
+			}
 		</div>
 		<div class="barra-lateral-rodape">
 			<div class="usuario-info">

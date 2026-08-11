@@ -19,10 +19,10 @@ type GerenciadorRelatorios struct {
 }
 
 type IndicadoresSST struct {
-	Ativos, Afastados, Ferias             int
+	Ativos, Afastados, Ferias            int
 	TreinamentosVencendo, ExamesVencendo int
-	NCAbertas, NCVencidas                 int
-	Auditorias                            int
+	NCAbertas, NCVencidas                int
+	Auditorias                           int
 }
 
 // Indicadores espelha `indicadores()` de exportar-resumo-pdf.ts. TreinamentosVencendo conta

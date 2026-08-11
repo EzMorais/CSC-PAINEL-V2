@@ -1,0 +1,1 @@
+ALTER TABLE "Frente" ADD COLUMN "logo" TEXT;

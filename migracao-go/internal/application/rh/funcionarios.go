@@ -45,14 +45,14 @@ type GerenciadorFuncionarios struct {
 
 // EntradaFuncionario espelha o formulário de 6 abas do Next.js — COMPORTAMENTO.md §2.
 type EntradaFuncionario struct {
-	Nome, CPF, AdmitidoEm, Status, TipoContrato                        string
-	RG, DataNascimento, Sexo, EstadoCivil, NomeMae, Foto                string
-	Telefone, Email                                                     string
-	CEP, Logradouro, Numero, Complemento, Bairro, Cidade, UF             string
-	ObraID, CargoID, DepartamentoID, NivelObra, Salario                  string
-	Banco, Agencia, Conta, TipoConta, ChavePix                           string
-	TamanhoCamisa, TamanhoCalca, TamanhoCalcado                          string
-	Observacoes                                                          string
+	Nome, CPF, AdmitidoEm, Status, TipoContrato              string
+	RG, DataNascimento, Sexo, EstadoCivil, NomeMae, Foto     string
+	Telefone, Email                                          string
+	CEP, Logradouro, Numero, Complemento, Bairro, Cidade, UF string
+	ObraID, CargoID, DepartamentoID, NivelObra, Salario      string
+	Banco, Agencia, Conta, TipoConta, ChavePix               string
+	TamanhoCamisa, TamanhoCalca, TamanhoCalcado              string
+	Observacoes                                              string
 }
 
 func dataCalendario(v string) (*time.Time, error) {
@@ -124,7 +124,7 @@ func (g *GerenciadorFuncionarios) validar(ctx context.Context, e EntradaFunciona
 		CEP: ponteiro(e.CEP), Logradouro: ponteiro(e.Logradouro), Numero: ponteiro(e.Numero),
 		Complemento: ponteiro(e.Complemento), Bairro: ponteiro(e.Bairro), Cidade: ponteiro(e.Cidade), UF: ponteiro(e.UF),
 		Salario: salario,
-		Banco: ponteiro(e.Banco), Agencia: ponteiro(e.Agencia), Conta: ponteiro(e.Conta),
+		Banco:   ponteiro(e.Banco), Agencia: ponteiro(e.Agencia), Conta: ponteiro(e.Conta),
 		TipoConta: ponteiro(e.TipoConta), ChavePix: ponteiro(e.ChavePix),
 		TamanhoCamisa: ponteiro(e.TamanhoCamisa), TamanhoCalca: ponteiro(e.TamanhoCalca), TamanhoCalcado: ponteiro(e.TamanhoCalcado),
 		Observacoes: ponteiro(e.Observacoes), NivelObra: ponteiro(e.NivelObra),
@@ -335,4 +335,3 @@ func (g *GerenciadorFuncionarios) Excluir(ctx context.Context, id string) (strin
 	}
 	return f.Nome, nil
 }
-

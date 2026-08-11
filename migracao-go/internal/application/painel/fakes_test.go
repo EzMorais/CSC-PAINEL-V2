@@ -143,7 +143,9 @@ func (f *locacoesFake) ContarNaoDevolvidas(ctx context.Context) (int, error) { r
 func (f *locacoesFake) ContarVencemEmDias(ctx context.Context, ate, hoje time.Time) (int, error) {
 	return 0, nil
 }
-func (f *locacoesFake) ContarVencidas(ctx context.Context, hoje time.Time) (int, error) { return 0, nil }
+func (f *locacoesFake) ContarVencidas(ctx context.Context, hoje time.Time) (int, error) {
+	return 0, nil
+}
 func (f *locacoesFake) ContarPorEstado(ctx context.Context, estado dominio.Estado, emAberto bool) (int, error) {
 	return 0, nil
 }

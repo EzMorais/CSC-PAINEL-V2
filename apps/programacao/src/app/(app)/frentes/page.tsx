@@ -17,13 +17,13 @@ export default async function FrentesPage() {
   })
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-8">
       <header className="flex items-start gap-3">
         <Link href="/" className="mt-1 text-muted-foreground hover:text-foreground" aria-label="Voltar">
           <ArrowLeft className="size-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold">Clientes e frentes</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Clientes e frentes</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             As colunas do quadro e da imagem, na ordem em que aparecem
           </p>
@@ -33,7 +33,7 @@ export default async function FrentesPage() {
       <ListaFrentes
         podeEditar={podeLancar(sessao.cargo)}
         frentes={frentes.map((f) => ({
-          id: f.id, nome: f.nome, cor: f.cor, colunas: f.colunas,
+          id: f.id, nome: f.nome, cor: f.cor, logo: f.logo, colunas: f.colunas,
           obraCodigo: f.obraCodigo, ativa: f.ativa,
           usos: f._count.escalas + f._count.recursos,
         }))}

@@ -17,10 +17,13 @@ const (
 )
 
 // Navegacao carrega as URLs dos módulos que ainda não migraram para este binário — usadas
-// pela sidebar e pelo hub flutuante pra montar links cruzados (RH, Alojamentos).
+// pela sidebar e pelo hub flutuante pra montar links cruzados (RH, Alojamentos, Frota,
+// Cadastros do Portal legado).
 type Navegacao struct {
 	URLRH          string
 	URLAlojamentos string
+	URLFrota       string
+	URLPortal      string
 }
 
 func ComSessao(ctx context.Context, sess *identidade.Sessao) context.Context {

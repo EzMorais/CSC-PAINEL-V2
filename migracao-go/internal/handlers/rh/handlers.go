@@ -15,15 +15,15 @@ import (
 )
 
 type Handlers struct {
-	Sessoes       *middleware.Sessoes
-	Cargos        *aplicacao.GerenciadorCargos
-	Departamentos *aplicacao.GerenciadorDepartamentos
-	Funcionarios  *aplicacao.GerenciadorFuncionarios
-	Dashboard     *aplicacao.GerenciadorDashboard
-	Treinamentos  *aplicacao.GerenciadorTreinamentos
-	Uniformes     *aplicacao.GerenciadorUniformes
-	Exames        *aplicacao.GerenciadorExames
-	Documentos    *aplicacao.GerenciadorDocumentos
+	Sessoes          *middleware.Sessoes
+	Cargos           *aplicacao.GerenciadorCargos
+	Departamentos    *aplicacao.GerenciadorDepartamentos
+	Funcionarios     *aplicacao.GerenciadorFuncionarios
+	Dashboard        *aplicacao.GerenciadorDashboard
+	Treinamentos     *aplicacao.GerenciadorTreinamentos
+	Uniformes        *aplicacao.GerenciadorUniformes
+	Exames           *aplicacao.GerenciadorExames
+	Documentos       *aplicacao.GerenciadorDocumentos
 	Auditorias       *aplicacao.GerenciadorAuditorias
 	NaoConformidades *aplicacao.GerenciadorNaoConformidades
 	Epi              *aplicacao.GerenciadorEpi

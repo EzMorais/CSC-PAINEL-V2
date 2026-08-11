@@ -51,9 +51,11 @@ const (
 	ModuloEstoque     Modulo = "ESTOQUE"
 	ModuloAlojamentos Modulo = "ALOJAMENTOS"
 	ModuloFrota       Modulo = "FROTA"
+	ModuloFinanceiro  Modulo = "FINANCEIRO"
+	ModuloProgramacao Modulo = "PROGRAMACAO"
 )
 
-var Modulos = []Modulo{ModuloPainel, ModuloRH, ModuloEstoque, ModuloAlojamentos, ModuloFrota}
+var Modulos = []Modulo{ModuloPainel, ModuloRH, ModuloEstoque, ModuloAlojamentos, ModuloFrota, ModuloFinanceiro, ModuloProgramacao}
 
 func (m Modulo) Valido() bool {
 	for _, v := range Modulos {
@@ -70,6 +72,8 @@ var RotuloModulo = map[Modulo]string{
 	ModuloEstoque:     "Almoxarifado",
 	ModuloAlojamentos: "Alojamentos",
 	ModuloFrota:       "Frota",
+	ModuloFinanceiro:  "Financeiro",
+	ModuloProgramacao: "Programação Diária",
 }
 
 // Usuario é a única tabela de usuários do conjunto — ver COMPORTAMENTO.md §4.

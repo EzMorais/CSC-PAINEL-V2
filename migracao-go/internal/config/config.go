@@ -13,7 +13,10 @@ type Config struct {
 	URLEstoque     string
 	URLAlojamentos string
 	URLFrota       string
-	PastaUploads   string
+	// URLPortal aponta pro Portal Next.js legado — só usada hoje pela tela de Cadastros
+	// (obras/casas/veículos/máquinas/materiais), que ainda não migrou pro binário Go.
+	URLPortal    string
+	PastaUploads string
 }
 
 func Carregar() Config {
@@ -27,6 +30,7 @@ func Carregar() Config {
 		URLEstoque:     getenv("URL_ESTOQUE", "http://localhost:3003"),
 		URLAlojamentos: getenv("URL_ALOJAMENTOS", "http://localhost:3005"),
 		URLFrota:       getenv("URL_FROTA", "http://localhost:3000"),
+		URLPortal:      getenv("URL_PORTAL", "http://localhost:3004"),
 		PastaUploads:   getenv("PASTA_UPLOADS", "dados"),
 	}
 }

@@ -1,0 +1,404 @@
+package financeiro
+
+import (
+	"fmt"
+	"strconv"
+	"time"
+
+	dominio "siqueiracampos/servidor/internal/domain/financeiro"
+	"siqueiracampos/servidor/templates/layout"
+)
+
+func texto(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+func brl(v dominio.Centavos) string {
+	neg := ""
+	n := int64(v)
+	if n < 0 {
+		neg = "-"
+		n = -n
+	}
+	inteiro := n / 100
+	cent := n % 100
+	s := strconv.FormatInt(inteiro, 10)
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "." + s[i:]
+	}
+	return fmt.Sprintf("%sR$ %s,%02d", neg, s, cent)
+}
+
+func data(t time.Time) string { return t.Format("02/01/2006") }
+
+func vencimento(t dominio.Titulo) string {
+	if len(t.Parcelas) == 0 {
+		return ""
+	}
+	return t.Parcelas[0].Vencimento.Format("02/01/2006")
+}
+
+func parcelaID(t dominio.Titulo) string {
+	if len(t.Parcelas) == 0 {
+		return ""
+	}
+	return t.Parcelas[0].ID
+}
+
+func tituloAba(aba string) string {
+	if aba == "pagar" {
+		return "Contas a pagar"
+	}
+	return "Contas a receber"
+}
+
+func retornoAba(aba string) string {
+	if aba == "pagar" {
+		return "contas-pagar"
+	}
+	return "contas-receber"
+}
+
+func acaoBaixa(aba string) string {
+	if aba == "pagar" {
+		return "Pagar"
+	}
+	return "Receber"
+}
+
+func chaveEstorno(m dominio.Movimento) string { return "ESTORNO:" + m.ID }
+
+func situacaoIntegracao(ativa bool) string {
+	if ativa {
+		return "Ativa"
+	}
+	return "Aguardando credenciais"
+}
+
+// Pagina usa a mesma casca dos demais módulos. A navegação do Financeiro fica
+// na sidebar compartilhada, evitando uma segunda barra visual dentro do conteúdo.
+templ Pagina(titulo string) {
+	@layout.Base(titulo + " — Financeiro") {
+		{ children... }
+	}
+}
+
+templ Dashboard(resumo dominio.ResumoOperacional, contas []dominio.ContaFinanceira, integracoes []dominio.IntegracaoFiscal, fechamentos []dominio.Fechamento) {
+	@Pagina("Dashboard") {
+		<div class="linha-topo">
+			<div>
+				<h1>Financeiro</h1>
+				<p class="email">Acompanhe caixa, faturamento, fiscal e títulos em um só lugar.</p>
+			</div>
+			<a class="botao botao-primario" href="/financeiro/faturamento">+ Novo faturamento</a>
+		</div>
+
+		<div class="grade-sistemas" data-testid="kpis">
+			<div class="card">
+				<p class="email">A PAGAR</p>
+				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-pagar">{ brl(resumo.PagarAberto) }</p>
+				<p class="email">Vencido: { brl(resumo.PagarVencido) }</p>
+			</div>
+			<div class="card">
+				<p class="email">A RECEBER</p>
+				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-receber">{ brl(resumo.ReceberAberto) }</p>
+				<p class="email">Vencido: { brl(resumo.ReceberVencido) }</p>
+			</div>
+			<div class="card">
+				<p class="email">FATURADO NO MÊS</p>
+				<p class="tabular money" style="font-size:1.4rem" data-testid="kpi-faturado">{ brl(resumo.FaturadoMes) }</p>
+			</div>
+			<div class="card">
+				<p class="email">FISCAL PENDENTE / REJEITADO</p>
+				<p class="tabular" style="font-size:1.4rem" data-testid="kpi-fiscal">{ fmt.Sprintf("%d / %d", resumo.DocumentosPendentes, resumo.DocumentosRejeitados) }</p>
+			</div>
+		</div>
+
+		<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:1rem;margin-top:1rem">
+			<section class="card">
+				<div class="linha-topo">
+					<h2>Contas financeiras</h2>
+					<span class="selo">{ fmt.Sprintf("%d cadastradas", len(contas)) }</span>
+				</div>
+				if len(contas) == 0 {
+					<p class="email">Cadastre uma conta antes de registrar baixas.</p>
+				} else {
+					<ul class="lista-usuarios">
+						for _, c := range contas {
+							<li>
+								<div class="linha-topo">
+									<span class="nome">{ c.Nome }<br/><span class="email">{ c.Tipo } · { c.Moeda }</span></span>
+									if c.Ativo {
+										<span class="selo" style="background:var(--color-success-soft);color:var(--color-success)">Ativa</span>
+									} else {
+										<span class="selo">Inativa</span>
+									}
+								</div>
+							</li>
+						}
+					</ul>
+				}
+				<details style="margin-top:1rem">
+					<summary class="botao botao-primario">+ Nova conta financeira</summary>
+					<form class="formulario" method="post" action="/financeiro/contas" style="margin-top:0.75rem">
+						<div class="campo"><label for="conta-nome">Nome</label><input id="conta-nome" name="nome" placeholder="Banco ou caixa" required/></div>
+						<div class="campo"><label for="conta-tipo">Tipo</label><select id="conta-tipo" name="tipo"><option>BANCO</option><option>CAIXA</option></select></div>
+						<button type="submit">Cadastrar conta</button>
+					</form>
+				</details>
+			</section>
+
+			<section class="card">
+				<div class="linha-topo"><h2>Integrações fiscais</h2><a class="botao botao-secundario" href="/financeiro/fiscal">Ver fiscal</a></div>
+				if len(integracoes) == 0 {
+					<p class="email">Nenhuma integração configurada.</p>
+				} else {
+					<div style="overflow-x:auto">
+						<table data-testid="tabela-integracoes">
+							<thead><tr><th>Provedor</th><th>Ambiente</th><th>Situação</th></tr></thead>
+							<tbody>
+								for _, i := range integracoes {
+									<tr><td>{ i.Rotulo }</td><td>{ i.Ambiente }</td><td>{ situacaoIntegracao(i.Ativo) }</td></tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				}
+				<p class="email" style="margin-top:1rem">A emissão é enfileirada e pode ser acompanhada na aba Fiscal / SEFAZ.</p>
+			</section>
+		</div>
+
+		<section class="card" data-testid="fechamento-mensal">
+			<div class="linha-topo">
+				<div><h2>Fechamento mensal</h2><p class="email">Congela lançamentos retroativos e exige justificativa para reabrir.</p></div>
+				<span class="selo">Administração</span>
+			</div>
+			<form class="formulario" method="post" action="/financeiro/fechamentos" style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:end">
+				<div class="campo" style="margin:0;min-width:12rem"><label for="competencia-fechamento">Competência</label><input id="competencia-fechamento" type="month" name="competencia" required/></div>
+				<button type="submit">Fechar competência</button>
+			</form>
+			if len(fechamentos) == 0 {
+				<p class="email" style="margin-top:1rem">Nenhuma competência fechada.</p>
+			} else {
+				<ul class="lista-usuarios" style="margin-top:1rem">
+					for _, f := range fechamentos {
+						<li>
+							<div class="linha-topo">
+								<span class="nome">{ f.Competencia }<br/><span class="email">{ f.Status } · { f.FechadoPor }</span></span>
+								if f.Status == "FECHADO" {
+									<details><summary class="botao botao-secundario">Reabrir</summary><form class="formulario" method="post" action={ "/financeiro/fechamentos/" + f.Competencia + "/reabrir" } style="margin-top:0.5rem"><div class="campo"><label>Justificativa</label><textarea name="justificativa" rows="2" required></textarea></div><button type="submit">Confirmar reabertura</button></form></details>
+								} else {
+									<span class="selo" style="background:var(--color-success-soft);color:var(--color-success)">Aberta</span>
+								}
+							</div>
+						</li>
+					}
+				</ul>
+			}
+		</section>
+	}
+}
+
+templ Faturamento(itens []dominio.Faturamento, hoje, chave string) {
+	@Pagina("Faturamento") {
+		<div class="linha-topo">
+			<div><h1>Faturamento</h1><p class="email">Crie o faturamento e gere a cobrança vinculada sem duplicidade.</p></div>
+			<a class="botao botao-secundario" href="/financeiro">Voltar ao dashboard</a>
+		</div>
+		<details class="card" open>
+			<summary class="botao botao-primario">+ Novo faturamento</summary>
+			<form class="formulario" method="post" action="/financeiro/faturamento" style="margin-top:0.75rem">
+				<input type="hidden" name="chaveIdempotencia" value={ chave }/>
+				<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:0 1rem">
+					<div class="campo"><label for="cliente">Cliente</label><input id="cliente" name="clienteNome" required/></div>
+					<div class="campo"><label for="descricao">Descrição</label><input id="descricao" name="descricao" required/></div>
+					<div class="campo"><label for="operacao">Operação</label><select id="operacao" name="tipoOperacao"><option value="PRODUTO">Produto</option><option value="SERVICO">Serviço</option></select></div>
+					<div class="campo"><label for="emissao">Emissão</label><input id="emissao" type="date" name="emissao" value={ hoje } required/></div>
+					<div class="campo"><label for="vencimento">Vencimento</label><input id="vencimento" type="date" name="vencimento" required/></div>
+					<div class="campo"><label for="valor-bruto">Valor bruto (R$)</label><input id="valor-bruto" name="valorBruto" inputmode="decimal" required/></div>
+					<div class="campo"><label for="desconto">Desconto (R$)</label><input id="desconto" name="desconto" value="0" inputmode="decimal"/></div>
+					<div class="campo"><label for="acrescimo">Acréscimo (R$)</label><input id="acrescimo" name="acrescimo" value="0" inputmode="decimal"/></div>
+					<div class="campo"><label for="modelo-fiscal">Documento fiscal</label><select id="modelo-fiscal" name="modeloFiscal"><option value="NFE">NF-e / SEFAZ</option><option value="NFSE">NFS-e Nacional</option><option value="SEM_NOTA">Sem emissão fiscal</option></select></div>
+				</div>
+				<div class="campo"><label for="observacao">Observações</label><textarea id="observacao" name="observacao" rows="3" placeholder="Opcional"></textarea></div>
+				<button type="submit">Salvar rascunho</button>
+			</form>
+		</details>
+
+		<section class="card" data-testid="lista-faturamentos">
+			<div class="linha-topo"><h2>Faturamentos recentes</h2><span class="selo">{ fmt.Sprintf("%d registros", len(itens)) }</span></div>
+			if len(itens) == 0 {
+				<p class="email">Ainda não há faturamentos cadastrados.</p>
+			} else {
+				<div style="overflow-x:auto">
+					<table>
+						<thead><tr><th>Número</th><th>Cliente</th><th>Emissão</th><th>Valor</th><th>Fiscal</th><th>Status</th><th>Ação</th></tr></thead>
+						<tbody>
+							for _, f := range itens {
+								<tr>
+									<td class="tabular">{ f.Numero }</td><td>{ f.ClienteNome }</td><td class="tabular">{ data(f.Emissao) }</td><td class="tabular money">{ brl(f.ValorLiquido) }</td><td>{ f.ModeloFiscal }</td><td><span class="selo">{ f.Status }</span></td>
+									<td>
+										if f.Status == "RASCUNHO" {
+											<form class="painel-edicao" method="post" action={ "/financeiro/faturamento/" + f.ID + "/faturar" } style="margin:0;border:0;padding:0"><button type="submit">Faturar</button></form>
+										} else {
+											<span class="email">Sem ação</span>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	}
+}
+
+templ Fiscal(docs []dominio.DocumentoFiscal) {
+	@Pagina("Fiscal / SEFAZ") {
+		<div class="linha-topo">
+			<div><h1>Fiscal / SEFAZ</h1><p class="email">Acompanhe NF-e, NFS-e e a importação do emissor Sebrae antigo.</p></div>
+			<a class="botao botao-secundario" href="/financeiro">Voltar ao dashboard</a>
+		</div>
+		<section class="card">
+			<h2>Emissor Sebrae (legado)</h2>
+			<p class="email">Importe um XML autorizado para registrar o documento sem duplicar a cobrança.</p>
+			<details style="margin-top:1rem">
+				<summary class="botao botao-primario">+ Importar XML autorizado</summary>
+				<form class="formulario" method="post" action="/financeiro/fiscal/importar-sebrae" style="margin-top:0.75rem">
+					<div class="campo"><label for="xml">XML NF-e autorizado</label><textarea id="xml" name="xml" rows="8" required></textarea></div>
+					<div class="campo"><label for="vencimento-fiscal">Vencimento da cobrança (opcional)</label><input id="vencimento-fiscal" type="date" name="vencimento"/></div>
+					<button type="submit">Importar sem duplicar</button>
+				</form>
+			</details>
+		</section>
+
+		<section class="card" data-testid="lista-documentos-fiscais">
+			<div class="linha-topo"><h2>Documentos fiscais</h2><span class="selo">{ fmt.Sprintf("%d documentos", len(docs)) }</span></div>
+			if len(docs) == 0 {
+				<p class="email">Nenhum documento fiscal encontrado.</p>
+			} else {
+				<div style="overflow-x:auto">
+					<table>
+						<thead><tr><th>Emissão</th><th>Direção</th><th>Modelo / emissor</th><th>Contraparte</th><th>Valor</th><th>Chave</th><th>Status</th><th>Retorno</th></tr></thead>
+						<tbody>
+							for _, d := range docs {
+								<tr>
+									<td class="tabular">{ data(d.Emissao) }</td><td>{ d.Direcao }</td><td>{ d.Modelo } / { d.Emissor }</td><td>{ d.ContraparteNome }</td><td class="tabular money">{ brl(d.Valor) }</td><td class="tabular">{ texto(d.Chave) }</td>
+									<td>
+										<span class="selo">{ d.Status }</span>
+										if d.UltimoErro != nil {
+											<small class="erro" style="display:block;margin-top:0.4rem">{ texto(d.UltimoErro) }</small>
+										}
+									</td>
+									<td>
+										if d.Status == "PENDENTE" || d.Status == "REJEITADO" {
+											<form class="painel-edicao" method="post" action={ "/financeiro/fiscal/" + d.ID + "/resultado" } style="margin:0;border:0;padding:0">
+												<div class="campo"><label>Status</label><select name="status"><option>AUTORIZADO</option><option>REJEITADO</option></select></div>
+												<div class="campo"><label>Chave / protocolo</label><input name="chave" placeholder="Chave de 44 dígitos"/><input name="protocolo" placeholder="Protocolo"/></div>
+												<div class="campo"><label>Retorno</label><input name="erro" placeholder="Erro/rejeição (opcional)"/><textarea name="xml" rows="3" placeholder="XML autorizado (opcional)"></textarea></div>
+												<button type="submit">Registrar retorno</button>
+											</form>
+										} else if d.Status == "AUTORIZADO" {
+											<form class="painel-edicao" method="post" action={ "/financeiro/fiscal/" + d.ID + "/resultado" } style="margin:0;border:0;padding:0">
+												<input type="hidden" name="status" value="CANCELADO"/><div class="campo"><label>Protocolo de cancelamento</label><input name="protocolo" required/><input name="erro" placeholder="Justificativa"/></div><button type="submit">Registrar cancelamento</button>
+											</form>
+										} else {
+											<span class="email">Sem ação</span>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	}
+}
+
+templ Titulos(aba string, tipo dominio.TipoTitulo, itens []dominio.Titulo, contas []dominio.ContaFinanceira, hoje, chave string) {
+	@Pagina(tituloAba(aba)) {
+		<div class="linha-topo">
+			<div><h1>{ tituloAba(aba) }</h1><p class="email">Aprovação, vencimentos e baixas automatizadas.</p></div>
+			<a class="botao botao-secundario" href="/financeiro">Voltar ao dashboard</a>
+		</div>
+		<details class="card">
+			<summary class="botao botao-primario">+ Novo lançamento manual</summary>
+			<form class="formulario" method="post" action="/financeiro/titulos" style="margin-top:0.75rem">
+				<input type="hidden" name="tipo" value={ string(tipo) }/><input type="hidden" name="retorno" value={ retornoAba(aba) }/>
+				<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:0 1rem">
+					<div class="campo"><label for="contraparte">Contraparte</label><input id="contraparte" name="contraparteNome" required/></div>
+					<div class="campo"><label for="titulo-descricao">Descrição</label><input id="titulo-descricao" name="descricao" required/></div>
+					<div class="campo"><label for="titulo-emissao">Emissão</label><input id="titulo-emissao" type="date" name="emissao" value={ hoje } required/></div>
+					<div class="campo"><label for="titulo-vencimento">Vencimento</label><input id="titulo-vencimento" type="date" name="vencimento" required/></div>
+					<div class="campo"><label for="titulo-valor">Valor (R$)</label><input id="titulo-valor" name="valor" inputmode="decimal" required/></div>
+				</div>
+				<button type="submit">Criar para aprovação</button>
+			</form>
+		</details>
+
+		<section class="card" data-testid={ "lista-" + aba }>
+			<div class="linha-topo"><h2>Lançamentos</h2><span class="selo">{ fmt.Sprintf("%d registros", len(itens)) }</span></div>
+			if len(itens) == 0 {
+				<p class="email">Nenhum lançamento nesta aba.</p>
+			} else {
+				<div style="overflow-x:auto">
+					<table>
+						<thead><tr><th>Número</th><th>Contraparte</th><th>Descrição</th><th>Vencimento</th><th>Total</th><th>Aberto</th><th>Status</th><th>Ações</th></tr></thead>
+						<tbody>
+							for _, t := range itens {
+								<tr>
+									<td class="tabular">{ t.Numero }</td><td>{ t.ContraparteNome }</td><td>{ t.Descricao }</td><td class="tabular">{ vencimento(t) }</td><td class="tabular money">{ brl(t.ValorTotal) }</td><td class="tabular money">{ brl(t.ValorAberto) }</td><td><span class="selo">{ string(t.Status) }</span></td>
+									<td>
+										if t.Status == dominio.TituloPendente {
+											<form class="painel-edicao" method="post" action={ "/financeiro/titulos/" + t.ID + "/aprovar" } style="margin:0;border:0;padding:0"><input type="hidden" name="retorno" value={ retornoAba(aba) }/><button type="submit">Aprovar</button></form>
+										}
+										if t.Status == dominio.TituloAprovado || t.Status == dominio.TituloParcial {
+											<form class="painel-edicao" method="post" action={ "/financeiro/titulos/" + t.ID + "/baixar" } style="margin:0;border:0;padding:0">
+												<input type="hidden" name="parcelaID" value={ parcelaID(t) }/><input type="hidden" name="retorno" value={ retornoAba(aba) }/><input type="hidden" name="chaveIdempotencia" value={ chave }/>
+												<div class="campo">
+													<label>Conta</label>
+													<select name="contaID" required>
+														for _, c := range contas {
+															if c.Ativo {
+																<option value={ c.ID }>{ c.Nome }</option>
+															}
+														}
+													</select>
+												</div>
+												<div class="campo"><label>Valor da baixa (R$)</label><input name="valor" inputmode="decimal" required/><input type="date" name="ocorridoEm" value={ hoje }/></div>
+												<button type="submit">{ acaoBaixa(aba) }</button>
+											</form>
+										}
+										if t.Status != dominio.TituloPendente && t.Status != dominio.TituloAprovado && t.Status != dominio.TituloParcial {
+											<span class="email">Sem ação</span>
+										}
+										if len(t.Movimentos) > 0 {
+											<details style="margin-top:0.5rem">
+												<summary class="botao botao-secundario">Movimentos</summary>
+												<ul class="lista-usuarios" style="margin-top:0.5rem">
+													for _, m := range t.Movimentos {
+														<li>
+															<div class="linha-topo"><span class="nome">{ m.Tipo } · { brl(m.Valor) }<br/><span class="email">{ data(m.OcorridoEm) } · { m.RegistradoPor }</span></span><span class="selo">{ m.ID }</span></div>
+															if m.Tipo != "ESTORNO" {
+																<form class="painel-edicao" method="post" action={ "/financeiro/movimentos/" + m.ID + "/estornar" } style="margin-top:0.5rem"><input type="hidden" name="tipo" value={ string(tipo) }/><input type="hidden" name="chaveIdempotencia" value={ chaveEstorno(m) }/><div class="campo"><label>Justificativa do estorno</label><input name="observacao" required/></div><button type="submit">Estornar movimento</button></form>
+															}
+														</li>
+													}
+												</ul>
+											</details>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	}
+}

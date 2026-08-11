@@ -32,9 +32,9 @@ type DepartamentoRepositorio interface {
 }
 
 type FiltrosFuncionario struct {
-	Busca  string
-	Status string
-	ObraID string
+	Busca   string
+	Status  string
+	ObraID  string
 	CargoID string
 }
 

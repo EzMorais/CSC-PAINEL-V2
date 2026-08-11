@@ -56,6 +56,8 @@ export type FuncionarioRh = {
   matricula: string
   cargo: string | null
   obraCodigo: string | null
+  status: string
+  foto: string | null
   departamentoNome?: string | null
   nivelObra?: string | null
 }

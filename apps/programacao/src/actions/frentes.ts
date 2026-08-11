@@ -19,9 +19,24 @@ const opcional = z.string().trim().nullish().transform((v) => (v ? v : null))
 const esquema = z.object({
   nome: z.string().trim().min(2, 'Informe o nome do cliente ou da frente.'),
   cor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'Escolha uma cor.'),
+  logo: opcional,
   colunas: z.coerce.number().int().min(1).max(4).default(1),
   obraCodigo: opcional,
 })
+
+async function otimizarLogo(logo: string | null): Promise<string | null> {
+  if (!logo) return null
+  const separador = logo.indexOf(',')
+  if (!logo.startsWith('data:') || separador < 0) throw new Error('A logo precisa ser uma imagem válida.')
+  const bruto = Buffer.from(logo.slice(separador + 1), 'base64')
+  if (bruto.length > 12 * 1024 * 1024) throw new Error('A logo deve ter no máximo 12 MB.')
+  const { default: sharp } = await import('sharp')
+  const webp = await sharp(bruto, { animated: false })
+    .resize({ width: 640, height: 360, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 88 })
+    .toBuffer()
+  return `data:image/webp;base64,${webp.toString('base64')}`
+}
 
 function revalidar() {
   revalidarTelas('/frentes', '/')
@@ -35,8 +50,9 @@ export async function criarFrente(entrada: unknown): Promise<Resultado<{ id: str
 
   try {
     const ultima = await prisma.frente.findFirst({ orderBy: { ordem: 'desc' }, select: { ordem: true } })
+    const logo = await otimizarLogo(parsed.data.logo)
     const criada = await prisma.frente.create({
-      data: { ...parsed.data, ordem: (ultima?.ordem ?? 0) + 1 },
+      data: { ...parsed.data, logo, ordem: (ultima?.ordem ?? 0) + 1 },
     })
     revalidar()
     return { ok: true, dados: { id: criada.id } }
@@ -55,7 +71,8 @@ export async function editarFrente(id: string, entrada: unknown): Promise<Result
   if (!parsed.success) return { ok: false, erro: parsed.error.issues.map((i) => i.message).join(' ') }
 
   try {
-    await prisma.frente.update({ where: { id }, data: parsed.data })
+    const logo = await otimizarLogo(parsed.data.logo)
+    await prisma.frente.update({ where: { id }, data: { ...parsed.data, logo } })
     revalidar()
     return { ok: true, dados: undefined }
   } catch (e) {

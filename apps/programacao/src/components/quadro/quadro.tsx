@@ -1,18 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
-import { Plus, X, GripVertical, Truck, TriangleAlert, Search, UserPlus, UserRound } from 'lucide-react'
+import { useMemo, useRef, useState, useTransition } from 'react'
+import { Plus, X, GripVertical, Truck, TriangleAlert, Search, UserPlus } from 'lucide-react'
 import { chamarAction } from '@/lib/chamar-action'
 import { escalar, moverEscala, tirarEscala, trocarFuncao, adicionarRecurso, tirarRecurso } from '@/actions/programacao'
 import { TIPO_RECURSO, corTextoPara } from '@/lib/dominio/constantes'
 import type { Conflito } from '@/lib/dominio/conflitos'
+import { abreviacaoDoCargo } from '@/lib/identidade'
+import { LogoCliente } from '@/components/frentes/logo-cliente'
 
 const CAMPO =
   'w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm ' +
   'outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-export type FrenteQuadro = { id: string; nome: string; cor: string }
+export type FrenteQuadro = { id: string; nome: string; cor: string; logo: string | null }
 export type EscalaQuadro = {
   id: string; frenteId: string; nome: string; funcaoSigla: string | null; funcionarioId: string | null
 }
@@ -33,23 +35,33 @@ export type VeiculoDisponivel = { placa: string; nome: string; motorista: string
 export type MaquinaDisponivel = { id: string; nome: string; codigo: string }
 export type VeiculoCadastrado = { id: string; modelo: string; placa: string | null; motoristaNome: string | null }
 
+function normalizarCargo(valor: string): string {
+  return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
 /** O crachá compacto do quadro: foto se tiver, senão a sigla da função colorida pelo grupo dela. */
 function CrachaMini({ foto, sigla, cor }: { foto?: string | null; sigla: string | null; cor?: string }) {
   if (foto) {
     // eslint-disable-next-line @next/next/no-img-element -- data URI local, sem servidor de imagem
     return <img src={foto} alt="" className="size-6 shrink-0 rounded-full object-cover" />
   }
-  if (sigla && cor) {
+  if (sigla) {
     return (
       <span
-        className="grid size-6 shrink-0 place-items-center rounded-full text-[8px] font-bold leading-none"
-        style={{ backgroundColor: cor, color: corTextoPara(cor) }}
+        className={`grid size-6 shrink-0 place-items-center rounded-full text-[8px] font-bold leading-none ${
+          cor ? '' : 'border border-border bg-muted text-foreground'
+        }`}
+        style={cor ? { backgroundColor: cor, color: corTextoPara(cor) } : undefined}
       >
-        {sigla.slice(0, 4)}
+        {sigla.slice(0, 5)}
       </span>
     )
   }
-  return <UserRound className="size-4 shrink-0 text-muted-foreground" />
+  return (
+    <span className="grid size-6 shrink-0 place-items-center rounded-full border border-border bg-muted text-[8px] font-bold leading-none text-foreground">
+      —
+    </span>
+  )
 }
 
 /**
@@ -83,6 +95,7 @@ export function Quadro({
   const [selecionada, setSelecionada] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
   const [, iniciar] = useTransition()
+  const rolagemFrentesRef = useRef<HTMLDivElement>(null)
 
   const jaEscalados = useMemo(
     () => new Set(escalas.map((e) => e.nome.trim().toLowerCase())),
@@ -91,7 +104,9 @@ export function Quadro({
 
   const siglaDoCargo = useMemo(() => {
     const m = new Map<string, string>()
-    for (const f of funcoes) if (f.cargoRh) m.set(f.cargoRh.toLowerCase(), f.sigla)
+    for (const f of funcoes) {
+      if (f.cargoRh) m.set(normalizarCargo(f.cargoRh), f.sigla)
+    }
     return m
   }, [funcoes])
 
@@ -99,7 +114,21 @@ export function Quadro({
 
   function siglaDe(p: PessoaDisponivel): string | null {
     if (p.origem === 'LOCAL') return p.cargo
-    return p.cargo ? siglaDoCargo.get(p.cargo.toLowerCase()) ?? null : null
+    if (!p.cargo) return null
+    const cargoNormalizado = normalizarCargo(p.cargo)
+    const exata = siglaDoCargo.get(cargoNormalizado)
+    if (exata) return exata
+
+    const aproximada = funcoes.find((funcao) => {
+      if (!funcao.cargoRh) return false
+      const cargoMapeado = normalizarCargo(funcao.cargoRh)
+      if (cargoNormalizado.includes(cargoMapeado) || cargoMapeado.includes(cargoNormalizado)) return true
+      const palavrasDaPessoa = new Set(cargoNormalizado.split(' ').filter((p) => p.length > 2 && !['com', 'para'].includes(p)))
+      const palavrasMapeadas = new Set(cargoMapeado.split(' ').filter((p) => p.length > 2 && !['com', 'para'].includes(p)))
+      const comuns = [...palavrasDaPessoa].filter((palavra) => palavrasMapeadas.has(palavra))
+      return comuns.length >= 2
+    })
+    return aproximada?.sigla ?? abreviacaoDoCargo(p.cargo)
   }
 
   const naoEscalados = useMemo(() => {
@@ -131,31 +160,42 @@ export function Quadro({
     }
   }
 
+  function rolarAoArrastar(e: React.DragEvent<HTMLDivElement>) {
+    if (!podeEditar || !rolagemFrentesRef.current) return
+    e.preventDefault()
+    const area = rolagemFrentesRef.current
+    const caixa = area.getBoundingClientRect()
+    const margem = 72
+    const passo = 18
+    if (e.clientX > caixa.right - margem) area.scrollLeft += passo
+    if (e.clientX < caixa.left + margem) area.scrollLeft -= passo
+  }
+
   return (
     <div className="space-y-4">
       {conflitos.length > 0 && <PainelConflitos conflitos={conflitos} />}
       {erro && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">{erro}</p>}
 
-      <div className="flex gap-3 overflow-x-auto pb-3">
-        {/* Coluna de quem ainda não foi escalado */}
-        <section className="flex w-64 shrink-0 flex-col rounded-lg border border-border bg-card">
-          <header className="rounded-t-lg border-b border-border bg-muted/50 px-3 py-2">
-            <h2 className="text-sm font-semibold">Sem frente</h2>
-            <p className="text-xs text-muted-foreground">{naoEscalados.length} pessoas</p>
+      <div className="flex items-start gap-3">
+        {/* A lista fica fora da rolagem horizontal para continuar visível durante o arrasto. */}
+        <section className="sticky left-0 top-4 z-10 flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <header className="bg-slate-900 px-4 py-3 text-white">
+            <h2 className="text-sm font-semibold tracking-tight">Pessoas disponíveis</h2>
+            <p className="mt-0.5 text-xs text-slate-300">{naoEscalados.length} sem frente</p>
           </header>
 
-          <div className="border-b border-border p-2">
+          <div className="border-b border-border/60 p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={busca} onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar pessoa" aria-label="Buscar pessoa"
-                className={`${CAMPO} pl-7`}
+                className={`${CAMPO} rounded-xl border-0 bg-muted/60 pl-8 shadow-none`}
               />
             </div>
           </div>
 
-          <div className="max-h-[28rem] space-y-1 overflow-y-auto p-2">
+          <div className="max-h-[32rem] space-y-1.5 overflow-y-auto p-3">
             {naoEscalados.length === 0 && (
               <p className="px-1 py-4 text-center text-xs text-muted-foreground">
                 {disponiveis.length === 0
@@ -171,10 +211,10 @@ export function Quadro({
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', JSON.stringify({ pessoaId: p.id }))}
                   onClick={() => setSelecionada(selecionada === `p:${p.id}` ? null : `p:${p.id}`)}
                   data-testid={`disponivel-${p.id}`}
-                  className={`flex w-full items-center gap-1.5 rounded border px-2 py-1.5 text-left text-xs transition-colors ${
+                  className={`flex w-full items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-left text-xs transition-colors ${
                     selecionada === `p:${p.id}`
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:bg-accent'
+                      ? 'border-primary/40 bg-primary/10 shadow-sm'
+                      : 'bg-muted/35 hover:border-border hover:bg-muted/70'
                   }`}
                 >
                   <GripVertical className="size-3 shrink-0 text-muted-foreground" />
@@ -189,27 +229,35 @@ export function Quadro({
           </div>
         </section>
 
-        {frentes.map((f) => (
-          <ColunaFrente
-            key={f.id}
-            data={data}
-            frente={f}
-            escalas={escalas.filter((e) => e.frenteId === f.id)}
-            recursos={recursos.filter((r) => r.frenteId === f.id)}
-            veiculos={veiculos}
-            maquinas={maquinas}
-            funcoes={funcoes}
-            podeEditar={podeEditar}
-            temConflito={conflitos.some((c) => c.frenteIds.includes(f.id))}
-            selecionada={selecionada}
-            aoSelecionar={setSelecionada}
-            aoSoltar={(escalaId, pessoaId) =>
-              soltarNaFrente(f.id, escalaId, pessoaId ? disponiveis.find((p) => p.id === pessoaId) ?? null : null)
-            }
-            veiculosCadastrados={veiculosCadastrados}
-            agir={agir}
-          />
-        ))}
+        <div
+          ref={rolagemFrentesRef}
+          onDragOver={rolarAoArrastar}
+          className="min-w-0 flex-1 overflow-x-auto pb-3"
+        >
+          <div className="flex min-w-max gap-3">
+            {frentes.map((f) => (
+              <ColunaFrente
+                key={f.id}
+                data={data}
+                frente={f}
+                escalas={escalas.filter((e) => e.frenteId === f.id)}
+                recursos={recursos.filter((r) => r.frenteId === f.id)}
+                veiculos={veiculos}
+                maquinas={maquinas}
+                funcoes={funcoes}
+                podeEditar={podeEditar}
+                temConflito={conflitos.some((c) => c.frenteIds.includes(f.id))}
+                selecionada={selecionada}
+                aoSelecionar={setSelecionada}
+                aoSoltar={(escalaId, pessoaId) =>
+                  soltarNaFrente(f.id, escalaId, pessoaId ? disponiveis.find((p) => p.id === pessoaId) ?? null : null)
+                }
+                veiculosCadastrados={veiculosCadastrados}
+                agir={agir}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -265,23 +313,25 @@ function ColunaFrente({
       onDrop={receber}
       onClick={clicarNaColuna}
       data-testid={`frente-${frente.id}`}
-      className={`flex w-64 shrink-0 flex-col rounded-lg border bg-card transition-colors ${
+      className={`flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all ${
         sobre ? 'border-primary ring-2 ring-primary/30'
         : temConflito ? 'border-destructive/50' : 'border-border'
       } ${selecionada ? 'cursor-copy' : ''}`}
     >
-      <header
-        className="flex items-center gap-2 rounded-t-lg border-b border-border px-3 py-2"
-        style={{ backgroundColor: frente.cor }}
-      >
-        <h2 className="min-w-0 flex-1 truncate text-sm font-bold text-black">{frente.nome}</h2>
-        {temConflito && <TriangleAlert className="size-4 shrink-0 text-red-800" />}
-        <span className="shrink-0 rounded-full bg-black/15 px-1.5 text-xs font-medium text-black tabular">
+      <header className="relative flex items-center gap-3 border-b border-border/70 bg-card px-3 py-3">
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: frente.cor }} />
+        <LogoCliente src={frente.logo} nome={frente.nome} cor={frente.cor} />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-semibold tracking-tight">{frente.nome}</h2>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Programação do dia</p>
+        </div>
+        {temConflito && <TriangleAlert className="size-4 shrink-0 text-red-600" />}
+        <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-semibold text-foreground tabular">
           {escalas.length}
         </span>
       </header>
 
-      <div className="max-h-[28rem] flex-1 space-y-1 overflow-y-auto p-2">
+      <div className="max-h-[32rem] flex-1 space-y-1.5 overflow-y-auto bg-slate-50/45 p-3">
         {escalas.map((e, i) => (
           <div
             key={e.id} draggable={podeEditar}
@@ -290,7 +340,7 @@ function ColunaFrente({
               ev.dataTransfer.setData('text/plain', JSON.stringify({ escalaId: e.id }))
             }}
             data-testid={`escala-${e.id}`}
-            className="group flex items-center gap-1 rounded border border-border px-1.5 py-1 text-xs hover:bg-accent"
+            className="group flex items-center gap-1.5 rounded-xl border border-transparent bg-card px-2 py-2 text-xs shadow-sm transition-colors hover:border-border hover:bg-muted/40"
           >
             <span className="w-4 shrink-0 text-right text-[10px] font-bold text-muted-foreground tabular">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate" title={e.nome}>{e.nome}</span>
@@ -301,7 +351,7 @@ function ColunaFrente({
                 onClick={(ev) => ev.stopPropagation()}
                 onChange={(ev) => { ev.stopPropagation(); agir(trocarFuncao(e.id, ev.target.value)) }}
                 aria-label={`Função de ${e.nome}`}
-                className="w-16 shrink-0 rounded border border-input bg-background px-0.5 text-[10px]"
+                className="w-16 shrink-0 rounded-lg border-0 bg-muted px-1 text-[10px]"
               >
                 <option value="">—</option>
                 {funcoes.map((f) => <option key={f.sigla} value={f.sigla}>{f.sigla}</option>)}
@@ -330,14 +380,14 @@ function ColunaFrente({
       </div>
 
       {/* Veículos, máquinas e avisos no pé — como no print */}
-      <div className="space-y-1 border-t border-border p-2">
+      <div className="space-y-1.5 bg-muted/25 p-3">
         {recursos.map((r) => (
           <div
             key={r.id}
-            className={`flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium ${
-              r.destaque ? 'bg-yellow-300 text-black'
-              : r.tipo === TIPO_RECURSO.AVISO ? 'border border-border'
-              : 'bg-orange-200 text-black'
+            className={`flex items-center gap-1.5 rounded-xl px-2 py-2 text-[11px] font-medium ${
+              r.destaque ? 'bg-amber-100 text-amber-950'
+              : r.tipo === TIPO_RECURSO.AVISO ? 'border border-border bg-card'
+              : 'bg-orange-100 text-orange-950'
             }`}
           >
             <Truck className="size-3 shrink-0 opacity-60" />

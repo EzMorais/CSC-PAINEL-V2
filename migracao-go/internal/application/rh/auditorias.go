@@ -8,8 +8,8 @@ import (
 )
 
 type GerenciadorAuditorias struct {
-	Auditorias        dominio.AuditoriaRepositorio
-	NaoConformidades  dominio.NaoConformidadeRepositorio
+	Auditorias       dominio.AuditoriaRepositorio
+	NaoConformidades dominio.NaoConformidadeRepositorio
 }
 
 func (g *GerenciadorAuditorias) Listar(ctx context.Context) ([]dominio.AuditoriaComContexto, error) {

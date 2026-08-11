@@ -12,25 +12,33 @@ import (
 	"syscall"
 	"time"
 
+	aplicacaoAlojamentos "siqueiracampos/servidor/internal/application/alojamentos"
 	aplicacaoCompras "siqueiracampos/servidor/internal/application/compras"
 	aplicacaoEstoque "siqueiracampos/servidor/internal/application/estoque"
+	aplicacaoFinanceiro "siqueiracampos/servidor/internal/application/financeiro"
 	aplicacaoIdentidade "siqueiracampos/servidor/internal/application/identidade"
 	aplicacaoPainel "siqueiracampos/servidor/internal/application/painel"
+	aplicacaoProgramacao "siqueiracampos/servidor/internal/application/programacao"
 	aplicacaoRH "siqueiracampos/servidor/internal/application/rh"
 	"siqueiracampos/servidor/internal/config"
 	dominioIdentidade "siqueiracampos/servidor/internal/domain/identidade"
 	dominioPainel "siqueiracampos/servidor/internal/domain/painel"
+	handlersAlojamentos "siqueiracampos/servidor/internal/handlers/alojamentos"
 	handlersCompras "siqueiracampos/servidor/internal/handlers/compras"
 	handlersEstoque "siqueiracampos/servidor/internal/handlers/estoque"
+	handlersFinanceiro "siqueiracampos/servidor/internal/handlers/financeiro"
 	handlersIdentidade "siqueiracampos/servidor/internal/handlers/identidade"
 	handlersPainel "siqueiracampos/servidor/internal/handlers/painel"
+	handlersProgramacao "siqueiracampos/servidor/internal/handlers/programacao"
 	handlersRH "siqueiracampos/servidor/internal/handlers/rh"
 	"siqueiracampos/servidor/internal/infrastructure/clienterh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
 	"siqueiracampos/servidor/internal/infrastructure/emailenvio"
+	"siqueiracampos/servidor/internal/infrastructure/financeirocompras"
 	"siqueiracampos/servidor/internal/middleware"
 	"siqueiracampos/servidor/internal/services/integracao"
 	"siqueiracampos/servidor/internal/services/sessao"
+	tplAlojamentos "siqueiracampos/servidor/templates/alojamentos"
 )
 
 func main() {
@@ -66,8 +74,10 @@ func main() {
 			dominioIdentidade.ModuloPainel:      cfg.URLPainel,
 			dominioIdentidade.ModuloRH:          cfg.URLRH,
 			dominioIdentidade.ModuloEstoque:     cfg.URLEstoque,
-			dominioIdentidade.ModuloAlojamentos: cfg.URLAlojamentos,
+			dominioIdentidade.ModuloAlojamentos: "/alojamentos",
 			dominioIdentidade.ModuloFrota:       cfg.URLFrota,
+			dominioIdentidade.ModuloFinanceiro:  "/financeiro",
+			dominioIdentidade.ModuloProgramacao: "/programacao",
 		},
 	)
 	mux.HandleFunc("GET /entrar", hIdentidade.Entrar)
@@ -117,7 +127,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("integração: %v", err)
 	}
-	clienteRH := clienterh.Novo(cfg.URLRH, servicoIntegracao)
+	// RH já vive neste processo: a ficha de EPI cruza uma porta Go local. O cliente HTTP
+	// permanece no pacote para consumidores/implantações legadas, não para tráfego interno.
+	clienteRH := &clienterh.Local{}
 	remetenteEmail := emailenvio.NovoAdaptador()
 
 	repoMateriais := database.NovoEstoqueMaterialRepositorio(db)
@@ -128,13 +140,20 @@ func main() {
 	repoPedidosCompra := database.NovoComprasPedidoRepositorio(db)
 	repoRecebimentosCompra := database.NovoComprasRecebimentoRepositorio(db)
 	repoContasPagar := database.NovoContasPagarRepositorio(db)
+	repoProcessoCompras := database.NovoComprasProcessoRepositorio(db)
 
 	gerenciadorCompras := &aplicacaoCompras.Gerenciador{
 		Pedidos: repoPedidosCompra, Recebimentos: repoRecebimentosCompra, Contas: repoContasPagar,
 		Fornecedores: repoFornecedores, Solicitacoes: repoSolicitacoes, Materiais: repoMateriais,
 		Movimentacoes: repoMovimentacoes,
+		Processos:     repoProcessoCompras, Financeiro: financeirocompras.Novo(db),
 	}
-	hCompras := handlersCompras.Novo(sessoes, gerenciadorCompras, repoPedidosCompra)
+	gerenciadorProcessoCompras := &aplicacaoCompras.GerenciadorProcesso{Repo: repoProcessoCompras, Pedidos: gerenciadorCompras, Movimentacoes: repoMovimentacoes}
+	hCompras := handlersCompras.Novo(sessoes, gerenciadorCompras, gerenciadorProcessoCompras, repoPedidosCompra, repoProcessoCompras)
+	repoFinanceiro := database.NovoFinanceiroRepositorio(db)
+	gerenciadorFinanceiro := &aplicacaoFinanceiro.GerenciadorOperacional{Repo: repoFinanceiro}
+	gerenciadorBaixasFinanceiro := &aplicacaoFinanceiro.GerenciadorBaixas{Repo: repoFinanceiro}
+	hFinanceiro := handlersFinanceiro.Novo(sessoes, gerenciadorFinanceiro, gerenciadorBaixasFinanceiro, repoFinanceiro)
 
 	gerenciadorMateriais := &aplicacaoEstoque.GerenciadorMateriais{Materiais: repoMateriais}
 	gerenciadorMovimentacoes := &aplicacaoEstoque.GerenciadorMovimentacoes{
@@ -183,6 +202,43 @@ func main() {
 	mux.HandleFunc("POST /compras/pedidos", hCompras.PedidoCriar)
 	mux.HandleFunc("GET /compras/pedidos/{id}", hCompras.PedidoDetalhe)
 	mux.HandleFunc("POST /compras/pedidos/{id}/receber", hCompras.RecebimentoRegistrar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/enviar-aprovacao", hCompras.PedidoEnviarAprovacao)
+	mux.HandleFunc("POST /compras/pedidos/{id}/aprovar", hCompras.PedidoAprovar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/rejeitar", hCompras.PedidoRejeitar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/enviar", hCompras.PedidoEnviar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/cancelar", hCompras.PedidoCancelar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/editar", hCompras.PedidoEditar)
+	mux.HandleFunc("POST /compras/pedidos/{id}/documentos", hCompras.PedidoDocumento)
+	mux.HandleFunc("POST /compras/pedidos/{id}/avaliar", hCompras.FornecedorAvaliar)
+	mux.HandleFunc("GET /compras/cotacoes", hCompras.Cotacoes)
+	mux.HandleFunc("POST /compras/cotacoes", hCompras.CotacaoCriar)
+	mux.HandleFunc("GET /compras/cotacoes/{id}", hCompras.CotacaoDetalhe)
+	mux.HandleFunc("POST /compras/cotacoes/{id}/propostas", hCompras.PropostaRegistrar)
+	mux.HandleFunc("POST /compras/cotacoes/{id}/selecionar", hCompras.PropostaSelecionar)
+	mux.HandleFunc("POST /compras/cotacoes/{id}/documentos", hCompras.CotacaoDocumento)
+	mux.HandleFunc("GET /compras/divergencias", hCompras.Divergencias)
+	mux.HandleFunc("POST /compras/divergencias/{id}/resolver", hCompras.DivergenciaResolver)
+	mux.HandleFunc("GET /compras/devolucoes", hCompras.Devolucoes)
+	mux.HandleFunc("POST /compras/devolucoes", hCompras.DevolucaoCriar)
+	mux.HandleFunc("GET /compras/contratos", hCompras.Contratos)
+	mux.HandleFunc("POST /compras/contratos", hCompras.ContratoCriar)
+	mux.HandleFunc("GET /compras/relatorios", hCompras.Relatorios)
+	mux.HandleFunc("GET /financeiro", hFinanceiro.Dashboard)
+	mux.HandleFunc("POST /financeiro/contas", hFinanceiro.ContaCriar)
+	mux.HandleFunc("GET /financeiro/faturamento", hFinanceiro.Faturamentos)
+	mux.HandleFunc("POST /financeiro/faturamento", hFinanceiro.FaturamentoCriar)
+	mux.HandleFunc("POST /financeiro/faturamento/{id}/faturar", hFinanceiro.Faturar)
+	mux.HandleFunc("GET /financeiro/fiscal", hFinanceiro.Fiscal)
+	mux.HandleFunc("POST /financeiro/fiscal/importar-sebrae", hFinanceiro.ImportarSebrae)
+	mux.HandleFunc("POST /financeiro/fiscal/{id}/resultado", hFinanceiro.FiscalResultado)
+	mux.HandleFunc("GET /financeiro/contas-pagar", hFinanceiro.ContasPagar)
+	mux.HandleFunc("GET /financeiro/contas-receber", hFinanceiro.ContasReceber)
+	mux.HandleFunc("POST /financeiro/titulos", hFinanceiro.TituloCriar)
+	mux.HandleFunc("POST /financeiro/titulos/{id}/aprovar", hFinanceiro.TituloAprovar)
+	mux.HandleFunc("POST /financeiro/titulos/{id}/baixar", hFinanceiro.TituloBaixar)
+	mux.HandleFunc("POST /financeiro/movimentos/{id}/estornar", hFinanceiro.MovimentoEstornar)
+	mux.HandleFunc("POST /financeiro/fechamentos", hFinanceiro.FecharCompetencia)
+	mux.HandleFunc("POST /financeiro/fechamentos/{competencia}/reabrir", hFinanceiro.ReabrirCompetencia)
 
 	// ── RH e SST — montado sob /rh ─────────────────────────────────────────────
 	repoRHCargos := database.NovoRHCargoRepositorio(db)
@@ -233,6 +289,8 @@ func main() {
 			return o.ID, nil
 		},
 	}
+	gerenciadorRHEpi := &aplicacaoRH.GerenciadorEpi{Epi: repoRHEpi, Funcionarios: repoRHFuncionarios}
+	clienteRH.Gerenciador = gerenciadorRHEpi
 	hRH := handlersRH.Novo(handlersRH.Handlers{
 		Sessoes:           sessoes,
 		Cargos:            &aplicacaoRH.GerenciadorCargos{Cargos: repoRHCargos},
@@ -245,7 +303,7 @@ func main() {
 		Documentos:        &aplicacaoRH.GerenciadorDocumentos{Documentos: repoRHDocumentos},
 		Auditorias:        &aplicacaoRH.GerenciadorAuditorias{Auditorias: repoRHAuditorias, NaoConformidades: repoRHNaoConformidades},
 		NaoConformidades:  &aplicacaoRH.GerenciadorNaoConformidades{NaoConformidades: repoRHNaoConformidades},
-		Epi:               &aplicacaoRH.GerenciadorEpi{Epi: repoRHEpi, Funcionarios: repoRHFuncionarios},
+		Epi:               gerenciadorRHEpi,
 		Relatorios:        gerenciadorRHRelatorios,
 		Importacao:        gerenciadorRHImportacao,
 		Integracao:        servicoIntegracao,
@@ -328,6 +386,77 @@ func main() {
 	mux.HandleFunc("GET /api/integracao/funcionarios", hRH.IntegracaoFuncionariosListar)
 	mux.HandleFunc("GET /api/integracao/resumo", hRH.IntegracaoResumo)
 
+	// ── Alojamentos — montado sob /alojamentos ──
+	repoAlojamentos := database.NovoAlojamentosRepositorio(db)
+	hAlojamentos := &handlersAlojamentos.Handlers{
+		Sessoes: sessoes, Repo: repoAlojamentos,
+		Gerenciador: &aplicacaoAlojamentos.Gerenciador{Repo: repoAlojamentos},
+		ListarFuncionarios: func(ctx context.Context) ([]tplAlojamentos.Opcao, error) {
+			fs, err := repoRHFuncionarios.ListarAtivosParaIntegracao(ctx)
+			if err != nil {
+				return nil, err
+			}
+			opcoes := make([]tplAlojamentos.Opcao, len(fs))
+			for i, f := range fs {
+				opcoes[i] = tplAlojamentos.Opcao{ID: f.ID, Rotulo: f.Nome, Extra: f.Matricula}
+			}
+			return opcoes, nil
+		},
+	}
+	mux.HandleFunc("GET /alojamentos", hAlojamentos.Dashboard)
+	mux.HandleFunc("GET /alojamentos/cadastros", hAlojamentos.Alojamentos)
+	mux.HandleFunc("POST /alojamentos/cadastros", hAlojamentos.AlojamentoCriar)
+	mux.HandleFunc("GET /alojamentos/cadastros/{id}", hAlojamentos.AlojamentoDetalhe)
+	mux.HandleFunc("POST /alojamentos/cadastros/{id}", hAlojamentos.AlojamentoEditar)
+	mux.HandleFunc("POST /alojamentos/cadastros/{id}/alternar", hAlojamentos.AlojamentoAlternar)
+	mux.HandleFunc("POST /alojamentos/cadastros/{id}/whatsapp", hAlojamentos.AlojamentoWhatsapp)
+	mux.HandleFunc("POST /alojamentos/cadastros/{id}/quartos", hAlojamentos.QuartoCriar)
+	mux.HandleFunc("POST /alojamentos/quartos/{id}/alternar", hAlojamentos.QuartoAlternar)
+	mux.HandleFunc("GET /alojamentos/moradores", hAlojamentos.Moradores)
+	mux.HandleFunc("POST /alojamentos/moradores", hAlojamentos.MoradorCriar)
+	mux.HandleFunc("POST /alojamentos/moradores/{id}/encerrar", hAlojamentos.MoradorEncerrar)
+	mux.HandleFunc("GET /alojamentos/pedidos", hAlojamentos.Pedidos)
+	mux.HandleFunc("POST /alojamentos/pedidos", hAlojamentos.PedidoCriar)
+	mux.HandleFunc("POST /alojamentos/pedidos/{id}/status", hAlojamentos.PedidoStatus)
+	mux.HandleFunc("GET /alojamentos/programacao", hAlojamentos.Programacao)
+	mux.HandleFunc("POST /alojamentos/programacao", hAlojamentos.ProgramacaoCriar)
+	mux.HandleFunc("POST /alojamentos/programacao/{id}/excluir", hAlojamentos.ProgramacaoExcluir)
+	mux.HandleFunc("GET /alojamentos/rotas", hAlojamentos.Rotas)
+	mux.HandleFunc("POST /alojamentos/rotas", hAlojamentos.RotaCriar)
+	mux.HandleFunc("POST /alojamentos/rotas/{id}/alternar", hAlojamentos.RotaAlternar)
+
+	// ── Programação Diária — montada sob /programacao ──
+	// Porta de apps/programacao (Next.js, https://github.com/EzMorais/CSC-PAINEL): quem vai
+	// pra qual frente de trabalho amanhã, com quais veículos/máquinas. Sem a geração de
+	// imagem pro WhatsApp nem a leitura de manutenção da Frota nesta fatia — ver
+	// domain/programacao/conflitos.go.
+	repoProgramacao := database.NovoProgramacaoRepositorio(db)
+	hProgramacao := handlersProgramacao.Novo(sessoes, &aplicacaoProgramacao.Gerenciador{Repo: repoProgramacao}, repoProgramacao)
+	mux.HandleFunc("GET /programacao", hProgramacao.Hoje)
+	mux.HandleFunc("GET /programacao/dia/{data}", hProgramacao.DiaPagina)
+	mux.HandleFunc("POST /programacao/dia/{data}/criar", hProgramacao.DiaCriar)
+	mux.HandleFunc("POST /programacao/dia/{data}/copiar", hProgramacao.DiaCopiar)
+	mux.HandleFunc("POST /programacao/dia/{data}/publicar", hProgramacao.DiaPublicar)
+	mux.HandleFunc("POST /programacao/escalas", hProgramacao.EscalarCriar)
+	mux.HandleFunc("POST /programacao/escalas/{id}/mover", hProgramacao.EscalaMover)
+	mux.HandleFunc("POST /programacao/escalas/{id}/tirar", hProgramacao.EscalaTirar)
+	mux.HandleFunc("POST /programacao/recursos", hProgramacao.RecursoCriar)
+	mux.HandleFunc("POST /programacao/recursos/{id}/tirar", hProgramacao.RecursoTirar)
+	mux.HandleFunc("GET /programacao/frentes", hProgramacao.Frentes)
+	mux.HandleFunc("POST /programacao/frentes", hProgramacao.FrenteCriar)
+	mux.HandleFunc("POST /programacao/frentes/{id}/alternar", hProgramacao.FrenteAlternar)
+	mux.HandleFunc("POST /programacao/frentes/{id}/mover", hProgramacao.FrenteMover)
+	mux.HandleFunc("GET /programacao/funcionarios", hProgramacao.Funcionarios)
+	mux.HandleFunc("POST /programacao/funcionarios", hProgramacao.FuncionarioCriar)
+	mux.HandleFunc("POST /programacao/funcionarios/{id}/alternar-ativo", hProgramacao.FuncionarioAlternarAtivo)
+	mux.HandleFunc("POST /programacao/funcionarios/{id}/alternar-ausente", hProgramacao.FuncionarioAlternarAusente)
+	mux.HandleFunc("GET /programacao/veiculos", hProgramacao.Veiculos)
+	mux.HandleFunc("POST /programacao/veiculos", hProgramacao.VeiculoCriar)
+	mux.HandleFunc("POST /programacao/veiculos/{id}/alternar", hProgramacao.VeiculoAlternar)
+	mux.HandleFunc("GET /programacao/funcoes", hProgramacao.Funcoes)
+	mux.HandleFunc("POST /programacao/funcoes", hProgramacao.FuncaoCriar)
+	mux.HandleFunc("POST /programacao/funcoes/{id}/alternar", hProgramacao.FuncaoAlternar)
+
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 
 	// /healthz (liveness) e /readyz (readiness) — sem exigir sessão, são consultados por
@@ -341,7 +470,9 @@ func main() {
 	// de layout em DESIGN-SYSTEM.md.
 	handler := middleware.Logging(sessoes)(middleware.ComContextoDeRequisicao(sessoes, middleware.Navegacao{
 		URLRH:          cfg.URLRH,
-		URLAlojamentos: cfg.URLAlojamentos,
+		URLAlojamentos: "/alojamentos",
+		URLFrota:       cfg.URLFrota,
+		URLPortal:      cfg.URLPortal,
 	}, mux))
 
 	servidor := &http.Server{
@@ -352,7 +483,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("servidor único (identidade + painel) ouvindo em :%s", cfg.Porta)
+		log.Printf("servidor único (identidade + painel + almoxarifado + RH + compras + alojamentos + financeiro + programação) ouvindo em :%s", cfg.Porta)
 		if err := servidor.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("servidor: %v", err)
 		}

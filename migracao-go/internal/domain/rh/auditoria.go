@@ -40,8 +40,8 @@ type Auditoria struct {
 
 type AuditoriaComContexto struct {
 	Auditoria
-	ObraCodigo    *string
-	TotalItens    int
+	ObraCodigo     *string
+	TotalItens     int
 	TotalReprovado int
 }
 

@@ -16,6 +16,7 @@ var descricaoModulo = map[dominio.Modulo]string{
 	dominio.ModuloEstoque:     "Materiais, entradas e saídas por obra, compras",
 	dominio.ModuloAlojamentos: "Moradia dos funcionários, pedidos e programação",
 	dominio.ModuloFrota:       "Veículos, manutenções e abastecimento",
+	dominio.ModuloFinanceiro:  "Faturamento, fiscal, contas a pagar e contas a receber",
 }
 
 func (h *Handlers) Hub(w http.ResponseWriter, r *http.Request) {

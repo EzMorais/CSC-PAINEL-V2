@@ -47,21 +47,21 @@ type previaCache struct {
 const ttlPrevia = 15 * time.Minute
 
 type ItemPrevia struct {
-	Linha                int
-	Nome, CPF            string
-	Cargo, Obra          string
-	AdmitidoEm           string
-	Situacao             string // NOVO | JA_EXISTE
+	Linha               int
+	Nome, CPF           string
+	Cargo, Obra         string
+	AdmitidoEm          string
+	Situacao            string // NOVO | JA_EXISTE
 	CriaCargo, CriaObra bool
 }
 
 type Previa struct {
-	Token                                  string
-	Itens                                  []ItemPrevia
-	Novos, JaExistem                       int
-	CargosNovos, ObrasNovas                []string
-	SemAdmissao                            int
-	Ignoradas                              []planilha.LinhaFuncionarioIgnorada
+	Token                                 string
+	Itens                                 []ItemPrevia
+	Novos, JaExistem                      int
+	CargosNovos, ObrasNovas               []string
+	SemAdmissao                           int
+	Ignoradas                             []planilha.LinhaFuncionarioIgnorada
 	ColunasReconhecidas, ColunasIgnoradas []string
 }
 

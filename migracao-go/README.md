@@ -59,7 +59,7 @@ segundo módulo — o Portal não tem `Obra`.
 | **Painel de Locação** (`/painel`) | ✅ [`painel/COMPORTAMENTO.md`](painel/COMPORTAMENTO.md) | ✅ `apps/painel-locacao/e2e/*.go.spec.ts` — 18/18, duas vezes seguidas | ✅ CRUD/ciclo de vida completo + importador Excel (validado byte-exato contra a planilha real: 305/242/63/16/90/20) + exportadores Excel/PDF (2026-08-04) | ⬜ ainda convivendo |
 | **Almoxarifado** (`/almoxarifado`) | ✅ [`estoque/COMPORTAMENTO.md`](estoque/COMPORTAMENTO.md) | ✅ `apps/estoque/e2e/*.go.spec.ts` — 24/24, duas vezes seguidas | ✅ Materiais (saldo sempre somado do livro-razão, nunca gravado) + movimentações (entrada/saída/devolução/perda/ajuste, com bloqueio de saldo negativo) + fila de aprovação propose-then-execute (perda/ajuste/solicitação de compra, com bloqueio de auto-aprovação) + solicitação de compra com sugestão automática + envio de e-mail (SMTP nativo, `net/smtp`) + integração HTTP com o RH pra ficha de EPI (2026-08-04) | ⬜ ainda convivendo |
 | **RH e SST** (`/rh`) | ✅ [`rh/COMPORTAMENTO.md`](rh/COMPORTAMENTO.md) | ✅ `apps/rh/e2e/*.go.spec.ts` — 65/65 (2026-08-11) | ✅ funcionários com timeline, uniformes com assinatura, treinamentos/turmas, exames ASO, documentos com versionamento, auditorias/NC, importação de funcionários, relatórios Excel/PDF, integração HTTP com o Almoxarifado pra ficha de EPI (2026-08-11) | ⬜ ainda convivendo |
-| Alojamentos (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+| **Alojamentos** (`/alojamentos`) | ✅ [`alojamentos/COMPORTAMENTO.md`](alojamentos/COMPORTAMENTO.md) | 🟡 3 testes Go de regras/integração com SQLite; falta a referência Playwright do canal WhatsApp | 🟡 dashboard, alojamentos/quartos, moradores, rotas, pedidos, programação e vínculo de grupo no binário (2026-08-11); falta portar o webhook/conversa WhatsApp | ⬜ ainda convivendo |
 
 ## Compras — módulo novo, fora do escopo original de migração (2026-08-11)
 
@@ -70,12 +70,20 @@ fechou o RH, mas **não são a migração de nenhum app Next.js existente** — 
 Almoxarifado em `PedidoCompra` (pedido ao fornecedor), registra `RecebimentoCompra` e gera
 `ContaPagar`. Como não migra comportamento de um app já mapeado, o processo de
 COMPORTAMENTO.md → suíte Playwright de referência não se aplica da mesma forma — mas o
-módulo **ainda não tem nenhum teste automatizado** (`go test` confirma: `[no test files]`
-em domain, application e handlers de compras). Antes de considerar o módulo pronto, precisa
-de: (1) um documento curto do comportamento esperado (nem que seja escrito do zero, já que
-não há Next.js de referência), e (2) testes de aplicação/domínio cobrindo pelo menos a
-transição de status do pedido (ABERTO → PARCIAL → RECEBIDO) e a geração da conta a pagar no
-recebimento.
+módulo tem contrato em [`compras/COMPORTAMENTO.md`](compras/COMPORTAMENTO.md) e testes de
+aplicação cobrindo cotação, aprovação, pedido, conferência fiscal, recebimento,
+divergências, devolução, estoque e integração financeira idempotente (2026-08-11).
+
+## Financeiro — operação integrada (2026-08-11)
+
+O desenho funcional e a sequência de entrega estão em
+[`financeiro/BRIEFING.md`](financeiro/BRIEFING.md). A migração
+`0007_financeiro_fundacao.sql` cria o livro em centavos e `0009_financeiro_operacional.sql`
+acrescenta faturamento e central fiscal. As rotas `/financeiro` oferecem as abas Financeiro,
+Faturamento, Fiscal/SEFAZ, Contas a pagar e Contas a receber. Compras cria obrigação e nota
+de entrada; faturamento cria cobrança e solicita emissão fiscal por outbox; o XML autorizado
+do emissor Sebrae legado pode ser importado sem duplicidade. O desenho e os limites de
+homologação estão em [`financeiro/ABAS_E_AUTOMACOES.md`](financeiro/ABAS_E_AUTOMACOES.md).
 
 ## Painel de Locação — adaptações conscientes (2026-08-04)
 
@@ -118,12 +126,9 @@ anteriores. Divergências deliberadas do Next.js:
 - **Envio de e-mail é `net/smtp` da stdlib**, não uma biblioteca — a necessidade é só
   autenticação usuário/senha de aplicativo + STARTTLS (587) ou TLS implícito (465), o
   `nodemailer` do Next.js não faz nada que o stdlib não cubra aqui.
-- **Cliente do RH é HTTP de verdade** (`internal/infrastructure/clienterh`), não uma chamada
-  em processo — o RH ainda não migrou para este binário, então a ficha de EPI continua
-  cruzando processo pela rede, com o mesmo token de máquina assinado (`internal/services/
-  integracao`, HS256, mesmo `AUTH_SECRET`, validade de 60s) que o Next.js usava. Isso muda
-  quando o RH migrar: a chamada vira função local, mas o contrato (`estoque.ClienteRH`) já
-  está isolado atrás de uma porta de domínio pra essa troca não vazar pro resto do módulo.
+- **A integração com o RH é local no binário único**: `clienterh.Local` implementa a
+  mesma porta `estoque.ClienteRH` e chama o gerenciador de EPI diretamente. O adaptador HTTP
+  e as rotas autenticadas continuam disponíveis como contrato de integração externa.
 - **Auto-aprovação bloqueada não tem teste de UI dedicado**: o cenário (mesma pessoa que pediu
   vira quem aprova) só é alcançável se o cargo dela mudar entre o pedido e a decisão — a
   suíte prova o caminho normal (OPERACIONAL pede, GERENTE decide) e a regra em si

@@ -144,7 +144,7 @@ func (f *configuracaoFake) Salvar(ctx context.Context, c *dominio.ConfiguracaoEm
 	f.cfg = c
 	return nil
 }
-func (f *configuracaoFake) MarcarTestada(ctx context.Context) error { return nil }
+func (f *configuracaoFake) MarcarTestada(ctx context.Context) error              { return nil }
 func (f *configuracaoFake) AtualizarAtivo(ctx context.Context, ativo bool) error { return nil }
 
 type clienteRHFake struct{ chamado bool }

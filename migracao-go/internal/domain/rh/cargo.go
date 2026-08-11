@@ -5,9 +5,9 @@ import "time"
 // Risco de Cargo — COMPORTAMENTO.md §2: ordena/destaca a lista "sem EPI", não força
 // exigência automática de EPI/exame (não implementado nem no Next.js).
 const (
-	RiscoNormal      = "NORMAL"
-	RiscoInsalubre   = "INSALUBRE"
-	RiscoPericuloso  = "PERICULOSO"
+	RiscoNormal     = "NORMAL"
+	RiscoInsalubre  = "INSALUBRE"
+	RiscoPericuloso = "PERICULOSO"
 )
 
 // Cargo é a PROFISSÃO (Pedreiro, Eletricista) — não confundir com o cargo de sistema

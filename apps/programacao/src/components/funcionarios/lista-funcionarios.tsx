@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, Search, UserRound } from 'lucide-react'
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Search } from 'lucide-react'
 import { chamarAction } from '@/lib/chamar-action'
 import {
   criarFuncionario, editarFuncionario, alternarAtivoFuncionario, alternarAusencia, apagarFuncionario,
@@ -10,6 +10,7 @@ import {
 import { criarFuncao, editarCorFuncao } from '@/actions/funcoes'
 import { fotoParaDataUri } from '@/lib/imagem-cliente'
 import { CORES_FUNCAO, corTextoPara } from '@/lib/dominio/constantes'
+import { PaletaCores } from '@/components/ui/paleta-cores'
 
 const CAMPO =
   'w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
@@ -42,12 +43,14 @@ function Cracha({ foto, sigla, cor }: { foto: string | null; sigla: string | nul
     )
   }
   return (
-    <span
-      className="grid size-10 shrink-0 place-items-center rounded-full text-[11px] font-bold"
-      style={{ backgroundColor: sigla ? cor : '#9CA3AF', color: sigla ? corTextoPara(cor) : '#1F2937' }}
-    >
-      {sigla ? sigla.slice(0, 5) : <UserRound className="size-4" />}
-    </span>
+      <span
+        className={`grid size-10 shrink-0 place-items-center rounded-full text-[11px] font-bold ${
+          sigla ? '' : 'border border-border bg-muted text-foreground'
+        }`}
+        style={sigla ? { backgroundColor: cor, color: corTextoPara(cor) } : undefined}
+      >
+        {sigla ? sigla.slice(0, 5) : '—'}
+      </span>
   )
 }
 
@@ -223,18 +226,12 @@ export function ListaFuncionarios({
                   <span className="mb-1 block text-xs text-muted-foreground">
                     Cor de {funcaoSelecionada.sigla} — muda em todo mundo que tem essa função
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {CORES_FUNCAO.map((c) => (
-                      <button
-                        key={c.valor} type="button" title={c.nome} aria-label={`Cor ${c.nome} para ${funcaoSelecionada.sigla}`}
-                        onClick={() => mudarCorDaFuncao(c.valor)}
-                        className={`size-7 rounded border-2 transition-transform ${
-                          funcaoSelecionada.cor === c.valor ? 'border-foreground scale-110' : 'border-border'
-                        }`}
-                        style={{ backgroundColor: c.valor }}
-                      />
-                    ))}
-                  </div>
+                  <PaletaCores
+                    cores={CORES_FUNCAO}
+                    valor={funcaoSelecionada.cor}
+                    onChange={mudarCorDaFuncao}
+                    rotulo={`Cor da função ${funcaoSelecionada.sigla}`}
+                  />
                 </div>
               )}
 
@@ -254,18 +251,12 @@ export function ListaFuncionarios({
                   </div>
                   <div>
                     <span className="mb-1 block text-xs text-muted-foreground">Cor do grupo</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {CORES_FUNCAO.map((c) => (
-                        <button
-                          key={c.valor} type="button" title={c.nome} aria-label={c.nome}
-                          onClick={() => setNovaCor(c.valor)}
-                          className={`size-7 rounded border-2 transition-transform ${
-                            novaCor === c.valor ? 'border-foreground scale-110' : 'border-border'
-                          }`}
-                          style={{ backgroundColor: c.valor }}
-                        />
-                      ))}
-                    </div>
+                    <PaletaCores
+                      cores={CORES_FUNCAO}
+                      valor={novaCor}
+                      onChange={setNovaCor}
+                      rotulo="Cor do novo grupo"
+                    />
                   </div>
                   <div className="flex gap-2">
                     <button

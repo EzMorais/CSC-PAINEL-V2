@@ -86,7 +86,7 @@ func TestAprovar_Perda_GravaMovimentacaoEMarcaAprovada(t *testing.T) {
 func TestAprovar_RevalidaSaldoNoMomentoDaDecisao(t *testing.T) {
 	g, mat, mov, apr := novoGerenciadorAprovacoes()
 	mat.adicionar(materialTeste("m1", dominio.CategoriaFerramenta, true), 1) // saldo caiu pra 1 desde o pedido
-	pedido := pedidoDePerdaPendente(apr, "outra-pessoa")                    // pedido original pedia baixa de 2
+	pedido := pedidoDePerdaPendente(apr, "outra-pessoa")                     // pedido original pedia baixa de 2
 
 	_, err := g.Aprovar(context.Background(), identidade.Sessao{ID: "u2", Cargo: identidade.CargoGerente}, pedido.ID)
 	if err == nil {

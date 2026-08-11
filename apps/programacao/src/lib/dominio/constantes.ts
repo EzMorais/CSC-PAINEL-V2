@@ -33,13 +33,28 @@ export const ROTULO_TIPO_RECURSO: Record<TipoRecurso, string> = {
  */
 export const CORES_FRENTE = [
   { nome: 'Rosa', valor: '#F4A9A0' },
-  { nome: 'Azul', valor: '#4EA6DC' },
-  { nome: 'Azul claro', valor: '#9DC3E6' },
-  { nome: 'Laranja', valor: '#F4B183' },
-  { nome: 'Amarelo', valor: '#FFFF00' },
-  { nome: 'Cinza', valor: '#D9D9D9' },
-  { nome: 'Verde', valor: '#A9D08E' },
-  { nome: 'Roxo', valor: '#C9A0DC' },
+  { nome: 'Coral', valor: '#F28B82' },
+  { nome: 'Salmão', valor: '#E9967A' },
+  { nome: 'Pêssego', valor: '#FCE4D6' },
+  { nome: 'Laranja claro', valor: '#F4B183' },
+  { nome: 'Laranja', valor: '#ED7D31' },
+  { nome: 'Âmbar', valor: '#F6B26B' },
+  { nome: 'Dourado', valor: '#FFD966' },
+  { nome: 'Amarelo claro', valor: '#FFF2CC' },
+  { nome: 'Ocre', valor: '#C9A227' },
+  { nome: 'Terracota', valor: '#C65D3A' },
+  { nome: 'Vermelho claro', valor: '#F4CCCC' },
+  { nome: 'Vermelho pastel', valor: '#E6B8B7' },
+  { nome: 'Vinho claro', valor: '#D99694' },
+  { nome: 'Rosa antigo', valor: '#C97C78' },
+  { nome: 'Rosa queimado', valor: '#A64D4D' },
+  { nome: 'Lilás quente', valor: '#D9A6A6' },
+  { nome: 'Areia', valor: '#EAD7B7' },
+  { nome: 'Bege', valor: '#F3E5AB' },
+  { nome: 'Creme', valor: '#FFF8E7' },
+  { nome: 'Cinza quente', valor: '#D9D2C3' },
+  { nome: 'Cinza claro', valor: '#F2F2F2' },
+  { nome: 'Cinza médio', valor: '#BFBFBF' },
 ]
 
 /**
@@ -56,6 +71,15 @@ export const CORES_FUNCAO = [
   { nome: 'Laranja', valor: '#C1560C' },
   { nome: 'Cinza', valor: '#55606B' },
   { nome: 'Verde', valor: '#1B6B34' },
+  { nome: 'Azul petróleo', valor: '#0F6B78' },
+  { nome: 'Azul médio', valor: '#2F75B5' },
+  { nome: 'Verde esmeralda', valor: '#217346' },
+  { nome: 'Turquesa', valor: '#168C8C' },
+  { nome: 'Vinho', valor: '#7F1D3A' },
+  { nome: 'Magenta', valor: '#A61C7C' },
+  { nome: 'Marrom', valor: '#7F6000' },
+  { nome: 'Grafite', valor: '#374151' },
+  { nome: 'Índigo', valor: '#4338CA' },
 ]
 
 /**

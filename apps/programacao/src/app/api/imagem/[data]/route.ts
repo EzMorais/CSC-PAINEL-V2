@@ -1,7 +1,8 @@
 import { lerSessao } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { frentesAtivas } from '@/queries/programacao'
-import { montarSvg, gerarPng } from '@/lib/imagem'
+import { montarSvg, gerarPng, textoDoVeiculo, logoParaSvg } from '@/lib/imagem'
+import { funcionariosDoRh, veiculosDaFrota } from '@/lib/clientes'
 import { deIso, diaUtc, tituloDoDia } from '@/lib/dominio/constantes'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dat
   })
   if (!programacao) return new Response('Não há programação nesse dia.', { status: 404 })
 
-  const [frentes, funcoes] = await Promise.all([frentesAtivas(), prisma.funcao.findMany()])
+  const [frentes, funcoes, frota, rh, ausentesLocais] = await Promise.all([
+    frentesAtivas(),
+    prisma.funcao.findMany(),
+    veiculosDaFrota(),
+    funcionariosDoRh(),
+    prisma.funcionario.findMany({
+      where: { ativo: true, ausente: true },
+      select: { nome: true, ausenteObs: true },
+      orderBy: { nome: 'asc' },
+    }),
+  ])
   // Frente sem ninguém e sem veículo não vira coluna: o print de hoje também não mostra
   // coluna vazia, e cada uma custa 200px de largura numa imagem já larga.
   const usadas = frentes.filter(
@@ -36,15 +47,34 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dat
       programacao.recursos.some((r) => r.frenteId === f.id),
   )
 
+  const rodape = {
+    manutencoes: frota.ok
+      ? frota.dados
+        .filter((veiculo) => veiculo.emManutencao)
+        .map((veiculo) => textoDoVeiculo(veiculo.nome, veiculo.placa))
+      : [],
+    ferias: [
+      ...(rh.ok
+        ? rh.dados
+          .filter((funcionario) => funcionario.status === 'FERIAS')
+          .map((funcionario) => `${funcionario.nome}${funcionario.cargo ? ` · ${funcionario.cargo}` : ''}`)
+        : []),
+      ...ausentesLocais.map((funcionario) => `${funcionario.nome}${funcionario.ausenteObs ? ` · ${funcionario.ausenteObs}` : ' · ausência registrada'}`),
+    ],
+  }
+
   const { svg } = montarSvg(
     tituloDoDia(diaUtc(data)),
-    usadas.map((f) => ({ id: f.id, nome: f.nome, cor: f.cor, colunas: f.colunas })),
+    await Promise.all(usadas.map(async (f) => ({
+      id: f.id, nome: f.nome, cor: f.cor, logo: await logoParaSvg(f.logo), colunas: f.colunas,
+    }))),
     programacao.escalas.map((e) => ({ frenteId: e.frenteId, nome: e.nome, funcaoSigla: e.funcaoSigla })),
     programacao.recursos.map((r) => ({
-      frenteId: r.frenteId, tipo: r.tipo, descricao: r.descricao,
+      frenteId: r.frenteId, tipo: r.tipo, descricao: r.descricao, placa: r.placa,
       motoristaNome: r.motoristaNome, destaque: r.destaque,
     })),
     new Map(funcoes.map((f) => [f.sigla, f.cor])),
+    rodape,
   )
 
   const png = await gerarPng(svg)

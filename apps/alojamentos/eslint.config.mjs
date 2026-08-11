@@ -21,6 +21,7 @@ const eslintConfig = defineConfig([
     // e do trace viewer, gerando milhares de falsos erros.
     "test-results/**",
     "playwright-report/**",
+    "playwright-report-go/**",
     "coverage/**",
   ]),
 ]);

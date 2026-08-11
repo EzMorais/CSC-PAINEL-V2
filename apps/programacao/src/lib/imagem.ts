@@ -1,4 +1,4 @@
-import { TIPO_RECURSO, corTextoPara } from './dominio/constantes'
+import { TIPO_RECURSO } from './dominio/constantes'
 
 /**
  * Desenha a programação do dia como imagem, no formato da planilha que o grupo já conhece.
@@ -12,12 +12,12 @@ import { TIPO_RECURSO, corTextoPara } from './dominio/constantes'
  * por melhor que fosse, seria mais uma coisa para explicar na segunda-feira.
  */
 
-const LARGURA_COLUNA = 205
-const ALTURA_LINHA = 17
-const ALTURA_TITULO = 34
-const ALTURA_CABECALHO = 26
-const MARGEM = 8
-const ESPACO_COLUNA = 4
+const LARGURA_COLUNA = 220
+const ALTURA_LINHA = 25
+const ALTURA_TITULO = 46
+const ALTURA_CABECALHO = 52
+const MARGEM = 12
+const ESPACO_COLUNA = 12
 /** Piso de altura, para um dia com pouca gente não sair como uma tira fina. */
 const LINHAS_MINIMAS = 6
 /** Acima disto a frente abre outra sub-coluna — é o corte que a planilha usa em MORELLI. */
@@ -27,6 +27,7 @@ export type FrenteImagem = {
   id: string
   nome: string
   cor: string
+  logo: string | null
   colunas: number
 }
 
@@ -36,8 +37,14 @@ export type RecursoImagem = {
   frenteId: string
   tipo: string
   descricao: string
+  placa: string | null
   motoristaNome: string | null
   destaque: boolean
+}
+
+export type RodapeImagem = {
+  manutencoes: string[]
+  ferias: string[]
 }
 
 function escapar(texto: string): string {
@@ -58,9 +65,57 @@ function cortar(texto: string, maximo: number): string {
   return t.length <= maximo ? t : `${t.slice(0, maximo - 1)}…`
 }
 
-/** A linha como sai no print: "BRUNO DE MELLO - ENG". */
+function larguraAproximadaDoTitulo(texto: string, limite: number): number {
+  return Math.min(limite, Math.max(48, texto.length * 7.4))
+}
+
+function nomeCurto(nome: string): string {
+  return nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).join(' ')
+}
+
+function iniciaisDoCliente(nome: string): string {
+  return nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase() || 'C'
+}
+
+/** Identificação curta para qualquer veículo na imagem: primeiro nome do modelo + placa. */
+export function textoDoVeiculo(nome: string, placa: string | null | undefined): string {
+  const placaLimpa = placa?.trim() ?? ''
+  const semPlaca = placaLimpa
+    ? nome.replace(new RegExp(placaLimpa.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), '')
+      .replace(/\s*[-–—]\s*$/, '')
+      .trim()
+    : nome.trim()
+  const primeiroNome = semPlaca.split(/\s+/).filter(Boolean)[0] ?? nome.trim().split(/\s+/)[0] ?? ''
+  return placaLimpa && placaLimpa !== '-' ? `${primeiroNome} - ${placaLimpa}` : primeiroNome
+}
+
+/**
+ * O navegador exibe WebP diretamente, mas o SVG convertido pelo sharp precisa de PNG
+ * embutido para renderizar a logo com segurança. A conversão acontece só na exportação;
+ * o formato otimizado salvo no cadastro continua menor e adequado para a tela.
+ */
+export async function logoParaSvg(logo: string | null): Promise<string | null> {
+  if (!logo) return null
+  const separador = logo.indexOf(',')
+  if (!logo.startsWith('data:') || separador < 0) return null
+
+  try {
+    const conteudo = logo.slice(separador + 1)
+    const bruto = logo.slice(0, separador).includes(';base64')
+      ? Buffer.from(conteudo, 'base64')
+      : Buffer.from(decodeURIComponent(conteudo))
+    const { default: sharp } = await import('sharp')
+    const png = await sharp(bruto, { animated: false }).png().toBuffer()
+    return `data:image/png;base64,${png.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+/** A linha como sai no print: "BRUNO DE MELLO - ENG" — no máximo primeiro e segundo nome. */
 function linhaDaPessoa(e: EscalaImagem): string {
-  return e.funcaoSigla ? `${e.nome} - ${e.funcaoSigla}` : e.nome
+  const nome = nomeCurto(e.nome)
+  return e.funcaoSigla ? `${nome} - ${e.funcaoSigla}` : nome
 }
 
 type Coluna = {
@@ -116,6 +171,7 @@ export function montarSvg(
   titulo: string, frentes: FrenteImagem[], escalas: EscalaImagem[], recursos: RecursoImagem[],
   /** Sigla → cor do grupo da função, para pintar a linha de cada pessoa como no card do quadro. */
   corPorSigla: Map<string, string> = new Map(),
+  rodape: RodapeImagem = { manutencoes: [], ferias: [] },
 ): { svg: string; largura: number; altura: number } {
   const colunas = montarColunas(frentes, escalas, recursos)
 
@@ -125,18 +181,26 @@ export function montarSvg(
   const largura = MARGEM * 2 + colunas.length * (LARGURA_COLUNA + ESPACO_COLUNA) - ESPACO_COLUNA
   const alturaCorpo = maiorLista * ALTURA_LINHA
   const alturaRecursos = maisRecursos > 0 ? maisRecursos * (ALTURA_LINHA + 2) + 8 : 0
-  const altura = MARGEM * 2 + ALTURA_TITULO + ALTURA_CABECALHO + alturaCorpo + alturaRecursos + 4
+  const blocosRodape = [
+    { titulo: 'VEÍCULOS EM MANUTENÇÃO', itens: rodape.manutencoes, cor: '#B45309' },
+    { titulo: 'FÉRIAS / AUSÊNCIAS', itens: rodape.ferias, cor: '#2563EB' },
+  ].filter((bloco) => bloco.itens.length > 0)
+  const alturaBase = MARGEM * 2 + ALTURA_TITULO + ALTURA_CABECALHO + alturaCorpo + alturaRecursos + 4
+  const alturaRodape = blocosRodape.length > 0
+    ? 58 + Math.max(...blocosRodape.map((bloco) => bloco.itens.length * 16))
+    : 0
+  const altura = alturaBase + alturaRodape
 
   const partes: string[] = []
 
-  partes.push(`<rect width="${largura}" height="${altura}" fill="#ffffff"/>`)
+  partes.push(`<rect width="${largura}" height="${altura}" fill="#E8EEF5"/>`)
 
-  // Faixa do título, verde como na planilha
+  // Título neutro: mantém a imagem leve e deixa as cores das frentes como orientação visual.
   partes.push(
-    `<rect x="${MARGEM}" y="${MARGEM}" width="${largura - MARGEM * 2}" height="${ALTURA_TITULO}" ` +
-    `fill="#00B050" stroke="#000000" stroke-width="1"/>`,
+    `<rect x="${MARGEM}" y="${MARGEM}" width="${largura - MARGEM * 2}" height="${ALTURA_TITULO}" rx="12" ` +
+    `fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>`,
     `<text x="${largura / 2}" y="${MARGEM + ALTURA_TITULO / 2 + 6}" text-anchor="middle" ` +
-    `font-family="Calibri, Arial, sans-serif" font-size="19" font-weight="bold" fill="#000000">` +
+    `font-family="Calibri, Arial, sans-serif" font-size="19" font-weight="bold" fill="#111827">` +
     `${escapar(titulo)}</text>`,
   )
 
@@ -155,63 +219,120 @@ export function montarSvg(
 
     if (ehPrimeira) {
       partes.push(
-        `<rect x="${x}" y="${topoCabecalho}" width="${larguraCabecalho}" height="${ALTURA_CABECALHO}" ` +
-        `fill="${escapar(coluna.frente.cor)}" stroke="#000000" stroke-width="1"/>`,
-        `<text x="${x + larguraCabecalho / 2}" y="${topoCabecalho + ALTURA_CABECALHO / 2 + 5}" ` +
-        `text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="14" ` +
-        `font-weight="bold" fill="#000000">${escapar(coluna.frente.nome)}</text>`,
+        `<rect x="${x}" y="${topoCabecalho}" width="${larguraCabecalho}" height="${ALTURA_CABECALHO}" rx="10" ` +
+        `fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>`,
+        `<rect x="${x}" y="${topoCabecalho}" width="${larguraCabecalho}" height="5" rx="3" ` +
+        `fill="${escapar(coluna.frente.cor)}"/>`,
       )
+      if (coluna.frente.logo) {
+        const nome = cortar(coluna.frente.nome, Math.max(10, Math.floor((larguraCabecalho - 70) / 7.4)))
+        const larguraNome = larguraAproximadaDoTitulo(nome, Math.max(48, larguraCabecalho - 70))
+        const larguraGrupo = 48 + 10 + larguraNome
+        const inicioGrupo = x + (larguraCabecalho - larguraGrupo) / 2
+        partes.push(
+          `<image href="${escapar(coluna.frente.logo)}" x="${inicioGrupo}" y="${topoCabecalho + 11}" ` +
+          `width="48" height="30" preserveAspectRatio="xMidYMid meet"/>`,
+          `<text x="${inicioGrupo + 58}" y="${topoCabecalho + ALTURA_CABECALHO / 2 + 5}" ` +
+          `text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="bold" ` +
+          `fill="#111827">${escapar(nome)}</text>`,
+        )
+      } else {
+        const nome = cortar(coluna.frente.nome, Math.max(10, Math.floor((larguraCabecalho - 52) / 7.4)))
+        const larguraNome = larguraAproximadaDoTitulo(nome, Math.max(48, larguraCabecalho - 52))
+        const larguraGrupo = 32 + 10 + larguraNome
+        const inicioGrupo = x + (larguraCabecalho - larguraGrupo) / 2
+        partes.push(
+          `<circle cx="${inicioGrupo + 16}" cy="${topoCabecalho + ALTURA_CABECALHO / 2 + 1}" r="16" fill="${escapar(coluna.frente.cor)}"/>`,
+          `<text x="${inicioGrupo + 16}" y="${topoCabecalho + ALTURA_CABECALHO / 2 + 5}" text-anchor="middle" ` +
+          `font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#111827">` +
+          `${escapar(iniciaisDoCliente(coluna.frente.nome))}</text>`,
+          `<text x="${inicioGrupo + 42}" y="${topoCabecalho + ALTURA_CABECALHO / 2 + 5}" ` +
+          `text-anchor="start" font-family="Arial, sans-serif" font-size="14" font-weight="bold" ` +
+          `fill="#111827">${escapar(nome)}</text>`,
+        )
+      }
     }
 
     // Moldura do corpo
     partes.push(
-      `<rect x="${x}" y="${topoCorpo}" width="${LARGURA_COLUNA}" height="${maiorLista * ALTURA_LINHA}" ` +
-      `fill="#ffffff" stroke="#000000" stroke-width="1"/>`,
+      `<rect x="${x}" y="${topoCorpo}" width="${LARGURA_COLUNA}" height="${maiorLista * ALTURA_LINHA}" rx="10" ` +
+      `fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>`,
     )
 
     coluna.pessoas.forEach((p, j) => {
       const y = topoCorpo + j * ALTURA_LINHA
       const baseTexto = y + ALTURA_LINHA - 5
 
-      // Fundo colorido pelo grupo da função — mesma cor do crachá no quadro. Sem função
-      // reconhecida, a linha fica branca (nenhuma faixa desenhada).
+      // A cor da função vira apenas uma faixa lateral. O texto permanece escuro e o corpo
+      // branco, para a imagem continuar legível mesmo com muitos grupos diferentes.
       const cor = p.funcaoSigla ? corPorSigla.get(p.funcaoSigla) : undefined
-      const corTexto = cor ? corTextoPara(cor) : '#000000'
-      if (cor) {
-        partes.push(`<rect x="${x}" y="${y}" width="${LARGURA_COLUNA}" height="${ALTURA_LINHA}" fill="${cor}"/>`)
-      }
-
-      // Faixinha do número, à esquerda
       partes.push(
-        `<line x1="${x + 22}" y1="${y}" x2="${x + 22}" y2="${y + ALTURA_LINHA}" stroke="#BFBFBF" stroke-width="0.5"/>`,
-        `<text x="${x + 18}" y="${baseTexto}" text-anchor="end" font-family="Calibri, Arial, sans-serif" ` +
-        `font-size="11" font-weight="bold" fill="${corTexto}">${coluna.numeroInicial + j}</text>`,
-        `<text x="${x + 26}" y="${baseTexto}" font-family="Calibri, Arial, sans-serif" font-size="11.5" ` +
-        `fill="${corTexto}">${escapar(cortar(linhaDaPessoa(p), 34))}</text>`,
+        `<rect x="${x + 6}" y="${y + 2}" width="${LARGURA_COLUNA - 12}" height="${ALTURA_LINHA - 4}" rx="6" ` +
+        `fill="${j % 2 === 0 ? '#FFFFFF' : '#F8FAFC'}"/>`,
       )
-
-      if (j > 0) {
-        partes.push(
-          `<line x1="${x}" y1="${y}" x2="${x + LARGURA_COLUNA}" y2="${y}" stroke="#D9D9D9" stroke-width="0.5"/>`,
-        )
+      if (cor) {
+        partes.push(`<rect x="${x + 6}" y="${y + 5}" width="4" height="${ALTURA_LINHA - 10}" rx="2" fill="${escapar(cor)}"/>`)
       }
+
+      // Número em uma pílula discreta, sem transformar cada pessoa em uma linha de planilha.
+      partes.push(
+        `<rect x="${x + 14}" y="${y + 7}" width="20" height="${ALTURA_LINHA - 14}" rx="7" fill="#EEF2F7"/>`,
+        `<text x="${x + 24}" y="${baseTexto}" text-anchor="middle" font-family="Arial, sans-serif" ` +
+        `font-size="10" font-weight="bold" fill="#64748B">${coluna.numeroInicial + j}</text>`,
+        `<text x="${x + 44}" y="${baseTexto}" font-family="Arial, sans-serif" font-size="11.5" ` +
+        `fill="#111827">${escapar(cortar(linhaDaPessoa(p), 34))}</text>`,
+      )
     })
 
     // Faixas de veículo/máquina/aviso no pé da coluna
     coluna.recursos.forEach((r, j) => {
       const y = topoCorpo + maiorLista * ALTURA_LINHA + 6 + j * (ALTURA_LINHA + 2)
-      const fundo = r.destaque ? '#FFFF00' : r.tipo === TIPO_RECURSO.AVISO ? '#FFFFFF' : '#F4B183'
-      const texto = r.motoristaNome ? `${r.descricao} - ${r.motoristaNome}` : r.descricao
+      const fundo = r.destaque ? '#FEF3C7' : r.tipo === TIPO_RECURSO.AVISO ? '#FFFFFF' : '#F8FAFC'
+      const identificacao = r.tipo === TIPO_RECURSO.VEICULO
+        ? textoDoVeiculo(r.descricao, r.placa)
+        : r.descricao
+      const texto = r.motoristaNome ? `${identificacao} · ${r.motoristaNome}` : identificacao
 
       partes.push(
-        `<rect x="${x}" y="${y}" width="${LARGURA_COLUNA}" height="${ALTURA_LINHA}" ` +
-        `fill="${fundo}" stroke="#000000" stroke-width="1"/>`,
-        `<text x="${x + LARGURA_COLUNA / 2}" y="${y + ALTURA_LINHA - 5}" text-anchor="middle" ` +
-        `font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#000000">` +
+        `<rect x="${x + 6}" y="${y}" width="${LARGURA_COLUNA - 12}" height="${ALTURA_LINHA}" rx="7" ` +
+        `fill="${fundo}" stroke="#E5E7EB" stroke-width="1"/>`,
+        `<text x="${x + 14}" y="${y + ALTURA_LINHA - 7}" text-anchor="start" ` +
+        `font-family="Arial, sans-serif" font-size="10.5" font-weight="bold" fill="#111827">` +
         `${escapar(cortar(texto, 36))}</text>`,
       )
     })
   })
+
+  if (blocosRodape.length > 0) {
+    const topoRodape = alturaBase
+    const gap = 8
+    const larguraDisponivel = Math.max(120, largura - MARGEM * 2)
+    const larguraBloco = (larguraDisponivel - gap * (blocosRodape.length - 1)) / blocosRodape.length
+
+    partes.push(`<line x1="${MARGEM}" y1="${topoRodape}" x2="${largura - MARGEM}" y2="${topoRodape}" stroke="#D1D5DB" stroke-width="1"/>`)
+
+    blocosRodape.forEach((bloco, indice) => {
+      const x = MARGEM + indice * (larguraBloco + gap)
+      const y = topoRodape + 8
+      const alturaBloco = alturaRodape - 16
+      const maximo = Math.max(12, Math.floor((larguraBloco - 24) / 6.2))
+
+      partes.push(
+        `<rect x="${x}" y="${y}" width="${larguraBloco}" height="${alturaBloco}" rx="3" ` +
+        `fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>`,
+        `<rect x="${x}" y="${y}" width="4" height="${alturaBloco}" rx="2" fill="${bloco.cor}"/>`,
+        `<text x="${x + 12}" y="${y + 18}" font-family="Calibri, Arial, sans-serif" font-size="10" ` +
+        `font-weight="bold" fill="#374151">${escapar(bloco.titulo)}</text>`,
+      )
+
+      bloco.itens.forEach((item, itemIndice) => {
+        partes.push(
+          `<text x="${x + 12}" y="${y + 36 + itemIndice * 16}" font-family="Calibri, Arial, sans-serif" ` +
+          `font-size="10.5" fill="#111827">• ${escapar(cortar(item, maximo))}</text>`,
+        )
+      })
+    })
+  }
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${largura}" height="${altura}" ` +

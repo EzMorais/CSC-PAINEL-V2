@@ -743,10 +743,10 @@ func semearRHTreinamentos(ctx context.Context, repo rh.TreinamentoRepositorio, i
 	}
 
 	type turmaExemplo struct {
-		norma, descricao          string
-		realizadoHaDias           int
-		validadeHaDias            *int // negativo = no futuro (haDiasRH inverte o sinal)
-		participantes             []string
+		norma, descricao string
+		realizadoHaDias  int
+		validadeHaDias   *int // negativo = no futuro (haDiasRH inverte o sinal)
+		participantes    []string
 	}
 	menos15, menos35 := -15, 35
 	turmas := []turmaExemplo{

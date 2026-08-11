@@ -5,11 +5,21 @@ import (
 	"siqueiracampos/servidor/internal/middleware"
 )
 
+// moduloCadastros não tem constante em identidade.Modulos: a tela de Cadastros (catálogo de
+// obras/casas/veículos/máquinas/materiais) continua só no Portal Next.js legado, sem
+// equivalente Go ainda. O acesso já vem gravado no crachá de quem tem essa permissão no
+// Portal — TemAcesso funciona igual, só não aparece como módulo administrável nas telas Go.
+const moduloCadastros identidade.Modulo = "CADASTROS"
+
 // HubFlutuante — botão flutuante (canto inferior direito) pra trocar de sistema sem passar
-// pelo Hub, mesmo padrão de apps/rh/src/components/layout/hub-navegacao.tsx. Frota fica de
-// fora de propósito (mesma lista de referência do componente React). Os links internos
-// (Portal/Painel/Almoxarifado) usam `data-nav` — o mesmo script que marca o item ativo na
-// sidebar (static/app.js, por prefixo de `location.pathname`) já cobre esses também.
+// pela sidebar. Mesma lista, ordem e ícones de
+// apps/programacao/src/components/layout/hub-navegacao.tsx (a referência de todos os apps
+// Next.js — todos compartilham o mesmo arquivo), adaptada aos módulos que este binário já
+// serve internamente: Programação, RH, Alojamentos e Almoxarifado já não são mais um pulo
+// pra outro processo, então usam link interno com `data-nav` (o mesmo script que marca o
+// item ativo na sidebar via prefixo de `location.pathname` cobre esses também) em vez do
+// selo de link externo. Cadastros e Frota continuam fora deste binário. Financeiro é módulo
+// novo deste V2, sem equivalente Next.js — entra no fim, fora da lista de referência.
 templ HubFlutuante(sess identidade.Sessao, nav middleware.Navegacao) {
 	<div class="hub-flutuante" data-hub-flutuante>
 		<div class="hub-flutuante-menu" data-hub-flutuante-menu>
@@ -18,10 +28,29 @@ templ HubFlutuante(sess identidade.Sessao, nav middleware.Navegacao) {
 				@IconeGrade("icone")
 				Portal
 			</a>
+			if identidade.TemAcesso(sess, identidade.ModuloProgramacao) {
+				<a href="/programacao" class="hub-flutuante-item" data-nav>
+					@IconeCalendario("icone")
+					Programação Diária
+				</a>
+			}
+			if identidade.TemAcesso(sess, moduloCadastros) {
+				<a href={ templ.URL(nav.URLPortal + "/cadastros") } class="hub-flutuante-item">
+					@IconePasta("icone")
+					Cadastros
+					@IconeLinkExterno("icone icone-externo")
+				</a>
+			}
 			if identidade.TemAcesso(sess, identidade.ModuloPainel) {
 				<a href="/painel" class="hub-flutuante-item" data-nav>
 					@IconePredio("icone")
 					Painel de Locação
+				</a>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloRH) {
+				<a href="/rh" class="hub-flutuante-item" data-nav>
+					@IconeUsuarios("icone")
+					RH e SST
 				</a>
 			}
 			if identidade.TemAcesso(sess, identidade.ModuloEstoque) {
@@ -30,18 +59,23 @@ templ HubFlutuante(sess identidade.Sessao, nav middleware.Navegacao) {
 					Almoxarifado
 				</a>
 			}
-			if identidade.TemAcesso(sess, identidade.ModuloRH) {
-				<a href={ templ.URL(nav.URLRH) } class="hub-flutuante-item">
-					@IconeUsuarios("icone")
-					RH e SST
+			if identidade.TemAcesso(sess, identidade.ModuloAlojamentos) {
+				<a href="/alojamentos" class="hub-flutuante-item" data-nav>
+					@IconeCasa("icone")
+					Alojamentos
+				</a>
+			}
+			if identidade.TemAcesso(sess, identidade.ModuloFrota) {
+				<a href={ templ.URL(nav.URLFrota) } class="hub-flutuante-item">
+					@IconeCaminhao("icone")
+					Frota
 					@IconeLinkExterno("icone icone-externo")
 				</a>
 			}
-			if identidade.TemAcesso(sess, identidade.ModuloAlojamentos) {
-				<a href={ templ.URL(nav.URLAlojamentos) } class="hub-flutuante-item">
-					@IconeCasa("icone")
-					Alojamentos
-					@IconeLinkExterno("icone icone-externo")
+			if identidade.TemAcesso(sess, identidade.ModuloFinanceiro) {
+				<a href="/financeiro" class="hub-flutuante-item" data-nav>
+					@IconeCifrao("icone")
+					Financeiro
 				</a>
 			}
 		</div>

@@ -62,8 +62,12 @@ func (f *funcionariosFake) Excluir(ctx context.Context, id string) error { retur
 func (f *funcionariosFake) ContarPorStatus(ctx context.Context) (map[string]int, error) {
 	return nil, nil
 }
-func (f *funcionariosFake) ContarCadastrosIncompletos(ctx context.Context) (int, error) { return 0, nil }
-func (f *funcionariosFake) ContarPorObra(ctx context.Context) (map[string]int, error)   { return nil, nil }
+func (f *funcionariosFake) ContarCadastrosIncompletos(ctx context.Context) (int, error) {
+	return 0, nil
+}
+func (f *funcionariosFake) ContarPorObra(ctx context.Context) (map[string]int, error) {
+	return nil, nil
+}
 
 type cargosFake struct {
 	porNome map[string]*dominio.Cargo

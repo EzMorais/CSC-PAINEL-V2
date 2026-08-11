@@ -58,16 +58,16 @@ export function BarraDoDia({
         {podeEditar && anteriorIso && (
           // Copiar por cima de um quadro já começado apagaria o trabalho de quem montou —
           // por isso a confirmação só aparece quando há o que perder.
-          confirmando ? (
-            <span className="flex flex-wrap items-center gap-2 rounded-md border border-status-atencao/50 bg-status-atencao/10 px-3 py-1.5 text-xs">
+            confirmando ? (
+            <span className="flex flex-wrap items-center gap-2 rounded-xl border border-status-atencao/50 bg-status-atencao/10 px-3 py-2 text-xs">
               Isso apaga o que já está neste dia. Copiar mesmo assim?
               <button
                 type="button" onClick={copiar} disabled={pendente}
-                className="rounded bg-primary px-2 py-1 font-medium text-primary-foreground disabled:opacity-50"
+                className="rounded-lg bg-primary px-2.5 py-1.5 font-medium text-primary-foreground disabled:opacity-50"
               >
                 Copiar
               </button>
-              <button type="button" onClick={() => setConfirmando(false)} className="rounded border border-border px-2 py-1">
+              <button type="button" onClick={() => setConfirmando(false)} className="rounded-lg border border-border px-2.5 py-1.5">
                 Cancelar
               </button>
             </span>
@@ -76,7 +76,7 @@ export function BarraDoDia({
               type="button" disabled={pendente}
               onClick={() => (temConteudo ? setConfirmando(true) : copiar())}
               data-testid="copiar-dia"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm disabled:opacity-50"
             >
               <Copy className="size-4" />
               {pendente ? 'Copiando…' : `Copiar de ${anteriorTitulo ?? 'ontem'}`}
@@ -88,7 +88,7 @@ export function BarraDoDia({
           <a
             href={`/api/imagem/${data}`} download={`programacao-${data}.png`}
             data-testid="baixar-imagem"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm shadow-sm hover:bg-muted"
           >
             <Download className="size-4" /> Baixar imagem
           </a>
@@ -98,7 +98,7 @@ export function BarraDoDia({
           <button
             type="button" onClick={aoPublicar} disabled={pendente}
             data-testid="publicar"
-            className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm shadow-sm hover:bg-muted disabled:opacity-50"
           >
             <CircleCheck className="size-4" /> Marcar como publicada
           </button>

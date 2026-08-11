@@ -12,7 +12,9 @@ import (
 
 type RHUniformeRepositorio struct{ DB *sql.DB }
 
-func NovoRHUniformeRepositorio(db *sql.DB) *RHUniformeRepositorio { return &RHUniformeRepositorio{DB: db} }
+func NovoRHUniformeRepositorio(db *sql.DB) *RHUniformeRepositorio {
+	return &RHUniformeRepositorio{DB: db}
+}
 
 func (r *RHUniformeRepositorio) Listar(ctx context.Context) ([]rh.EntregaUniformeComNome, error) {
 	linhas, err := r.DB.QueryContext(ctx, `

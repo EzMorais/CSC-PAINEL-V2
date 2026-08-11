@@ -19,6 +19,8 @@ model Frente {
   /// Cor do cabeçalho na imagem, em hexadecimal. É por ela que a turma acha a própria
   /// coluna no print sem ler — no Excel de hoje cada frente tem a sua.
   cor   String @default("#DDEBF7")
+  /// Logo otimizada do cliente em data URI; nula para cadastros antigos sem logo.
+  logo  String?
   ordem Int    @default(0)
   /// Quantas colunas a frente ocupa na imagem. MORELLI tem ~50 pessoas e ocupa duas no
   /// print atual; uma coluna só deixaria a imagem alta demais para ler no celular.

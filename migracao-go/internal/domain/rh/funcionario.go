@@ -37,10 +37,10 @@ var TipoEventoPorStatus = map[string]string{
 
 // Funcionario é a entidade central do módulo — ver COMPORTAMENTO.md §2.
 type Funcionario struct {
-	ID       string
+	ID        string
 	Matricula string
-	Nome     string
-	CPF      string
+	Nome      string
+	CPF       string
 
 	RG             *string
 	DataNascimento *time.Time
@@ -60,12 +60,12 @@ type Funcionario struct {
 	Cidade      *string
 	UF          *string
 
-	Status        string
-	AdmitidoEm    time.Time
-	DemitidoEm    *time.Time
-	MotivoSaida   *string
-	Salario       *float64
-	TipoContrato  string
+	Status       string
+	AdmitidoEm   time.Time
+	DemitidoEm   *time.Time
+	MotivoSaida  *string
+	Salario      *float64
+	TipoContrato string
 
 	Banco     *string
 	Agencia   *string

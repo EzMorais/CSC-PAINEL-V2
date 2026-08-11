@@ -4,31 +4,37 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	aplicacao "siqueiracampos/servidor/internal/application/compras"
 	"siqueiracampos/servidor/internal/domain/cadastro"
-	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	dominio "siqueiracampos/servidor/internal/domain/compras"
 	"siqueiracampos/servidor/internal/domain/comum"
+	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	identidade "siqueiracampos/servidor/internal/domain/identidade"
 	"siqueiracampos/servidor/internal/middleware"
 )
 
 type Handlers struct {
-	Sessoes     *middleware.Sessoes
-	Gerenciador *aplicacao.Gerenciador
-	RepoPedidos dominio.PedidoRepositorio
+	Sessoes      *middleware.Sessoes
+	Gerenciador  *aplicacao.Gerenciador
+	Processo     *aplicacao.GerenciadorProcesso
+	RepoPedidos  dominio.PedidoRepositorio
+	RepoProcesso dominio.ProcessoRepositorio
 }
 
 func Novo(
 	sessoes *middleware.Sessoes,
 	gerenciador *aplicacao.Gerenciador,
+	processo *aplicacao.GerenciadorProcesso,
 	repoPedidos dominio.PedidoRepositorio,
+	repoProcesso dominio.ProcessoRepositorio,
 ) *Handlers {
 	return &Handlers{
-		Sessoes: sessoes, Gerenciador: gerenciador, RepoPedidos: repoPedidos,
+		Sessoes: sessoes, Gerenciador: gerenciador, Processo: processo, RepoPedidos: repoPedidos, RepoProcesso: repoProcesso,
 	}
 }
 
@@ -45,12 +51,14 @@ func (h *Handlers) exigirLancamento(w http.ResponseWriter, r *http.Request) (*id
 }
 
 type paginaComprasView struct {
-	Resumo       *aplicacao.Resumo
-	Pedido       *dominio.PedidoCompra
-	Erro         string
-	Mensagem     string
-	Solicitacoes []estoque.SolicitacaoCompra
-	Fornecedores []cadastro.Fornecedor
+	Resumo           *aplicacao.Resumo
+	Pedido           *dominio.PedidoCompra
+	Erro             string
+	Mensagem         string
+	Solicitacoes     []estoque.SolicitacaoCompra
+	Fornecedores     []cadastro.Fornecedor
+	ChaveRecebimento string
+	Documentos       []dominio.Documento
 }
 
 var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
@@ -100,6 +108,7 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 </head>
 <body>
 <main>
+	<nav class="abas"><a href="/compras">Pedidos</a><a href="/compras/cotacoes">Cotações</a><a href="/compras/divergencias">Divergências</a><a href="/compras/contratos">Contratos</a><a href="/compras/relatorios">Relatórios</a></nav>
 	{{if .Mensagem}}<div class="erro" style="border-color:var(--color-success); color:var(--color-success); background:var(--color-success-soft)">{{.Mensagem}}</div>{{end}}
 	{{if .Erro}}<div class="erro">{{.Erro}}</div>{{end}}
 
@@ -168,6 +177,13 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 				<p><strong>Total estimado:</strong> {{brl .Pedido.TotalEstimado}}</p>
 				<p><strong>Total recebido:</strong> {{brl .Pedido.TotalRecebido}}</p>
 				{{if .Pedido.Observacao}}<p><strong>Obs.:</strong> {{.Pedido.Observacao}}</p>{{end}}
+				<div class="linha-topo">
+				{{if eq .Pedido.Status "RASCUNHO"}}<form method="post" action="/compras/pedidos/{{.Pedido.ID}}/enviar-aprovacao"><button>Enviar para aprovação</button></form>{{end}}
+				{{if eq .Pedido.Status "PENDENTE_APROVACAO"}}<form method="post" action="/compras/pedidos/{{.Pedido.ID}}/aprovar"><button>Aprovar</button></form><form method="post" action="/compras/pedidos/{{.Pedido.ID}}/rejeitar"><input name="motivo" placeholder="Motivo" required><button>Rejeitar</button></form>{{end}}
+				{{if eq .Pedido.Status "APROVADO"}}<form method="post" action="/compras/pedidos/{{.Pedido.ID}}/enviar"><button>Marcar enviado ao fornecedor</button></form>{{end}}
+				{{if or (eq .Pedido.Status "RASCUNHO") (eq .Pedido.Status "PENDENTE_APROVACAO") (eq .Pedido.Status "APROVADO") (eq .Pedido.Status "ENVIADO")}}<form method="post" action="/compras/pedidos/{{.Pedido.ID}}/cancelar"><input name="motivo" placeholder="Motivo do cancelamento" required><button>Cancelar</button></form>{{end}}
+				</div>
+				{{if eq .Pedido.Status "RASCUNHO"}}<details><summary>Editar rascunho</summary><form method="post" action="/compras/pedidos/{{.Pedido.ID}}/editar"><label>Fornecedor</label><select name="fornecedorID">{{range .Fornecedores}}<option value="{{.ID}}">{{.Nome}}</option>{{end}}</select><label>Previsão</label><input type="date" name="previsaoEntrega"><label>Condição de pagamento</label><input name="condicaoPagamento"><label>Observação</label><input name="observacao"><button>Salvar alterações</button></form></details>{{end}}
 				<table>
 					<thead><tr><th>Item</th><th>Qtd.</th><th>Recebida</th><th>Saldo</th></tr></thead>
 					<tbody>
@@ -182,11 +198,17 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 					</tbody>
 				</table>
 			</div>
+			<div class="bloco"><h2 class="titulo">Documentos</h2><ul>{{range .Documentos}}<li><a href="{{.Conteudo}}" target="_blank" rel="noopener">{{.Nome}}</a> — {{.Tipo}}</li>{{else}}<li>Nenhum documento anexado.</li>{{end}}</ul><form method="post" action="/compras/pedidos/{{.Pedido.ID}}/documentos"><select name="tipo"><option>PEDIDO</option><option>NOTA_FISCAL</option><option>COMPROVANTE</option><option>OUTRO</option></select><input name="nome" placeholder="Nome" required><input name="conteudo" type="url" placeholder="URL segura do arquivo" required><button>Anexar referência</button></form></div>
+			{{if eq .Pedido.Status "RECEBIDO"}}<div class="bloco"><h2 class="titulo">Avaliar fornecedor</h2><form method="post" action="/compras/pedidos/{{.Pedido.ID}}/avaliar"><label>Prazo (1–5)</label><input type="number" min="1" max="5" name="prazo" required><label>Qualidade (1–5)</label><input type="number" min="1" max="5" name="qualidade" required><label>Atendimento (1–5)</label><input type="number" min="1" max="5" name="atendimento" required><input name="observacao" placeholder="Observação"><button>Avaliar</button></form></div>{{end}}
 
 			<div class="bloco">
 				<h2 class="titulo">Registrar recebimento</h2>
 				<form class="formulario" method="post" action="/compras/pedidos/{{.Pedido.ID}}/receber">
+					<input type="hidden" name="chaveIdempotencia" value="{{.ChaveRecebimento}}">
 					<div class="campo"><label>Nota fiscal</label><input type="text" name="notaFiscal"></div>
+					<div class="campo"><label>Chave da NF-e</label><input type="text" name="chaveNF" maxlength="44"></div>
+					<div class="campo"><label>Emissão da nota</label><input type="date" name="dataEmissaoNF"></div>
+					<div class="campo"><label>Valor total da nota (R$)</label><input type="text" name="valorNF" inputmode="decimal"></div>
 					<div class="campo"><label>Vencimento</label><input type="date" name="vencimento"></div>
 					<div class="campo"><label>Observação</label><input type="text" name="observacao"></div>
 					{{range .Pedido.Itens}}
@@ -194,6 +216,8 @@ var tplCompras = template.Must(template.New("compras").Funcs(template.FuncMap{
 						<strong>{{.MaterialNome}}</strong>
 						<div class="campo"><label>Quantidade recebida</label><input type="text" name="quantidade_{{.ID}}" value="{{saldo .QuantidadeSolicitada .QuantidadeRecebida}}"></div>
 						<div class="campo"><label>Valor unitário</label><input type="text" name="valor_{{.ID}}" value="{{valorInput .PrecoUnitario}}"></div>
+						<div class="campo"><label>Quantidade na NF</label><input type="text" name="quantidadeNF_{{.ID}}"></div>
+						<div class="campo"><label>Valor unitário na NF (R$)</label><input type="text" name="valorNF_{{.ID}}" inputmode="decimal"></div>
 					</div>
 					{{end}}
 					<button type="submit">Salvar recebimento</button>
@@ -228,6 +252,7 @@ func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	if err := tplCompras.Execute(w, paginaComprasView{
 		Resumo: resumo, Pedido: pedido,
 		Solicitacoes: resumo.Solicitacoes, Fornecedores: resumo.Fornecedores,
+		ChaveRecebimento: uuid.NewString(),
 	}); err != nil {
 		http.Error(w, "erro interno", http.StatusInternalServerError)
 	}
@@ -273,9 +298,15 @@ func (h *Handlers) PedidoDetalhe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	documentos, err := h.RepoProcesso.ListarDocumentos(ctx, pedido.ID, "")
+	if err != nil {
+		http.Error(w, "erro interno", http.StatusInternalServerError)
+		return
+	}
 	if err := tplCompras.Execute(w, paginaComprasView{
 		Resumo: resumo, Pedido: pedido,
 		Solicitacoes: resumo.Solicitacoes, Fornecedores: resumo.Fornecedores,
+		ChaveRecebimento: uuid.NewString(), Documentos: documentos,
 	}); err != nil {
 		http.Error(w, "erro interno", http.StatusInternalServerError)
 	}
@@ -308,22 +339,36 @@ func (h *Handlers) RecebimentoRegistrar(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 		itens = append(itens, aplicacao.ItemRecebimentoEntrada{
-			PedidoItemID:  item.ID,
-			Quantidade:    qtd,
-			ValorUnitario: valor,
+			PedidoItemID:            item.ID,
+			Quantidade:              qtd,
+			ValorUnitario:           valor,
+			QuantidadeNF:            strings.TrimSpace(r.PostFormValue("quantidadeNF_" + item.ID)),
+			ValorNFUnitarioCentavos: reaisParaCentavos(r.PostFormValue("valorNF_" + item.ID)),
 		})
 	}
 
 	recebimento, err := h.Gerenciador.RegistrarRecebimento(r.Context(), *sess, aplicacao.EntradaRecebimento{
-		PedidoID:   pedido.ID,
-		NotaFiscal: r.PostFormValue("notaFiscal"),
-		Vencimento: r.PostFormValue("vencimento"),
-		Observacao: r.PostFormValue("observacao"),
-		Itens:      itens,
+		PedidoID: pedido.ID, NotaFiscal: r.PostFormValue("notaFiscal"),
+		Vencimento: r.PostFormValue("vencimento"), Observacao: r.PostFormValue("observacao"),
+		ChaveIdempotencia: r.PostFormValue("chaveIdempotencia"), DataEmissaoNF: r.PostFormValue("dataEmissaoNF"),
+		ChaveNF: r.PostFormValue("chaveNF"), ValorNFCentavos: reaisParaCentavos(r.PostFormValue("valorNF")), Itens: itens,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/compras/pedidos/"+recebimento.PedidoID, http.StatusSeeOther)
+}
+
+func reaisParaCentavos(valor string) string {
+	texto := strings.TrimSpace(valor)
+	if texto == "" {
+		return ""
+	}
+	texto = strings.ReplaceAll(strings.ReplaceAll(texto, ".", ""), ",", ".")
+	v, err := strconv.ParseFloat(texto, 64)
+	if err != nil {
+		return "inválido"
+	}
+	return strconv.FormatInt(int64(v*100+0.5), 10)
 }

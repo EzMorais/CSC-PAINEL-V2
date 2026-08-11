@@ -40,10 +40,12 @@ Resposta:
       "id": "...",
       "nome": "...",
       "matricula": "...",
+      "status": "ATIVO",
       "cargo": "...",
       "obraCodigo": "...",
       "departamentoNome": "...",
-      "nivelObra": "..."
+      "nivelObra": "...",
+      "foto": "..."
     }
   ]
 }
@@ -51,7 +53,8 @@ Resposta:
 
 Funcionários desligados não são retornados. A Programação usa esses dados para
 sugestão de escala, mas mantém o cadastro local complementar para quem não está
-no RH.
+no RH. Funcionários com status `ATIVO` entram nas sugestões; os que estão em
+`FERIAS` aparecem no rodapé da imagem diária.
 
 ## Frota → Programação
 

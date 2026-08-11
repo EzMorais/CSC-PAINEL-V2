@@ -164,7 +164,9 @@ form.formulario {
 
 .campo { margin-bottom: 1rem; }
 .campo label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
-.campo input, .campo select {
+.campo input, .campo select, .campo textarea,
+.formulario > input:not([type="hidden"]), .formulario > select, .formulario > textarea,
+.painel-edicao input, .painel-edicao select, .painel-edicao textarea {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
@@ -173,7 +175,10 @@ form.formulario {
   background: var(--card);
   color: var(--foreground);
 }
-.campo input:focus, .campo select:focus {
+.campo textarea, .painel-edicao textarea { resize: vertical; min-height: 5rem; font: inherit; }
+.campo input:focus, .campo select:focus, .campo textarea:focus,
+.formulario > input:focus, .formulario > select:focus, .formulario > textarea:focus,
+.painel-edicao input:focus, .painel-edicao select:focus, .painel-edicao textarea:focus {
   outline: none;
   border-color: var(--ring);
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 30%, transparent);
@@ -327,7 +332,12 @@ button[type="submit"]:hover, .botao-primario:hover { filter: brightness(1.08); b
   align-items: center;
   gap: 0.75rem;
 }
+.linha-topo h1, .linha-topo h2 { margin: 0; }
 .linha-topo .nome, .linha-locacao .nome { flex: 1; min-width: 10rem; }
+
+details > summary { cursor: pointer; list-style-position: inside; }
+details > summary.botao { display: inline-flex; list-style: none; }
+details > summary.botao::-webkit-details-marker { display: none; }
 
 .painel-edicao { margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; display: grid; gap: 0.75rem; }
 .checkbox-linha { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; margin-bottom: 0.3rem; }
@@ -505,6 +515,17 @@ table tbody tr:hover { background: var(--accent); }
 .hub-flutuante-item.ativo { font-weight: 500; }
 .hub-flutuante-item .icone { width: 1rem; height: 1rem; flex-shrink: 0; }
 
+/* ── Programação Diária — quadro do dia (DESIGN-SYSTEM.md §7, cards padrão) ─────────────── */
+.grade-frentes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.alerta-alta, .alerta-media { border-radius: var(--raio); padding: 0.5rem 0.75rem; margin-bottom: 0.4rem; }
+.alerta-alta { background: var(--danger-soft); color: var(--danger); }
+.alerta-media { background: var(--color-warning-soft); color: var(--color-warning); }
+
 /* ── Responsivo — ≤720px vira drawer com backdrop (DESIGN-SYSTEM.md §2/§11) ──────────── */
 
 @media (max-width: 720px) {
@@ -532,4 +553,40 @@ table tbody tr:hover { background: var(--accent); }
 
 @media (min-width: 721px) {
   .cabecalho-mobile { display: none; }
+}
+
+/* Tema de referência da Programação (porta 3007): neutro frio, acento âmbar e
+   contraste idêntico em todas as telas Go, independentemente do módulo selecionado. */
+:root,
+[data-modulo] {
+  --background: oklch(0.98 0.003 260);
+  --foreground: oklch(0.21 0.015 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.015 260);
+  --muted: oklch(0.96 0.005 260);
+  --muted-foreground: oklch(0.52 0.015 260);
+  --border: oklch(0.91 0.006 260);
+  --input: oklch(0.91 0.006 260);
+  --ring: oklch(0.63 0.14 85);
+  --primary: oklch(0.63 0.14 85);
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.94 0.01 260);
+  --accent-foreground: oklch(0.21 0.015 260);
+}
+
+.escuro,
+.escuro[data-modulo] {
+  --background: oklch(0.19 0.012 260);
+  --foreground: oklch(0.95 0.005 260);
+  --card: oklch(0.23 0.014 260);
+  --card-foreground: oklch(0.95 0.005 260);
+  --muted: oklch(0.27 0.014 260);
+  --muted-foreground: oklch(0.71 0.015 260);
+  --border: oklch(0.32 0.014 260);
+  --input: oklch(0.32 0.014 260);
+  --ring: oklch(0.74 0.13 85);
+  --primary: oklch(0.74 0.13 85);
+  --primary-foreground: oklch(0.17 0.02 85);
+  --accent: oklch(0.29 0.014 260);
+  --accent-foreground: oklch(0.95 0.005 260);
 }

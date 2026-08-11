@@ -7,14 +7,14 @@ import (
 
 // Categorias de documento de EMPRESA/OBRA (funcionarioId nulo) — COMPORTAMENTO.md §2.
 const (
-	DocEmpresaPGR    = "PGR"
-	DocEmpresaPCMSO  = "PCMSO"
-	DocEmpresaLTCAT  = "LTCAT"
-	DocEmpresaAPR    = "APR"
-	DocEmpresaPT     = "PT"
-	DocEmpresaFISPQ  = "FISPQ"
-	DocEmpresaART    = "ART"
-	DocEmpresaOutro  = "OUTRO"
+	DocEmpresaPGR   = "PGR"
+	DocEmpresaPCMSO = "PCMSO"
+	DocEmpresaLTCAT = "LTCAT"
+	DocEmpresaAPR   = "APR"
+	DocEmpresaPT    = "PT"
+	DocEmpresaFISPQ = "FISPQ"
+	DocEmpresaART   = "ART"
+	DocEmpresaOutro = "OUTRO"
 )
 
 var CategoriasDocumentoEmpresa = []string{

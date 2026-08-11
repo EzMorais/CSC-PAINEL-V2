@@ -13,9 +13,9 @@ const (
 )
 
 const (
-	MotivoAdmissao  = "ADMISSAO"
-	MotivoReposicao = "REPOSICAO"
-	MotivoTroca     = "TROCA"
+	MotivoAdmissao   = "ADMISSAO"
+	MotivoReposicao  = "REPOSICAO"
+	MotivoTroca      = "TROCA"
 	MotivoDanificado = "DANIFICADO"
 )
 

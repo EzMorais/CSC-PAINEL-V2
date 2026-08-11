@@ -121,9 +121,14 @@ function criarTabelas(sqlite: Database) {
 
 function criar() {
   const url = process.env.DATABASE_URL ?? 'file:./frota.db';
-  const arquivo = url.replace(/^file:/, '');
-  const abs = path.isAbsolute(arquivo) ? arquivo : path.join(process.cwd(), arquivo);
-  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  // Durante `next build`, vários workers podem importar rotas simultaneamente. Abrir o
+  // SQLite de produção em cada worker provoca `database is locked` ainda na coleta de
+  // páginas. O build só precisa do schema para compilar; cada worker recebe um banco em
+  // memória e a execução normal continua usando DATABASE_URL.
+  const emBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  const arquivo = emBuild ? ':memory:' : url.replace(/^file:/, '');
+  const abs = arquivo === ':memory:' ? arquivo : path.isAbsolute(arquivo) ? arquivo : path.join(process.cwd(), arquivo);
+  if (abs !== ':memory:') fs.mkdirSync(path.dirname(abs), { recursive: true });
 
   const sqlite = new Database(abs);
   criarTabelas(sqlite);
@@ -134,7 +139,7 @@ function criar() {
   try {
     const r = sqlite.prepare('SELECT COUNT(*) AS n FROM veiculos').get() as { n?: number } | undefined;
     const n = Number(r?.n ?? 0);
-    console.log(`[frota] banco: ${abs} (${n} veículo${n === 1 ? '' : 's'})`);
+    console.log(`[frota] banco: ${emBuild ? 'memória de build' : abs} (${n} veículo${n === 1 ? '' : 's'})`);
     if (n === 0) {
       console.warn('[frota] ATENÇÃO: nenhum veículo neste banco.');
       console.warn('[frota] Se você esperava dados, confira o DATABASE_URL — o caminho');

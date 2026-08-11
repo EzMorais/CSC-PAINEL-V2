@@ -1,31 +1,35 @@
-import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
-import './globals.css'
-import { Providers } from '@/components/providers'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Providers } from "@/components/providers";
 
 // Next self-hospeda as duas no build (baixa e serve do próprio domínio) — mesmo
 // resultado do @font-face manual do DESIGN-SYSTEM.md §4, sem gerenciar .woff2 à mão.
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-})
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
-})
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: 'Painel de Locação — Siqueira Campos',
-  description: 'Controle de equipamentos locados por obra',
-}
+  title: "Painel de Locação — Siqueira Campos",
+  description: "Controle de equipamentos locados por obra",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {/* A navegação não fica aqui: `/entrar` renderiza fora dela. Quem monta a
@@ -33,5 +37,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }

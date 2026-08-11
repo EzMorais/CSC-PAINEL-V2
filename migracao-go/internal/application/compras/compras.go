@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	cadastro "siqueiracampos/servidor/internal/domain/cadastro"
 	"siqueiracampos/servidor/internal/domain/compras"
 	"siqueiracampos/servidor/internal/domain/comum"
-	cadastro "siqueiracampos/servidor/internal/domain/cadastro"
 	estoque "siqueiracampos/servidor/internal/domain/estoque"
 	identidade "siqueiracampos/servidor/internal/domain/identidade"
 )
@@ -22,26 +22,36 @@ type Gerenciador struct {
 	Solicitacoes  compras.SolicitacaoRepositorio
 	Materiais     compras.MaterialRepositorio
 	Movimentacoes compras.MovimentacaoRepositorio
+	Processos     compras.ProcessoRepositorio
+	Financeiro    compras.ClienteFinanceiro
 }
 
 type EntradaPedido struct {
 	SolicitacaoID string
 	FornecedorID  string
 	Observacao    string
+	CotacaoID     string
+	MotivoEscolha string
 }
 
 type ItemRecebimentoEntrada struct {
-	PedidoItemID  string
-	Quantidade    string
-	ValorUnitario string
+	PedidoItemID            string
+	Quantidade              string
+	ValorUnitario           string
+	QuantidadeNF            string
+	ValorNFUnitarioCentavos string
 }
 
 type EntradaRecebimento struct {
-	PedidoID   string
-	NotaFiscal string
-	Vencimento string
-	Observacao string
-	Itens      []ItemRecebimentoEntrada
+	PedidoID          string
+	NotaFiscal        string
+	Vencimento        string
+	Observacao        string
+	ChaveIdempotencia string
+	DataEmissaoNF     string
+	ChaveNF           string
+	ValorNFCentavos   string
+	Itens             []ItemRecebimentoEntrada
 }
 
 type Resumo struct {
@@ -97,15 +107,15 @@ func (g *Gerenciador) Resumo(ctx context.Context) (*Resumo, error) {
 
 	return &Resumo{
 		PedidosPendentes: pedidosPendentes,
-		PedidosRecentes: pedidosRecentes,
-		ContasAbertas: contas,
-		Solicitacoes: pendentes,
-		Fornecedores: fornecedores,
-		TotalAberto: total,
+		PedidosRecentes:  pedidosRecentes,
+		ContasAbertas:    contas,
+		Solicitacoes:     pendentes,
+		Fornecedores:     fornecedores,
+		TotalAberto:      total,
 	}, nil
 }
 
-func (g *Gerenciador) CriarPedido(ctx context.Context, _ identidade.Sessao, e EntradaPedido) (*compras.PedidoCompra, error) {
+func (g *Gerenciador) CriarPedido(ctx context.Context, sess identidade.Sessao, e EntradaPedido) (*compras.PedidoCompra, error) {
 	solicitacaoID := strings.TrimSpace(e.SolicitacaoID)
 	fornecedorID := strings.TrimSpace(e.FornecedorID)
 	if solicitacaoID == "" {
@@ -146,12 +156,12 @@ func (g *Gerenciador) CriarPedido(ctx context.Context, _ identidade.Sessao, e En
 	totalEstimado := 0.0
 	for _, item := range solicitacao.Itens {
 		pedidoItem := compras.ItemPedidoCompra{
-			MaterialID: item.MaterialID,
-			MaterialCodigo: item.MaterialCodigo,
-			MaterialNome: item.MaterialNome,
-			MaterialUnidade: item.MaterialUnidade,
+			MaterialID:           item.MaterialID,
+			MaterialCodigo:       item.MaterialCodigo,
+			MaterialNome:         item.MaterialNome,
+			MaterialUnidade:      item.MaterialUnidade,
 			QuantidadeSolicitada: item.Quantidade,
-			Observacao: item.Observacao,
+			Observacao:           item.Observacao,
 		}
 		if item.PrecoEstimado != nil {
 			pedidoItem.PrecoUnitario = item.PrecoEstimado
@@ -161,15 +171,17 @@ func (g *Gerenciador) CriarPedido(ctx context.Context, _ identidade.Sessao, e En
 	}
 
 	pedido := &compras.PedidoCompra{
-		Numero: numero,
-		SolicitacaoID: &solicitacao.ID,
-		FornecedorID: fornecedor.ID,
+		Numero:         numero,
+		SolicitacaoID:  &solicitacao.ID,
+		FornecedorID:   fornecedor.ID,
 		FornecedorNome: fornecedor.Nome,
-		Observacao: strPtr(strings.TrimSpace(e.Observacao)),
-		Status: compras.StatusPedidoAberto,
-		CriadoEm: agora(),
+		Observacao:     strPtr(strings.TrimSpace(e.Observacao)),
+		Status:         compras.StatusPedidoRascunho,
+		SolicitanteID:  sess.ID, SolicitanteNome: sess.Nome,
+		CotacaoID: strPtr(strings.TrimSpace(e.CotacaoID)), MotivoEscolha: strPtr(strings.TrimSpace(e.MotivoEscolha)),
+		CriadoEm:      agora(),
 		TotalEstimado: totalEstimado,
-		Itens: itens,
+		Itens:         itens,
 	}
 	if err := g.Pedidos.Criar(ctx, pedido); err != nil {
 		return nil, err
@@ -178,6 +190,17 @@ func (g *Gerenciador) CriarPedido(ctx context.Context, _ identidade.Sessao, e En
 }
 
 func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.Sessao, e EntradaRecebimento) (*compras.RecebimentoCompra, error) {
+	chaveIdempotencia := strings.TrimSpace(e.ChaveIdempotencia)
+	if chaveIdempotencia == "" {
+		return nil, erroValidacao("Chave de idempotência do recebimento é obrigatória.")
+	}
+	jaRegistrado, err := g.Recebimentos.BuscarPorChave(ctx, chaveIdempotencia)
+	if err != nil {
+		return nil, err
+	}
+	if jaRegistrado != nil {
+		return jaRegistrado, nil
+	}
 	pedidoID := strings.TrimSpace(e.PedidoID)
 	if pedidoID == "" {
 		return nil, erroValidacao("Pedido inválido.")
@@ -189,8 +212,11 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 	if pedido == nil {
 		return nil, erroValidacao("Pedido não encontrado.")
 	}
-	if pedido.Status == compras.StatusPedidoCancelado {
+	if pedido.Status == compras.StatusPedidoCancelado || pedido.Status == compras.StatusPedidoRejeitado {
 		return nil, erroValidacao("Pedido cancelado não pode receber mercadoria.")
+	}
+	if pedido.Status != compras.StatusPedidoEnviado && pedido.Status != compras.StatusPedidoParcial && pedido.Status != compras.StatusPedidoAprovado && pedido.Status != compras.StatusPedidoAberto {
+		return nil, erroValidacao("Aprove e envie o pedido antes de receber mercadoria.")
 	}
 
 	numero, err := g.proximoNumeroRecebimento(ctx)
@@ -199,12 +225,22 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 	}
 
 	recebimento := &compras.RecebimentoCompra{
-		PedidoID: pedido.ID,
-		Numero: numero,
-		RecebidoEm: agora(),
-		RecebidoPor: sess.Nome,
-		NotaFiscal: strPtr(strings.TrimSpace(e.NotaFiscal)),
-		Observacao: strPtr(strings.TrimSpace(e.Observacao)),
+		PedidoID:          pedido.ID,
+		Numero:            numero,
+		RecebidoEm:        agora(),
+		RecebidoPor:       sess.Nome,
+		NotaFiscal:        strPtr(strings.TrimSpace(e.NotaFiscal)),
+		Observacao:        strPtr(strings.TrimSpace(e.Observacao)),
+		ChaveIdempotencia: &chaveIdempotencia,
+		DataEmissaoNF:     strPtr(strings.TrimSpace(e.DataEmissaoNF)),
+		ChaveNF:           strPtr(strings.TrimSpace(e.ChaveNF)),
+	}
+	if texto := strings.TrimSpace(e.ValorNFCentavos); texto != "" {
+		valor, parseErr := strconv.ParseInt(texto, 10, 64)
+		if parseErr != nil || valor < 0 {
+			return nil, erroValidacao("Valor total da nota fiscal inválido.")
+		}
+		recebimento.ValorNFCentavos = &valor
 	}
 
 	itensRecebimento := make([]compras.ItemRecebimentoCompra, 0, len(e.Itens))
@@ -233,21 +269,66 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 			return nil, erroValidacao(fmt.Sprintf("O item %s só tem %s restante.", itemPedido.MaterialNome, formatarNumero(restante)))
 		}
 
-		itensRecebimento = append(itensRecebimento, compras.ItemRecebimentoCompra{
-			PedidoItemID: itemID,
-			MaterialID: itemPedido.MaterialID,
-			Quantidade: quantidade,
+		itemRecebimento := compras.ItemRecebimentoCompra{
+			PedidoItemID:  itemID,
+			MaterialID:    itemPedido.MaterialID,
+			Quantidade:    quantidade,
 			ValorUnitario: valorUnitario,
-		})
+		}
+		if texto := strings.TrimSpace(entrada.QuantidadeNF); texto != "" {
+			quantidadeNF := parseFloat(texto)
+			if quantidadeNF < 0 {
+				return nil, erroValidacao("Quantidade da nota fiscal inválida.")
+			}
+			itemRecebimento.QuantidadeNF = &quantidadeNF
+		}
+		if texto := strings.TrimSpace(entrada.ValorNFUnitarioCentavos); texto != "" {
+			valorNF, parseErr := strconv.ParseInt(texto, 10, 64)
+			if parseErr != nil || valorNF < 0 {
+				return nil, erroValidacao("Valor unitário da nota fiscal inválido.")
+			}
+			itemRecebimento.ValorNFUnitarioCentavos = &valorNF
+		}
+		itensRecebimento = append(itensRecebimento, itemRecebimento)
 		totalRecebido += quantidade * valorUnitario
 	}
 	if len(itensRecebimento) == 0 {
 		return nil, erroValidacao("Informe ao menos um item para o recebimento.")
 	}
 	recebimento.Itens = itensRecebimento
+	statusConferencia := "CONFERIDO"
+	divergencias := make([]compras.Divergencia, 0)
+	valorRecebidoCentavos := int64(totalRecebido*100 + 0.5)
+	if recebimento.ValorNFCentavos != nil && *recebimento.ValorNFCentavos != valorRecebidoCentavos {
+		statusConferencia = "PENDENTE"
+		divergencias = append(divergencias, compras.Divergencia{Tipo: "VALOR_TOTAL", Esperado: strconv.FormatInt(valorRecebidoCentavos, 10), Encontrado: strconv.FormatInt(*recebimento.ValorNFCentavos, 10), Status: "PENDENTE"})
+	}
+	for _, item := range itensRecebimento {
+		if item.QuantidadeNF != nil && *item.QuantidadeNF != item.Quantidade {
+			statusConferencia = "PENDENTE"
+			pedidoItemID := item.PedidoItemID
+			divergencias = append(divergencias, compras.Divergencia{PedidoItemID: &pedidoItemID, Tipo: "QUANTIDADE", Esperado: formatarNumero(item.Quantidade), Encontrado: formatarNumero(*item.QuantidadeNF), Status: "PENDENTE"})
+		}
+		valorUnitarioCentavos := int64(item.ValorUnitario*100 + 0.5)
+		if item.ValorNFUnitarioCentavos != nil && *item.ValorNFUnitarioCentavos != valorUnitarioCentavos {
+			statusConferencia = "PENDENTE"
+			pedidoItemID := item.PedidoItemID
+			divergencias = append(divergencias, compras.Divergencia{PedidoItemID: &pedidoItemID, Tipo: "VALOR_UNITARIO", Esperado: strconv.FormatInt(valorUnitarioCentavos, 10), Encontrado: strconv.FormatInt(*item.ValorNFUnitarioCentavos, 10), Status: "PENDENTE"})
+		}
+	}
+	recebimento.StatusConferencia = &statusConferencia
 
 	if err := g.Recebimentos.Criar(ctx, recebimento); err != nil {
 		return nil, err
+	}
+	if len(divergencias) > 0 && g.Processos != nil {
+		for i := range divergencias {
+			divergencias[i].RecebimentoID = recebimento.ID
+			divergencias[i].CriadoEm = recebimento.RecebidoEm
+		}
+		if err := g.Processos.RegistrarDivergencias(ctx, divergencias); err != nil {
+			return nil, err
+		}
 	}
 
 	for _, item := range itensRecebimento {
@@ -262,15 +343,15 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 		}
 		descricao := fmt.Sprintf("Recebimento %s / pedido %s", recebimento.Numero, pedido.Numero)
 		mov := &estoque.Movimentacao{
-			Tipo: estoque.MovEntrada,
-			Quantidade: item.Quantidade,
+			Tipo:          estoque.MovEntrada,
+			Quantidade:    item.Quantidade,
 			ValorUnitario: &item.ValorUnitario,
-			Documento: recebimento.NotaFiscal,
-			Observacao: &descricao,
-			OcorridoEm: recebimento.RecebidoEm,
+			Documento:     recebimento.NotaFiscal,
+			Observacao:    &descricao,
+			OcorridoEm:    recebimento.RecebidoEm,
 			RegistradoPor: &sess.Nome,
-			MaterialID: item.MaterialID,
-			FornecedorID: &pedido.FornecedorID,
+			MaterialID:    item.MaterialID,
+			FornecedorID:  &pedido.FornecedorID,
 		}
 		if err := g.Movimentacoes.Criar(ctx, mov); err != nil {
 			return nil, err
@@ -296,16 +377,16 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 		return nil, err
 	}
 	conta := &compras.ContaPagar{
-		Numero: numConta,
-		PedidoID: &pedido.ID,
-		FornecedorID: pedido.FornecedorID,
+		Numero:         numConta,
+		PedidoID:       &pedido.ID,
+		FornecedorID:   pedido.FornecedorID,
 		FornecedorNome: pedido.FornecedorNome,
-		ValorTotal: totalRecebido,
-		ValorAberto: totalRecebido,
-		Vencimento: *vencimento,
-		Status: "ABERTA",
-		CriadoEm: recebimento.RecebidoEm,
-		Observacao: recebimento.Observacao,
+		ValorTotal:     totalRecebido,
+		ValorAberto:    totalRecebido,
+		Vencimento:     *vencimento,
+		Status:         "ABERTA",
+		CriadoEm:       recebimento.RecebidoEm,
+		Observacao:     recebimento.Observacao,
 	}
 	if err := g.Contas.Criar(ctx, conta); err != nil {
 		return nil, err
@@ -314,7 +395,29 @@ func (g *Gerenciador) RegistrarRecebimento(ctx context.Context, sess identidade.
 		return nil, err
 	}
 	recebimento.ContaPagarID = &conta.ID
+	if g.Financeiro != nil && totalRecebido > 0 && statusConferencia == "CONFERIDO" {
+		err := g.Financeiro.CriarTituloCompra(ctx, compras.TituloFinanceiroCompra{
+			ChaveOrigem: recebimento.ID, Numero: conta.Numero, FornecedorID: pedido.FornecedorID,
+			FornecedorNome: pedido.FornecedorNome, Descricao: "Recebimento " + recebimento.Numero + " / pedido " + pedido.Numero,
+			ValorCentavos: int64(totalRecebido*100 + 0.5), Emissao: recebimento.RecebidoEm, Vencimento: *vencimento,
+			NotaFiscal: recebimento.NotaFiscal, ChaveNF: recebimento.ChaveNF, EmissaoFiscal: parseDataFiscal(recebimento.DataEmissaoNF), ValorFiscalCentavos: recebimento.ValorNFCentavos,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("integrar Financeiro: %w", err)
+		}
+	}
 	return recebimento, nil
+}
+
+func parseDataFiscal(valor *string) *time.Time {
+	if valor == nil {
+		return nil
+	}
+	t, err := time.Parse(time.DateOnly, strings.TrimSpace(*valor))
+	if err != nil {
+		return nil
+	}
+	return &t
 }
 
 func (g *Gerenciador) proximoNumeroPedido(ctx context.Context) (string, error) {

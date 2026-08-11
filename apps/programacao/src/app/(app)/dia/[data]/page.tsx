@@ -62,14 +62,23 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
     !portal.ok ? `Portal (${portal.erro})` : null,
   ].filter(Boolean) as string[]
 
+  const obrasDoQuadro = new Set(
+    frentes.map((frente) => frente.obraCodigo).filter((codigo): codigo is string => Boolean(codigo)),
+  )
+  const rhDisponiveis = rh.ok
+    ? rh.dados
+      .filter((funcionario) => funcionario.status === 'ATIVO' && funcionario.obraCodigo)
+      .filter((funcionario) => obrasDoQuadro.size === 0 || obrasDoQuadro.has(funcionario.obraCodigo!))
+    : []
+
   return (
-    <div className="mx-auto max-w-[1800px] space-y-4 p-4 sm:p-6">
-      <header className="flex flex-wrap items-center gap-3">
-        <Link href="/" className="text-muted-foreground hover:text-foreground" aria-label="Voltar">
+    <div className="mx-auto max-w-[1900px] space-y-6 p-4 sm:p-8">
+      <header className="flex flex-wrap items-center gap-4">
+        <Link href="/" className="grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground" aria-label="Voltar">
           <ArrowLeft className="size-5" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold">{tituloDoDia(data)}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{tituloDoDia(data)}</h1>
           <p className="text-xs text-muted-foreground">
             {escalas.length} {escalas.length === 1 ? 'pessoa' : 'pessoas'} ·{' '}
             {recursos.length} {recursos.length === 1 ? 'veículo/máquina' : 'veículos/máquinas'}
@@ -82,13 +91,13 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
         <nav className="ml-auto flex items-center gap-1">
           <Link
             href={`/dia/${paraIso(ontem)}`} aria-label="Dia anterior"
-            className="grid size-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent"
+            className="grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted"
           >
             <ArrowLeft className="size-4" />
           </Link>
           <Link
             href={`/dia/${paraIso(amanha)}`} aria-label="Dia seguinte"
-            className="grid size-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent"
+            className="grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted"
           >
             <ArrowRight className="size-4" />
           </Link>
@@ -116,7 +125,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
 
       <Quadro
         data={iso}
-        frentes={frentes.map((f) => ({ id: f.id, nome: f.nome, cor: f.cor }))}
+        frentes={frentes.map((f) => ({ id: f.id, nome: f.nome, cor: f.cor, logo: f.logo }))}
         escalas={escalas.map((e) => ({
           id: e.id, frenteId: e.frenteId, nome: e.nome,
           funcaoSigla: e.funcaoSigla, funcionarioId: e.funcionarioId,
@@ -126,9 +135,10 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
           motoristaNome: r.motoristaNome, destaque: r.destaque, placa: r.placa,
         }))}
         disponiveis={[
-          ...(rh.ok ? rh.dados.map((f) => ({
+          ...rhDisponiveis.map((f) => ({
             id: f.id, nome: f.nome, cargo: f.cargo, obraCodigo: f.obraCodigo, origem: 'RH' as const,
-          })) : []),
+            foto: f.foto,
+          })),
           // Cadastro local: quem não está no RH (a maioria). `cargo` aqui já é a sigla.
           ...funcionariosLocais.map((f) => ({
             id: f.id, nome: f.nome, cargo: f.funcaoSigla, obraCodigo: null,
@@ -148,7 +158,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
       />
 
       {(escalas.length > 0 || recursos.length > 0) && (
-        <section className="rounded-lg border border-border bg-card p-4">
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <h2 className="flex items-center gap-2 text-sm font-medium">
             <ImageDown className="size-4 text-muted-foreground" /> Imagem para o grupo
           </h2>
@@ -158,7 +168,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
           {/* eslint-disable-next-line @next/next/no-img-element -- PNG gerado sob demanda pela rota, sem dimensão fixa conhecida aqui */}
           <img
             src={`/api/imagem/${iso}`} alt={`Programação de ${tituloDoDia(data)}`}
-            className="mt-3 w-full rounded border border-border bg-white"
+            className="mt-4 w-full rounded-xl border border-border/70 bg-white shadow-sm"
           />
         </section>
       )}
