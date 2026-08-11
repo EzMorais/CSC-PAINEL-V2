@@ -1,13 +1,20 @@
-# Orquestra as 8 aplicações num único VPS. Ver DEPLOY.md na raiz do repositório para o
+# Orquestra as 9 aplicações num único VPS. Ver DEPLOY.md na raiz do repositório para o
 # roteiro completo (DNS, .env de cada app, HTTPS, comandos).
 #
-# Por que o Painel, RH, Almoxarifado, Programação, Alojamentos e Portal não ganham cada um
-# uma URL bonita: o login único (SSO) deles funciona por COOKIE, e cookie sem domínio
-# explícito vale para o mesmo HOST, em qualquer porta — mas não atravessa hosts diferentes.
-# Colocar cada um num subdomínio quebraria o "loga uma vez, circula em todos". Por isso os
-# seis continuam no mesmo domínio, diferenciados por porta, exatamente como em
+# Por que o Painel, RH, Almoxarifado, Programação, Alojamentos, Portal e o binário Go não
+# ganham cada um uma URL bonita: o login único (SSO) deles funciona por COOKIE, e cookie sem
+# domínio explícito vale para o mesmo HOST, em qualquer porta — mas não atravessa hosts
+# diferentes. Colocar cada um num subdomínio quebraria o "loga uma vez, circula em todos".
+# Por isso continuam no mesmo domínio, diferenciados por porta, exatamente como em
 # desenvolvimento. Frota e WhatsApp são sistemas à parte (login próprio / sem UI pública) e
 # não têm essa restrição.
+#
+# "migracao-go" convive com os 6 apps Next.js do grupo de SSO (Strangler Fig — ver
+# migracao-go/README.md): já serve Portal/Painel/Almoxarifado/RH/Alojamentos/Compras/
+# Financeiro/Programação num único processo, mas nenhum dos Next.js correspondentes é
+# desligado por este arquivo — isso só acontece módulo a módulo, depois que a suíte de
+# referência de cada um passar contra o Go (ver README.md, "Como os testes de referência
+# funcionam"). Até lá os dois convivem, cada um na sua porta.
 
 name: csc-painel
 
@@ -121,6 +128,19 @@ services:
     depends_on: [whatsapp, rh]
     networks: [csc]
 
+  migracao-go:
+    build:
+      context: ./migracao-go
+    env_file: ./migracao-go/.env.production
+    environment:
+      PORTA: "3010"
+    volumes:
+      - migracao_go_data:/app/data
+      - migracao_go_dados:/app/dados
+    restart: unless-stopped
+    depends_on: [portal, painel-locacao, rh, estoque, alojamentos, frota]
+    networks: [csc]
+
   frota:
     build:
       context: ./apps/frota
@@ -150,6 +170,7 @@ services:
       - programacao
       - alojamentos
       - frota
+      - migracao-go
     ports:
       - "80:80"
       - "3000:3000"
@@ -158,6 +179,7 @@ services:
       - "3004:3004"
       - "3005:3005"
       - "3007:3007"
+      - "3010:3010"
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -180,3 +202,5 @@ volumes:
   frota_dados:
   frota_anexos:
   whatsapp_sessao:
+  migracao_go_data:
+  migracao_go_dados:
