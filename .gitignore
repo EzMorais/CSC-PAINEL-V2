@@ -2,3 +2,7 @@
 # (NEXT_PUBLIC_*), mas mesmo assim não precisa versionar a cópia de cada um.
 .env
 !.env.example
+
+# Saídas locais do servidor Go
+migracao-go/servidor.stdout.log
+migracao-go/servidor.stderr.log
