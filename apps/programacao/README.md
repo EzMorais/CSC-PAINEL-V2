@@ -38,10 +38,16 @@ echo DATABASE_URL="file:./dev.db" > .env
 npx prisma generate
 npx prisma migrate deploy
 npm run db:seed
+npm run db:import-cadastro
 npm run dev
 ```
 
 O módulo roda por padrão em `http://localhost:3007`.
+
+O importador é idempotente: ele cadastra o conjunto complementar de funcionários e
+veículos usado na programação diária sem duplicar registros quando for executado de novo.
+O `docker-entrypoint.sh` executa os dois passos automaticamente a cada inicialização;
+em um banco existente, rode `npm run db:import-cadastro` após configurar `DATABASE_URL`.
 
 ## Regra para a integração
 

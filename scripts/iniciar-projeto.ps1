@@ -52,6 +52,24 @@ function Iniciar-AppNode($app) {
             Pop-Location
         }
     }
+
+    # A Programação precisa começar com o mesmo cadastro complementar do repositório de
+    # referência. Os dois comandos são idempotentes e deixam o preview local utilizável
+    # mesmo quando o banco acabou de ser criado pelo preparador de migrations.
+    if ($app.pasta -eq 'programacao') {
+        Push-Location $pasta
+        try {
+            $env:AUTH_SECRET = $segredoAuth
+            $env:DATABASE_URL = $app.banco
+            & npm.cmd run --if-present db:seed
+            if ($LASTEXITCODE -ne 0) { throw 'Falha ao semear as frentes e funções da Programação.' }
+            & npm.cmd run --if-present db:import-cadastro
+            if ($LASTEXITCODE -ne 0) { throw 'Falha ao importar o cadastro da Programação.' }
+        } finally {
+            Pop-Location
+        }
+    }
+
     $atribuicoes = @(
         "[Environment]::SetEnvironmentVariable('AUTH_SECRET','$segredoAuth','Process')",
         "[Environment]::SetEnvironmentVariable('DATABASE_URL','$($app.banco)','Process')",
