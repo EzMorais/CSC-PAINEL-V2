@@ -169,6 +169,16 @@ if (Test-PortaOcupada 3010) {
 } else {
     Write-Host "[Go 3010] compilando e iniciando..." -ForegroundColor Yellow
     Push-Location "$raiz\migracao-go"
+    # O binário não cria usuários de acesso sozinho. O seed é idempotente e garante que um
+    # checkout novo consiga autenticar antes de abrir os módulos Next.js e a Programação.
+    $env:DATABASE_PATH = 'servidor.db'
+    $env:AUTH_SECRET = $segredoAuth
+    & go run .\cmd\seed
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[Go 3010] falha ao preparar o banco/seed - veja o erro acima." -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
     & go build -o servidor.exe .\cmd\servidor
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[Go 3010] falha ao compilar - veja o erro acima." -ForegroundColor Red
