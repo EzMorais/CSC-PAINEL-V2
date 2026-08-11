@@ -8,6 +8,7 @@ import (
 
 	aplicacao "siqueiracampos/servidor/internal/application/alojamentos"
 	dominio "siqueiracampos/servidor/internal/domain/alojamentos"
+	identidade "siqueiracampos/servidor/internal/domain/identidade"
 	"siqueiracampos/servidor/internal/middleware"
 	"siqueiracampos/servidor/internal/services/integracao"
 	tpl "siqueiracampos/servidor/templates/alojamentos"
@@ -22,9 +23,15 @@ type Handlers struct {
 	Integracao         *integracao.Servico
 }
 
+// sessao é o piso de toda rota do módulo — sessão válida E módulo liberado pro Portal
+// (identidade.TemAcesso). Mesmo padrão de financeiro.go e programacao.go.
 func (h *Handlers) sessao(w http.ResponseWriter, r *http.Request) (string, bool) {
 	s, ok := h.Sessoes.ExigirSessao(w, r)
 	if !ok {
+		return "", false
+	}
+	if !identidade.TemAcesso(*s, identidade.ModuloAlojamentos) {
+		http.Error(w, "Acesso a Alojamentos não liberado.", http.StatusForbidden)
 		return "", false
 	}
 	return s.Nome, true

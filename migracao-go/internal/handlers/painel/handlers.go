@@ -41,11 +41,25 @@ func Novo(
 	}
 }
 
+// sessao é o piso de toda rota do módulo — sessão válida E módulo liberado pro Portal
+// (identidade.TemAcesso). Mesmo padrão de financeiro.go e programacao.go.
+func (h *Handlers) sessao(w http.ResponseWriter, r *http.Request) (*identidade.Sessao, bool) {
+	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	if !ok {
+		return nil, false
+	}
+	if !identidade.TemAcesso(*sess, identidade.ModuloPainel) {
+		http.Error(w, "Acesso ao Painel de Locação não liberado.", http.StatusForbidden)
+		return nil, false
+	}
+	return sess, true
+}
+
 // exigirLancamento é o piso de toda escrita — ver COMPORTAMENTO.md §1: sessão válida E
 // cargo com permissão de lançar (ADMIN/OPERACIONAL/GERENTE). CONSULTA vê as telas mas
 // qualquer ação de escrita recusa aqui.
 func (h *Handlers) exigirLancamento(w http.ResponseWriter, r *http.Request) (*identidade.Sessao, bool) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return nil, false
 	}

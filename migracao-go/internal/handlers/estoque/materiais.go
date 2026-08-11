@@ -57,7 +57,7 @@ func linhaMaterialView(m dominio.MaterialComSaldo) tpl.LinhaMaterial {
 }
 
 func (h *Handlers) ListarMateriais(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	q := r.URL.Query()

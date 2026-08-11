@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handlers) ListarTreinamentos(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()
@@ -38,7 +38,7 @@ func (h *Handlers) ListarTreinamentos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) TreinamentoDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

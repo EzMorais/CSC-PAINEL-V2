@@ -10,7 +10,7 @@ import (
 // ListarObras — tela só leitura (COMPORTAMENTO.md §2: "RH não tem tela de criar/editar Obra").
 // Obra é o cadastro compartilhado do Painel de Locação; o código é a chave que liga os dois.
 func (h *Handlers) ListarObras(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

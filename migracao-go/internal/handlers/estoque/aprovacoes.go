@@ -20,7 +20,7 @@ func statusAprovacaoCor(s dominio.StatusAprovacao) string {
 }
 
 func (h *Handlers) ListarAprovacoes(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -51,7 +51,7 @@ func (h *Handlers) ListarAprovacoes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) AprovacaoAprovar(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -64,7 +64,7 @@ func (h *Handlers) AprovacaoAprovar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) AprovacaoRejeitar(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}

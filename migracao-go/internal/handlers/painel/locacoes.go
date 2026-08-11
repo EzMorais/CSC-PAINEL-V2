@@ -63,7 +63,7 @@ func linhaLocacaoView(l dominio.Locacao, hoje time.Time) tpl.LinhaLocacao {
 }
 
 func (h *Handlers) ListarLocacoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	q := r.URL.Query()
@@ -103,7 +103,7 @@ func (h *Handlers) ListarLocacoes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) LocacaoNovaForm(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderLocacaoNova(w, r, tpl.EntradaLocacaoForm{})
@@ -250,7 +250,7 @@ func (h *Handlers) renderDetalhe(w http.ResponseWriter, r *http.Request, id stri
 }
 
 func (h *Handlers) LocacaoDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderDetalhe(w, r, r.PathValue("id"), tpl.DetalheLocacao{})

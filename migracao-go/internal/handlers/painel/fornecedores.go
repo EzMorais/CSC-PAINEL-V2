@@ -34,7 +34,7 @@ func (h *Handlers) renderFornecedores(w http.ResponseWriter, r *http.Request, fo
 }
 
 func (h *Handlers) ListarFornecedores(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderFornecedores(w, r, tpl.FormFornecedor{})

@@ -30,14 +30,14 @@ func (h *Handlers) renderConfiguracoes(w http.ResponseWriter, r *http.Request, o
 }
 
 func (h *Handlers) Configuracoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderConfiguracoes(w, r, tpl.ConfiguracaoEmailForm{})
 }
 
 func (h *Handlers) ConfiguracoesSalvar(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -63,7 +63,7 @@ func (h *Handlers) ConfiguracoesSalvar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ConfiguracoesTestar(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -76,7 +76,7 @@ func (h *Handlers) ConfiguracoesTestar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ConfiguracoesDesativar(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}

@@ -171,7 +171,7 @@ func (h *Handlers) IntegracaoResumo(w http.ResponseWriter, r *http.Request) {
 
 // ListarEpis — GET /rh/epis, só leitura (COMPORTAMENTO.md §6).
 func (h *Handlers) ListarEpis(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

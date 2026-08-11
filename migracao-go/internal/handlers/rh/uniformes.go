@@ -25,7 +25,7 @@ func (h *Handlers) opcoesTodosFuncionarios(r *http.Request) []tpl.OpcaoSelect {
 }
 
 func (h *Handlers) ListarUniformes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

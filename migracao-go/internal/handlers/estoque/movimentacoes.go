@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handlers) ListarMovimentacoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	q := r.URL.Query()

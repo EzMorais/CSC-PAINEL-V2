@@ -43,7 +43,7 @@ func (h *Handlers) mapaCargos(r *http.Request) map[string]string {
 }
 
 func (h *Handlers) ListarFuncionarios(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -95,7 +95,7 @@ func (h *Handlers) opcoesFormulario(r *http.Request) ([]tpl.OpcaoSelect, []tpl.O
 }
 
 func (h *Handlers) FuncionarioNovoForm(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	obras, cargos := h.opcoesFormulario(r)
@@ -205,7 +205,7 @@ func (h *Handlers) montarDetalhe(r *http.Request, f *dominio.Funcionario, sess *
 }
 
 func (h *Handlers) FuncionarioDetalhe(w http.ResponseWriter, r *http.Request) {
-	sess, ok := h.Sessoes.ExigirSessao(w, r)
+	sess, ok := h.sessao(w, r)
 	if !ok {
 		return
 	}
@@ -227,7 +227,7 @@ func (h *Handlers) FuncionarioDetalhe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) FuncionarioEditarForm(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	f, err := h.RepoFuncionarios.BuscarPorID(r.Context(), r.PathValue("id"))

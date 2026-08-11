@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handlers) Dashboard(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	hoje := agora()

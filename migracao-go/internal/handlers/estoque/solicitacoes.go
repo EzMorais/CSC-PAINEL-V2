@@ -24,7 +24,7 @@ func statusSolicitacaoCor(s dominio.StatusSolicitacao) string {
 }
 
 func (h *Handlers) ListarSolicitacoes(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	solicitacoes, err := h.Solicitacoes.Listar(r.Context())
@@ -50,7 +50,7 @@ func (h *Handlers) ListarSolicitacoes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) SolicitacaoNovaForm(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	materiais, err := h.Materiais.ListarComSaldo(r.Context(), dominio.FiltrosMaterial{})
@@ -168,7 +168,7 @@ func (h *Handlers) renderSolicitacaoDetalhe(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handlers) SolicitacaoDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderSolicitacaoDetalhe(w, r, r.PathValue("id"), tpl.DetalheSolicitacao{})

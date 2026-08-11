@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handlers) ListarAuditorias(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()
@@ -51,7 +51,7 @@ func (h *Handlers) AuditoriaCriar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) AuditoriaDetalhe(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()
@@ -102,7 +102,7 @@ func (h *Handlers) AuditoriaItemAdicionar(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handlers) ListarNaoConformidades(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	ctx := r.Context()

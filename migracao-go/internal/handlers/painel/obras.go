@@ -29,7 +29,7 @@ func (h *Handlers) renderObras(w http.ResponseWriter, r *http.Request, form tpl.
 }
 
 func (h *Handlers) ListarObras(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	h.renderObras(w, r, tpl.FormObra{})

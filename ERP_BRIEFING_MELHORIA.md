@@ -9,13 +9,22 @@
 
 ## Resumo executivo
 
-O maior risco hoje não é falta de funcionalidade — é **controle de acesso**: Financeiro,
+> **Atualização de 2026-08-11 (mesmo dia, sessão seguinte):** o item P0-1 (controle de acesso
+> ausente em 4 módulos) e o P0-2 (migration `0010` duplicada) foram corrigidos — ver
+> "Resolvido" nas seções correspondentes abaixo. O texto original da auditoria foi mantido
+> para registro; o que mudou está marcado inline.
+
+~~O maior risco hoje não é falta de funcionalidade — é **controle de acesso**: Financeiro,
 Programação Diária e Compras checam se a pessoa tem o módulo liberado antes de servir a
-página. Painel, Almoxarifado, RH e Alojamentos ainda exigem apenas uma sessão válida.
+página. Painel, Almoxarifado, RH e Alojamentos ainda exigem apenas uma sessão válida.~~
+**Corrigido**: os 4 módulos restantes (Painel, Almoxarifado, RH, Alojamentos) agora checam
+`identidade.TemAcesso` antes de servir qualquer rota, com teste de regressão por módulo. Ver
+P0 item 1.
 
 Depois disso, os problemas mudam de natureza: divergência visual entre Go e Next.js (o Next.js
 mudou de layout e o Go não acompanhou), lacunas de teste automatizado (E2E cobre 3 dos 8 apps,
-handlers Go quase sem teste nenhum) e documentação desatualizada (dois READMEs não mencionam
+handlers Go quase sem teste nenhum — o gate de acesso corrigido acima agora tem teste, o
+resto do handler continua sem) e documentação desatualizada (dois READMEs não mencionam
 módulos que já existem).
 
 ## Estado atual por sistema
@@ -23,58 +32,76 @@ módulos que já existem).
 | Sistema | Onde roda | Situação real |
 |---|---|---|
 | Portal/Identidade | Go (`/`) + Next.js (3004, convivendo) | Sólido — login, usuários, hub; único módulo cuja gate por módulo é usada corretamente no próprio código do hub |
-| Painel de Locação | Go (`/painel`) + Next.js | Funcional, mas sem controle de acesso por módulo |
-| Almoxarifado | Go (`/almoxarifado`) + Next.js | Funcional, mas sem controle de acesso por módulo |
-| RH e SST | Go (`/rh`) + Next.js | Mais completo do binário (65/65 testes de referência), mas sem controle de acesso por módulo |
-| Alojamentos | Go (`/alojamentos`) + Next.js | Gestão e webhook/conversa WhatsApp portados; falta Playwright e controle de acesso por módulo |
+| Painel de Locação | Go (`/painel`) + Next.js | Funcional; controle de acesso por módulo corrigido em 2026-08-11 |
+| Almoxarifado | Go (`/almoxarifado`) + Next.js | Funcional; controle de acesso por módulo corrigido em 2026-08-11 |
+| RH e SST | Go (`/rh`) + Next.js | Mais completo do binário (65/65 testes de referência); controle de acesso por módulo corrigido em 2026-08-11 |
+| Alojamentos | Go (`/alojamentos`) + Next.js | Gestão e webhook/conversa WhatsApp portados; controle de acesso por módulo corrigido em 2026-08-11; falta Playwright de equivalência |
 | Compras | Só Go (`/compras`, sem app Next.js) | Funcional, testado e protegido por módulo; ainda sem usar a casca visual compartilhada (ver §2.3 do BRIEFING_FINANCEIRO_COMPRAS.md) |
 | Financeiro | Só Go (`/financeiro`) | O mais maduro: outbox com lease/retentativa/dead-letter, fechamento de competência com trigger SQL, estorno transacional — tudo implementado desde a última auditoria. Falta perfil de tesouraria dedicado e conciliação bancária |
-| Programação Diária | Go (`/programacao`) + Next.js (3007) | Portado nesta sessão; é, junto do Financeiro, o único módulo com controle de acesso correto |
+| Programação Diária | Go (`/programacao`) + Next.js (3007) | Portado nesta sessão; controle de acesso correto desde o início |
 | Frota | Só Next.js (login próprio) | Fora do escopo da migração por decisão registrada; não auditado a fundo aqui |
 | WhatsApp | Serviço Next.js sem tela (Baileys) | Existe, tem Dockerfile próprio; não auditado a fundo nesta rodada |
 
 ## P0 — bloqueia confiar no sistema como está
 
-### 1. Controle de acesso por módulo ausente em 4 módulos Go
+### 1. Controle de acesso por módulo ausente em 4 módulos Go — ✅ Resolvido em 2026-08-11
+
+Cada um dos 4 handlers ganhou um `sessao()` no mesmo padrão de `financeiro.go`/
+`programacao.go` (`ExigirSessao` + `identidade.TemAcesso(*sess, identidade.ModuloX)`, 403 se
+faltar o módulo), e todo o resto do pacote passou a chamar esse `sessao()` em vez de
+`h.Sessoes.ExigirSessao` direto:
+
+- `internal/handlers/painel/handlers.go` — `ModuloPainel`; `exportar.go` (rotas de download,
+  que respondem 401/403 sem redirect) ganhou o mesmo gate via `exigirSessaoDownload`.
+- `internal/handlers/estoque/handlers.go` — `ModuloEstoque`.
+- `internal/handlers/rh/handlers.go` — `ModuloRH`; `relatorios.go` (mesma situação de rota de
+  download) ganhou o gate em `exigirSessaoManual`. As rotas `/api/integracao/...`
+  (`integracao.go`, autenticadas por token de máquina, não por cookie de sessão) ficaram de
+  fora de propósito — não são navegadas por uma pessoa logada.
+- `internal/handlers/alojamentos/alojamentos.go` — `ModuloAlojamentos`; único módulo que já
+  centralizava tudo num `sessao()` só, então bastou adicionar o `TemAcesso` ali dentro.
+
+Cada pacote ganhou `handlers_test.go` com 3 casos (bloqueia sem o módulo, libera com o módulo,
+ADMIN sempre libera) — a lacuna que a auditoria original apontava ("nenhum teste pegaria essa
+falha") deixou de existir para o gate em si. `go build`, `go vet` e `go test ./...` passam
+limpos no módulo inteiro.
+
+<details>
+<summary>Diagnóstico original (2026-08-11, antes da correção) — clique para expandir</summary>
 
 Confirmado por leitura direta do código: `identidade.TemAcesso(sess, identidade.ModuloX)` só
-aparece nos handlers de Financeiro, Programação e Compras, além do hub da identidade. Nos
-quatro módulos restantes, o piso de toda rota é só
-`Sessoes.ExigirSessao` (+ `PodeLancar`/`PodeAprovar` para escrita):
+aparecia nos handlers de Financeiro, Programação e Compras, além do hub da identidade. Nos
+quatro módulos restantes, o piso de toda rota era só `Sessoes.ExigirSessao` (+
+`PodeLancar`/`PodeAprovar` para escrita). `cmd/servidor/main.go` monta as rotas com
+`mux.HandleFunc` puro — não havia (e continua não havendo) middleware de gate por módulo;
+os usos de `dominioIdentidade.ModuloPainel/ModuloRH/ModuloEstoque` em `main.go` são só para
+montar URL de tile do hub, não para bloquear acesso.
 
-- `internal/handlers/painel/handlers.go:47-57`
-- `internal/handlers/estoque/handlers.go:57-67`
-- `internal/handlers/rh/handlers.go:72-90`
-- `internal/handlers/alojamentos/alojamentos.go` (`sessao()` só chama `ExigirSessao`)
+**Efeito prático que isso permitia**: qualquer pessoa logada — inclusive cargo `CONSULTA` de
+um módulo qualquer — lia (e, dependendo do cargo, editava) Painel de Locação, Almoxarifado, RH
+e Alojamentos inteiros, mesmo que o Portal nunca tivesse liberado esses módulos pra ela. O
+cargo bloqueava escrita indevida (`PodeLancar`/`PodeAprovar`), mas não bloqueava leitura —
+alguém do RH conseguia ver toda a operação financeira do Painel de Locação, por exemplo.
 
-`cmd/servidor/main.go` monta as rotas com `mux.HandleFunc` puro — não há middleware de
-gate por módulo em lugar nenhum; os únicos usos de `dominioIdentidade.ModuloPainel/ModuloRH/
-ModuloEstoque` em `main.go` (linhas 74-76) são para montar URL de tile do hub, não para
-bloquear acesso.
+**Por que era P0 e não só mais um item de backlog**: é o tipo de falha que não aparece testando
+o caminho feliz (a pessoa que testa geralmente é ADMIN, que sempre vê tudo por regra). Só
+aparece com um usuário de cargo/módulo limitado — exatamente o cenário que a permissão existe
+pra cobrir.
 
-**Efeito prático**: qualquer pessoa logada — inclusive cargo `CONSULTA` de um módulo qualquer
-— hoje lê (e, dependendo do cargo, edita) Painel de Locação, Almoxarifado, RH e
-Alojamentos inteiros, mesmo que o Portal nunca tenha liberado esses módulos pra ela. O cargo
-ainda bloqueia escrita indevida (`PodeLancar`/`PodeAprovar`), mas não bloqueia leitura — alguém
-do RH consegue ver toda a operação financeira do Painel de Locação, por exemplo.
+</details>
 
-**Por que é P0 e não só mais um item de backlog**: é o tipo de falha que não aparece testando
-o caminho feliz (a pessoa que testa geralmente é ADMIN, que sempre vê tudo por regra —
-`identidade.TemAcesso` linha 126). Só aparece com um usuário de cargo/módulo limitado, que é
-exatamente o cenário que a permissão existe pra cobrir.
+### 2. Duas migrations `0010` — ✅ Resolvido em 2026-08-11
 
-**Correção é mecânica e barata**: os dois módulos que já fazem certo (`financeiro.go`,
-`programacao.go`) têm o mesmo padrão de 8 linhas — um `sessao()` que chama `ExigirSessao` e
-depois `identidade.TemAcesso(*s, identidade.ModuloX)`. É copiar esse padrão pros outros 4
-handlers. Não precisa desenhar nada novo.
-
-### 2. Duas migrations `0010`
-
-`migracao-go/internal/infrastructure/database/migrations/` tem `0010_financeiro_controles.sql`
-e `0010_programacao.sql`, conteúdo diferente, mesmo prefixo. O runner aplica em ordem
-alfabética pelo nome completo do arquivo, então as duas rodam sem conflito hoje — mas é uma
-pegadinha pronta pra quem criar a próxima migration sem perceber a colisão. Renomear uma pra
-`0011` antes que isso aconteça.
+`migrations/0010_programacao.sql` virou `0011_programacao.sql` (ao lado de
+`0010_financeiro_controles.sql`, que ficou como estava). Como `AplicarMigracoes`
+(`internal/infrastructure/database/migracoes.go`) usa o nome do arquivo como chave em
+`schema_migrations`, o rename por si só faria os dois SQLite de desenvolvimento que já tinham
+essa migration aplicada (`migracao-go/servidor.db`, `migracao-go/portal.db` — ambos
+gitignorados) tentarem rodá-la de novo no próximo start e falhar em `CREATE TABLE`
+(`0010_programacao.sql` não é idempotente). Os dois bancos locais tiveram a linha
+`schema_migrations` correspondente atualizada manualmente pra `0011_programacao.sql` antes do
+rename entrar no repositório, então não há passo extra pra rodar. Um banco novo (checkout
+limpo) nunca teve `0010_programacao.sql` gravado, então não é afetado.
 
 ## P1 — o que falta para a migração fechar com qualidade
 
@@ -123,14 +150,18 @@ que o time adotou.
 
 ### 7. Teste automatizado: forte na aplicação, quase ausente no handler
 
-Nenhum pacote `internal/handlers/{painel,estoque,rh,alojamentos,compras,programacao}` tem
-arquivo de teste — só `handlers/financeiro` e `handlers/identidade`. Na camada de aplicação a
-cobertura é parcial: `painel/{dashboard,fornecedores,locacoes,obras}.go`,
-`estoque/{materiais,solicitacoes,configuracao_email,limites,numero,dashboard}.go` e a maior
-parte de `rh/*.go` não têm teste dedicado. Isso importa duas vezes aqui: primeiro porque é
-teste faltando; segundo porque significa que **nenhum teste teria pego o item 1** (controle de
-acesso ausente), e nenhum vai travar uma regressão depois que for corrigido, a menos que
-alguém escreva teste de handler junto da correção.
+**Parcialmente resolvido em 2026-08-11**: `painel`, `estoque`, `rh` e `alojamentos` ganharam
+`internal/handlers/<módulo>/handlers_test.go`, mas só cobrindo o gate de acesso do item 1
+(bloqueia sem o módulo liberado / libera com o módulo / ADMIN sempre libera) — é o suficiente
+pra travar uma regressão nesse gate especificamente, não uma suíte de handler completa.
+`handlers/compras` e `handlers/programacao` continuam sem nenhum teste, e o resto do
+comportamento de cada handler (CRUD, validação de formulário, etc.) segue coberto só
+indiretamente pelos testes de aplicação e pela suíte Playwright de referência quando ela
+existe.
+
+Na camada de aplicação a cobertura continua parcial: `painel/{dashboard,fornecedores,locacoes,
+obras}.go`, `estoque/{materiais,solicitacoes,configuracao_email,limites,numero,dashboard}.go` e
+a maior parte de `rh/*.go` não têm teste dedicado.
 
 ### 8. Nenhuma listagem do binário Go pagina
 
@@ -158,9 +189,8 @@ pequeno; não escala.
 
 ## Ordem de ataque recomendada
 
-1. **Controle de acesso por módulo** nos 5 handlers que faltam — maior risco, menor esforço,
-   correção mecânica.
-2. Renomear a migration `0010` duplicada — trivial, evita confusão futura.
+1. ~~**Controle de acesso por módulo** nos 4 handlers que faltam~~ — ✅ feito em 2026-08-11.
+2. ~~Renomear a migration `0010` duplicada~~ — ✅ feito em 2026-08-11.
 3. Decidir (não necessariamente implementar já) se o binário Go adota o HUD superior novo ou
    se os apps Next.js voltam à sidebar — hoje o ERP tem os dois modelos coexistindo, e quanto
    mais tempo passar, mais módulos vão nascer no padrão "errado".
@@ -168,7 +198,8 @@ pequeno; não escala.
    não só em `main`.
 5. Manter os dois READMEs sincronizados com cada corte de legado.
 6. Adicionar `migracao-go` ao `docker-compose.yml` quando o deploy real for planejado.
-7. Teste de handler + paginação entram como trabalho de fundo, não bloqueiam nada imediato.
+7. Teste de handler completo (além do gate de acesso, já coberto) + paginação entram como
+   trabalho de fundo, não bloqueiam nada imediato.
 
 Itens específicos de Financeiro (perfis de tesouraria, conciliação bancária, rateio/categoria)
 e Compras (casca visual, devolução sem estorno, contrato recorrente sem job) continuam

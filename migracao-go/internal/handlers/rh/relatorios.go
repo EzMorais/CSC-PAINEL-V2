@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"siqueiracampos/servidor/internal/domain/comum"
+	identidade "siqueiracampos/servidor/internal/domain/identidade"
 	dominio "siqueiracampos/servidor/internal/domain/rh"
 	"siqueiracampos/servidor/internal/infrastructure/planilha"
 	"siqueiracampos/servidor/internal/infrastructure/relatorio"
@@ -15,18 +16,23 @@ import (
 // RelatoriosPagina lista os botões de exportação e alguns indicadores — passa pelo layout
 // normal (COMPORTAMENTO.md §7 só isenta as rotas de DOWNLOAD, não esta).
 func (h *Handlers) RelatoriosPagina(w http.ResponseWriter, r *http.Request) {
-	if _, ok := h.Sessoes.ExigirSessao(w, r); !ok {
+	if _, ok := h.sessao(w, r); !ok {
 		return
 	}
 	tpl.Relatorios().Render(r.Context(), w)
 }
 
 // exigirSessaoManual espelha `lerSessao()` chamada à mão em api/relatorios/* — essas rotas
-// não passam pelo layout `(app)`, então precisam checar sozinhas e devolver 401 (não
-// redirecionar) pra quem não tem sessão. COMPORTAMENTO.md §7.
+// não passam pelo layout `(app)`, então precisam checar sozinhas e devolver 401/403 (não
+// redirecionar) pra quem não tem sessão ou não tem o módulo liberado. COMPORTAMENTO.md §7.
 func (h *Handlers) exigirSessaoManual(w http.ResponseWriter, r *http.Request) bool {
-	if h.Sessoes.Ler(r) == nil {
+	sess := h.Sessoes.Ler(r)
+	if sess == nil {
 		http.Error(w, "Não autenticado", http.StatusUnauthorized)
+		return false
+	}
+	if !identidade.TemAcesso(*sess, identidade.ModuloRH) {
+		http.Error(w, "Acesso ao RH e SST não liberado.", http.StatusForbidden)
 		return false
 	}
 	return true
