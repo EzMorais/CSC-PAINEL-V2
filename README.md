@@ -1,28 +1,81 @@
-# CSC — Painéis Internos (Construtora Siqueira Campos)
+# CSC PAINEL V2 — ERP da Construtora Siqueira Campos
 
-Monorepo com várias aplicações, cada uma numa pasta dentro de `apps/`:
+Sistema integrado de gestão (ERP) da Construtora Siqueira Campos, desenvolvido para
+substituir planilhas Excel e aplicativos isolados por módulos que **conversam entre si** —
+com um login único, aprovações intermediadas e integrações reais entre setores.
 
-| Pasta | Sistema | Porta | Para que serve |
+A versão V2 nasce da evolução do [CSC-PAINEL](https://github.com/EzMorais/CSC-PAINEL):
+mantém os 8 módulos operacionais, mas **migra o núcleo do sistema para um único binário
+Go** (Strangler Fig), unificando os bancos de dados de Portal, Painel de Locação, RH,
+Almoxarifado e Alojamentos num **banco SQLite único** com tabelas compartilhadas.
+
+---
+
+## O ERP em uma página
+
+| Sistema | Módulo | Porta | Para que serve |
 |---|---|---|---|
-| [`apps/portal`](apps/portal) | **Portal** | 3004 | **Entrada de tudo**: login, usuários e cargos |
-| [`apps/programacao`](apps/programacao) | Programação diária | 3007 | Programação diária de equipes por frente/cliente |
-| [`apps/painel-locacao`](apps/painel-locacao) | Painel de Locação | 3001 | Controle de equipamentos alugados por obra |
-| [`apps/rh`](apps/rh) | RH e SST | 3002 | Funcionários, treinamentos, exames, EPIs, documentos |
-| [`apps/estoque`](apps/estoque) | Almoxarifado | 3003 | Materiais, entradas/saídas por obra e compras |
-| [`apps/frota`](apps/frota) | Frota | 3000 | Veículos, manutenções e abastecimento |
+| [`apps/portal`](apps/portal) | **Portal** | 3004 | Entrada de tudo: login, usuários, cargos e hub de navegação |
+| [`apps/painel-locacao`](apps/painel-locacao) | **Painel de Locação** | 3000 | Equipamentos alugados por obra, com alerta de vencimento |
+| [`apps/rh`](apps/rh) | **RH e SST** | 3002 | Funcionários, treinamentos, exames, EPIs, uniformes, auditorias |
+| [`apps/estoque`](apps/estoque) | **Almoxarifado** | 3003 | Materiais, saldos por obra, compras e EPIs |
+| [`apps/programacao`](apps/programacao) | **Programação Diária** | 3007 | Escala diária de equipes, veículos e máquinas por frente |
+| [`apps/alojamentos`](apps/alojamentos) | **Alojamentos** | 3005 | Gestão de moradores e pedidos de alojamento |
+| [`apps/frota`](apps/frota) | **Frota** | 3000 (web) | Veículos, manutenções e abastecimento (login próprio) |
+| [`apps/whatsapp`](apps/whatsapp) | **WhatsApp** | 3006 | Integração: pedidos do Alojamento via WhatsApp (sem tela) |
+| [`migracao-go`](migracao-go) | **Migração Go** | 9000 (binário único) | Núcleo do ERP em Go: Portal, Painel, Almoxarifado (RH e Alojamentos em andamento) |
+
+> O **Painel de Locação** migrado para Go responde em `/painel` no binário único; o app
+> Next.js original segue na porta 3000 enquanto a migração não é concluída.
+
+---
+
+## Estado da migração para Go (V2)
+
+O processo é **incremental** com TDD obrigatório: cada módulo tem uma suíte Playwright de
+referência que roda contra o Next.js hoje e contra o Go depois, provando equivalência
+funcional antes de desligar o Next.js daquele módulo.
+
+| Módulo | Comportamento mapeado | Testes de referência | Implementação Go | Next.js removido |
+|---|---|---|---|---|
+| **Portal** (`/` ou `/portal`) | ✅ | ✅ 20/20 | ✅ login, usuários, hub | ⬜ convivendo (4 apps Next.js seguem no ar) |
+| **Painel de Locação** (`/painel`) | ✅ | ✅ 18/18 | ✅ CRUD completo + importador/exportador Excel/PDF | ⬜ convivendo |
+| **Almoxarifado** (`/almoxarifado`) | ✅ | ✅ 24/24 | ✅ materiais, movimentações, aprovações, compras, e-mail, EPIs | ⬜ convivendo |
+| **RH e SST** (`/rh`) | ⬜ | ⬜ | ⬜ (em andamento) | ⬜ |
+| **Alojamentos** (`/alojamentos`) | ⬜ | ⬜ | ⬜ | ⬜ |
+
+**Decisões-chave do V2:**
+
+- **Banco único** (2026-08-04): um SQLite só, bem modelado. `Obra` e `Fornecedor` (que se
+  duplicavam em 4 apps) viram **tabelas compartilhadas com FK**, não cópias por domínio.
+- **Clean Architecture / Ports and Adapters**: o domínio nunca importa SQLite — as portas
+  ficam em `internal/repositories/`, os adaptadores em `internal/infrastructure/database/`.
+- **Frota fora do escopo da migração** (decisão de 2026-08-04): continua Next.js + Drizzle,
+  com banco e login próprios.
+- **SQLite de produção**: WAL, `busy_timeout`, `foreign_keys = ON`, transações explícitas,
+  prepared statements via `sqlc`.
+
+Detalhes completos em [`migracao-go/README.md`](migracao-go/README.md) e
+[`migracao-go/ARQUITETURA.md`](migracao-go/ARQUITETURA.md).
+
+---
+
+## Como os módulos conversam
+
+### Login único (SSO)
 
 **Comece pelo Portal.** É ele que tem a tela de login e o cadastro de usuários; os outros
-não pedem senha própria — leem o crachá de sessão que o Portal assina. Entrando uma vez,
-você circula por todos.
+módulos leem o crachá de sessão que o Portal assina. Entrando uma vez, a pessoa circula por
+todos.
 
-Cada sistema roda separado, com seu próprio banco de dados. Todos são Next.js + TypeScript,
-com Prisma (ou Drizzle, no caso do Frota) sobre SQLite. Para o login único funcionar, os
-`.env` precisam ter o **mesmo `AUTH_SECRET`** (o instalador automático já cuida disso).
+Enquanto o Go convive com os apps Next.js, a sessão usa **cookie assinado com o mesmo
+`AUTH_SECRET`** em todos os `.env`. Quando a migração terminar, a sessão passa a ser do
+processo único — sem token cruzando fronteira de serviço.
 
-## Cargos: quem preenche e quem confere
+### Cargos e permissões
 
-O cadastro de gente é **um só**, no Portal. Antes eram quatro cadastros separados, e um
-cargo mudado num lugar ficava velho nos outros.
+O cadastro de pessoas é **um só**, no Portal. Cada pessoa tem um cargo **e** a lista de
+quais sistemas acessa.
 
 | Cargo | O que faz |
 |---|---|
@@ -32,290 +85,142 @@ cargo mudado num lugar ficava velho nos outros.
 | **Operacional** | Lança o dia a dia. Não aprova o próprio lançamento. |
 | **Consulta** | Só lê. Para quem acompanha sem poder alterar. |
 
-Além do cargo, cada pessoa tem a lista de **quais sistemas acessa** — é comum alguém ser
-gerente do almoxarifado e não ter nada a ver com o RH.
+Princípio central: **quem lança não aprova**. Nem um gerente aprova um pedido feito por ele
+mesmo — o Almoxarifado bloqueia auto-aprovação.
 
-O princípio por trás de tudo: **quem lança não aprova**. Sem essa separação a aprovação
-vira um clique a mais na mesma mão, e deixa de proteger de qualquer coisa. É por isso que
-o cargo Operacional não aprova — e que nem um gerente aprova um pedido feito por ele mesmo.
+### Integração RH ↔ Almoxarifado (NR-6)
 
-### Aprovações no Almoxarifado
+Quando um **EPI sai do estoque, ele sai para uma pessoa, não para uma obra** — e vira
+automaticamente a ficha de entrega no RH (NR-6). A ficha vai com número do CA e validade.
+Se o RH estiver fora na hora, a saída acontece do mesmo jeito e a ficha fica pendente, com
+botão de reenviar na tela de Movimentações. O reenvio é seguro: o RH reconhece ficha já
+recebida e não duplica.
 
-Três coisas que o cargo Operacional **pede** e a gerência **autoriza**:
+No V2 com a migração em progresso, essa troca continua acontecendo por HTTP com token
+assinado (60s de validade) — o contrato `estoque.ClienteRH` está isolado atrás de uma
+porta de domínio, pronta para virar chamada local quando o RH migrar.
 
-1. **Ajuste de inventário** acima da diferença configurada — é a forma mais silenciosa de um
-   furo de estoque virar número certo no sistema.
-2. **Perda ou quebra**, sempre — é baixa sem nada entrando em troca.
-3. **Solicitação de compra** acima do valor configurado — compromete dinheiro e vai direto
-   ao fornecedor.
+### Programação Diária ↔ Portal, RH e Frota
 
-Enquanto o pedido está aguardando, **nada mudou**: o saldo continua o mesmo e nenhum e-mail
-saiu. O efeito acontece na aprovação. Fazer o contrário — executar e desfazer se recusado —
-deixaria o estoque errado no meio do caminho e, na compra, um e-mail já no fornecedor que
-não dá para desenviar.
+Consulta o Portal (cargos, permissões, máquinas do catálogo), o RH (funcionários oficiais)
+e a Frota (veículos e situação de manutenção). Quando um sistema não responde, o quadro
+continua disponível com lançamento manual.
 
-Os limites ficam em **Configurações**, no Almoxarifado.
+### Alojamentos ↔ WhatsApp
 
-## Como o Almoxarifado e o RH conversam
-
-Uma integração de verdade, não só telas parecidas: **quando um EPI sai do estoque, ele sai
-para uma pessoa, não para uma obra** — e vira automaticamente a ficha de entrega no RH, que
-é o documento exigido pela NR-6.
-
-- O Almoxarifado busca a lista de funcionários no RH e pede quem recebeu o equipamento.
-- A ficha vai para o RH com o número do CA e a validade do certificado.
-- Se o RH estiver desligado na hora, **a saída do material acontece do mesmo jeito** e a
-  ficha fica marcada como pendente, com um botão de reenviar na tela de Movimentações.
-  Travar o almoxarife porque outro sistema caiu seria pior; gravar em silêncio e perder a
-  ficha, pior ainda.
-- O reenvio é seguro: o RH reconhece uma ficha já recebida e não duplica.
-
-Os dois se autenticam por um token assinado com o mesmo `AUTH_SECRET` — nenhuma senha ou
-configuração a mais para manter.
-
-Repositório **privado** — contém a operação de uma empresa real.
+O serviço de WhatsApp (Baileys, dispositivo vinculado) liga o número corporativo aos
+pedidos do Alojamento: no grupo, mensagem começando com `#pedido` vira pedido com tipo
+detectado da frase (torneira → manutenção; sabão → limpeza). WhatsApp é só transporte —
+toda decisão mora no Alojamentos.
 
 ---
 
-## Como rodar em outro computador
+## Aprovações no Almoxarifado
 
-Guia para quem nunca usou terminal nem instalou um projeto de programação antes.
+Três coisas que o Operacional **pede** e a gerência **autoriza** — modelo
+*propose-then-execute*:
 
-O **Portal é obrigatório** — é ele que guarda os usuários. Dos outros, instale só o(s) que
-for usar.
+1. **Ajuste de inventário** acima da diferença configurada.
+2. **Perda ou quebra**, sempre.
+3. **Solicitação de compra** acima do valor configurado.
 
-> **Num computador totalmente novo, sem nada instalado?** Tem um caminho ainda mais direto:
-> baixe **[github.com/EzMorais/VISUAL-TT](https://github.com/EzMorais/VISUAL-TT)** (público,
-> sem precisar de login pra baixar) e rode o `.bat` de lá — ele instala tudo, inclusive baixa
-> este projeto sozinho. É o mesmo instalador descrito abaixo, só que também resolve o "baixar
-> o projeto" pra quem ainda não tem GitHub Desktop nem conta logada em nada.
+Enquanto o pedido aguarda, **nada mudou**: saldo continua o mesmo e nenhum e-mail saiu. O
+efeito acontece na aprovação. Fazer o contrário (executar e desfazer se recusado) deixaria
+o estoque errado no meio do caminho — e, na compra, um e-mail no fornecedor que não dá para
+desenviar.
 
-### Caminho rápido (recomendado): um script instala tudo sozinho
+---
 
-Só dois passos manuais — baixar o projeto e clicar num arquivo. O script cuida do resto:
-Node.js, Git, Visual Studio Code, GitHub CLI, Claude Code, as extensões do VS Code
-recomendadas para este projeto, e todos os módulos instalados com banco de dados pronto.
+## Módulos em detalhe
 
-#### 1. Baixar o projeto com o GitHub Desktop
+### Portal — identidade e acesso
+Login, usuários, cargos e permissões. Guarda o cadastro único de pessoas, o catálogo de
+máquinas usado pela Programação e o **hub de navegação** que leva a todos os módulos.
+Migrado para Go: sessão, autenticação e hub validados (20/20 testes de referência).
 
-1. Baixe e instale o [GitHub Desktop](https://desktop.github.com/)
-2. Abra o programa e faça login com a conta do GitHub que tem acesso a este repositório
-   (ele é privado — sem login com acesso, o download não aparece)
-3. Menu **File → Clone repository**
-4. Procure `CSC-PAINEL` na lista (aba "GitHub.com") e escolha uma pasta local, tipo `C:\CSC-PAINEL`
-5. Clique **Clone**
+### Painel de Locação — equipamentos alugados por obra
+Substitui um app em Tkinter que usava planilha Excel como banco. Importa planilha,
+calcula a situação (Ativa / Vencendo / Vencida / Devolvida) **automaticamente** a partir da
+data de fim — status não é campo gravado — e devolver não apaga: vira histórico com a data
+de início original. Importador validado byte-exato contra a planilha real (305 locações,
+242 itens, 63 devoluções). No Go, navegação servidor-renderizada em vez de modais.
 
-#### 2. Rodar o script de instalação
+### RH e SST — pessoas e segurança do trabalho
+Funcionários com linha do tempo, uniformes com assinatura digital, treinamentos com turmas
+e certificados (reciclagem vencida em destaque), exames ASO, documentos da empresa/obra
+(PGR, PCMSO, LTCAT) com versionamento, checklist de admissão, auditorias que abrem não
+conformidades. EPIs: a entrega vem **só** do Almoxarifado.
 
-1. Abra a pasta onde clonou o projeto (Explorador de Arquivos)
-2. Dê duplo clique em **`configurar-novo-computador.bat`**
-3. Uma janela azul do **Controle de Conta de Usuário** do Windows pode aparecer perguntando
-   se o programa pode fazer alterações no dispositivo — clique **Sim**. É esperado: instalar
-   programas exige essa permissão.
-4. Uma janela preta abre e mostra o progresso de cada etapa (1/6, 2/6...). **Não fecha
-   sozinha** — quando terminar tudo, ela pede para apertar Enter.
-5. A primeira vez demora — pode passar de 15 minutos, dependendo da internet. Deixe rodando.
+### Almoxarifado — materiais, saldos e compras
+**Não existe campo de saldo editável** — o saldo é sempre somado do livro-razão. Conferência
+de contagem física calcula e lança ajuste sozinho. Saída maior que o saldo é recusada.
+Sugestão de compra junta tudo abaixo do mínimo; envio por e-mail via SMTP nativo
+(Gmail/Outlook, senha de aplicativo), com reenvio em caso de falha. Migrado para Go com fila
+de aprovação propose-then-execute (24/24 testes).
 
-Se alguma etapa falhar (falta de internet no meio, por exemplo), **é seguro rodar o arquivo
-de novo**: cada passo confere se já foi feito antes de repetir.
+### Programação Diária — escala por frente
+Quadro por frente de trabalho: escala funcionários, avulsos, veículos, máquinas e avisos;
+copia o dia anterior respeitando inativos; detecta conflitos; publica e gera imagem para
+WhatsApp. Implementa o antigo `painel-lucas` (referência histórica).
 
-Quando terminar, o projeto abre sozinho no VS Code. Para **usar** cada sistema, falta só
-ligar o servidor de cada um — veja os passos 4 a 8 abaixo (pule a parte de instalar
-dependências e criar `.env`: o script já fez isso).
+### Alojamentos — moradores e pedidos
+Gestão de moradores, alocações e pedidos com recebimento via WhatsApp (serviço dedicado).
+Integração opcional com Google Maps para autocompletar endereço de obra.
 
-> **O que o script instala**, para quem quiser conferir ou fazer à mão depois: Node.js LTS,
-> Git, Visual Studio Code, GitHub CLI, [Claude Code](https://claude.com/claude-code) (o
-> assistente de IA usado para construir este projeto), e as extensões do VS Code em
-> [`.vscode/extensions.json`](.vscode/extensions.json) — Prisma (colore o arquivo do banco de
-> dados), ESLint (aponta erros de código), Tailwind CSS IntelliSense (autocompletar de
-> estilo), GitLens (histórico do Git), Error Lens (mostra erros direto na linha), SQLTools
-> (visualizar o banco de dados) e Path Intellisense (autocompletar de caminho de arquivo).
-> Você não precisa saber o que cada uma faz — é só deixar o VS Code instalar quando ele
-> perguntar (aparece um aviso "This workspace has extension recommendations" ao abrir a
-> pasta, com um botão **Install All**).
+### Frota — veículos, manutenções e abastecimento
+Hodômetro de revisão, manutenções com foto/PDF, abastecimento à mão ou CSV do posto,
+alertas e exportação da **planilha da diretoria** no formato exato já recebido — com abas
+extras de abastecimento e dashboard. Login próprio, fora do SSO. Usa `node:sqlite` nativo
+(adaptador `vendor/better-sqlite3`), sem módulos nativos.
 
-Prefere entender ou fazer cada passo manualmente (ou o script não funcionou)? Segue o passo
-a passo completo abaixo.
+### WhatsApp — serviço de integração
+Sem tela. Conecta o número corporativo como dispositivo vinculado (Baileys) e repassa
+mensagens para `/api/integracao/whatsapp/recebida` no Alojamentos. Regras rígidas: só
+responde a quem escreveu primeiro, só avisa quem tem pedido em aberto, espaça os envios.
 
-### Passo a passo manual
+---
 
-### Passo 1 — Instalar o Node.js
+## Stack e arquitetura
 
-Todos os sistemas precisam do **Node.js**. É um programa só, serve para todos.
+- **8 apps em `apps/*`** — Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4,
+  Prisma 6 + SQLite (Drizzle + SQLite no Frota).
+- **`migracao-go/`** — núcleo do ERP em Go 1.2x + Templ + HTMX (mínimo) + `database/sql`/
+  `sqlc`, Clean Architecture (Ports and Adapters), banco único SQLite com WAL. Testes de
+  domínio sem banco (mock das portas), integração contra SQLite real e Playwright de
+  equivalência funcional.
+- **Design system** (em [`docs/design-system.md`](docs/design-system.md)): neutro + acento
+  por app (Portal azul, Locação índigo, RH verde-azulado, Almoxarifado terracota, Alojamentos
+  âmbar), sidebar sempre escura e colapsável, Inter + JetBrains Mono, sem glow/glassmorphism/
+  gradientes exagerados.
+- **Deploy** (em [`docs/deploy.md`](docs/deploy.md)): Docker Compose com 8 serviços + nginx
+  em HTTPS (Let's Encrypt com renovação automática), bancos em volumes que sobrevivem a
+  rebuilds. Os 6 módulos do SSO no mesmo domínio por portas (`sistemas.SEUDOMINIO:3000`,
+  `:3002`, `:3003`, `:3004`, `:3005`, `:3007`); Frota em `frota.SEUDOMINIO` (login próprio).
 
-1. Acesse [nodejs.org](https://nodejs.org)
-2. Clique no botão que diz **LTS** (é a versão recomendada)
-3. Abra o instalador baixado e siga clicando **Next**
-   - No Windows, na tela que lista componentes, deixe **"Add to PATH"** marcado — isso é
-     importante, sem isso o computador não acha o Node depois
-4. Termine a instalação e **reinicie o computador** (garante que o PATH seja atualizado)
+---
 
-Para conferir se funcionou, abra o **Prompt de Comando** (tecla Windows → digite `cmd` →
-Enter) e digite:
+## Rodar localmente
 
-```
-node --version
-```
-
-Deve aparecer algo como `v24.x.x`. Se aparecer "não é reconhecido como comando", volte ao
-passo 3 e reinstale marcando "Add to PATH".
-
-### Passo 2 — Baixar o projeto
-
-O repositório é **privado**, então baixar o ZIP direto do site do GitHub só funciona se você
-estiver logado com uma conta que tenha acesso.
-
-**Caminho mais fácil para quem não usa terminal: GitHub Desktop**
-
-1. Baixe e instale o [GitHub Desktop](https://desktop.github.com/)
-2. Abra o programa e faça login com a conta do GitHub que tem acesso ao repositório
-3. Menu **File → Clone repository**
-4. Procure `CSC-PAINEL` na lista (aba "GitHub.com") e escolha uma pasta local, tipo `C:\CSC-PAINEL`
-5. Clique **Clone**
-
-Isso baixa o projeto inteiro (todos os módulos) para o seu computador.
-
-> Se preferir usar o terminal em vez do GitHub Desktop, com o [Git](https://git-scm.com/)
-> instalado e a conta do GitHub autenticada:
-> ```
-> git clone https://github.com/EzMorais/CSC-PAINEL.git
-> ```
-
-### Passo 3 — Abrir o terminal na pasta certa
-
-Cada sistema abaixo precisa de comandos digitados num terminal, dentro da pasta dele
-(`apps/portal`, `apps/programacao`, `apps/painel-locacao`, `apps/rh`, `apps/estoque` ou `apps/frota`).
-
-Jeito mais simples de abrir o terminal já na pasta certa:
-
-1. Abra o Explorador de Arquivos e navegue até, por exemplo, `C:\CSC-PAINEL\apps\painel-locacao`
-2. Clique na barra de endereço, apague o caminho, digite `cmd` e aperte Enter
-
-Uma janela preta abre já "dentro" daquela pasta. É ali que os comandos dos passos seguintes
-vão ser digitados.
-
-### Passo 4 — Portal (faça este primeiro)
-
-É ele que guarda os usuários. Sem o Portal instalado e semeado, não há com que fazer login
-em nenhum dos outros.
+O **Portal é obrigatório** — é ele que guarda os usuários. Os outros módulos copiam o `.env`
+dele para herdar o mesmo `AUTH_SECRET`.
 
 ```bash
+# apps/portal — primeiro
 npm install
 echo DATABASE_URL="file:./dev.db" > .env
 node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
 npx prisma generate
 npx prisma migrate deploy
 npm run db:seed
-npm run dev
+npm run dev          # http://localhost:3004
 ```
 
-Abra **http://localhost:3004**. Login: `admin@siqueiracampos.com.br` / `locacao2026`.
-
-### Programacao diaria — modulo integrado
-
-Este é o módulo que recebeu a implementação do antigo `painel-lucas`. Ele usa o mesmo login
-do Portal e mantém apenas o cadastro local complementar necessário para a escala diária.
-Numa janela de terminal aberta dentro de `apps/programacao`:
+Login padrão: `admin@siqueiracampos.com.br` / `locacao2026` (troque depois do primeiro
+acesso).
 
 ```bash
-npm install
-copy ..\portal\.env .env
-npx prisma generate
-npx prisma migrate deploy
-npm run db:seed
-npm run dev
-```
-
-Abra **http://localhost:3007**. O quadro permite montar a programação por frente, escalar
-funcionários, avulsos, veículos e máquinas, copiar o dia anterior, detectar conflitos e gerar
-a imagem para compartilhamento.
-
-Mais detalhes do módulo estão em [`apps/programacao/README.md`](apps/programacao/README.md).
-
-> **Guarde o `.env` deste passo.** Os outros módulos precisam do **mesmo `AUTH_SECRET`** —
-> nos passos seguintes você copia este arquivo em vez de gerar um novo. É ele que faz o
-> login do Portal valer nos demais.
-
-O seed cria contas de **exemplo** de cada cargo (senha `exemplo2026`) para você ver a
-hierarquia funcionando. Apague-as no Portal antes de usar o sistema para valer.
-
-### Passo 5 — Painel de Locação
-
-Na janela de terminal aberta dentro de `apps/painel-locacao`, digite cada linha e aperte
-Enter, esperando a anterior terminar:
-
-```bash
-npm install
-```
-
-Demora alguns minutos na primeira vez (baixa as peças que o sistema usa). Depois, crie o
-arquivo de configuração:
-
-```bash
-copy ..\portal\.env .env
-```
-
-Depois:
-
-```bash
-npx prisma generate
-npx prisma migrate deploy
-npm run db:seed
-npm run gerar:exemplo
-npm run dev
-```
-
-> O `npx prisma generate` não é opcional. As versões novas do npm bloqueiam os scripts de
-> instalação dos pacotes por segurança, e é justamente um desses scripts que normalmente
-> prepararia o acesso ao banco sozinho. Sem essa linha, tudo instala "com sucesso" e só
-> quebra no comando seguinte, com a mensagem `@prisma/client did not initialize yet`.
-
-Quando aparecer `Ready` no terminal, abra o navegador em **http://localhost:3001**.
-
-**Login:**
-
-| | |
-|---|---|
-| Usuário | `admin@siqueiracampos.com.br` |
-| Senha | `locacao2026` |
-
-Troque a senha depois do primeiro acesso. O painel aparece vazio — vá em **Importar**, envie
-o arquivo `dados/EXEMPLO_Maquinas_Alugadas.xlsx` (gerado no passo anterior) para popular com
-dados de teste, ou importe a planilha real da empresa.
-
-Para deixar rodando, **não feche essa janela do terminal** — é o servidor. Para desligar,
-clique dentro dela e aperte `Ctrl+C`.
-
-### Passo 6 — RH
-
-Mesma lógica, numa janela de terminal aberta dentro de `apps/rh`:
-
-```bash
-npm install
-echo DATABASE_URL="file:./dev.db" > .env
-node -e "console.log('AUTH_SECRET=\"'+require('crypto').randomBytes(48).toString('base64')+'\"')" >> .env
-npx prisma generate
-npx prisma migrate deploy
-npm run db:seed
-npm run dev
-```
-
-Abra **http://localhost:3002** (o RH usa uma porta diferente do Painel de Locação, para os
-dois poderem rodar ao mesmo tempo).
-
-**Login:** mesmos usuário e senha do Painel de Locação (`admin@siqueiracampos.com.br` /
-`locacao2026`).
-
-> Se você quiser que uma pessoa logada no Painel de Locação já entre automaticamente no RH
-> sem logar de novo, use exatamente o mesmo valor de `AUTH_SECRET` nos dois arquivos `.env`
-> em vez de gerar um novo para o RH. Não é obrigatório — sem isso cada sistema pede login
-> separado, e funciona normalmente.
-
-### Passo 7 — Almoxarifado
-
-Numa janela de terminal dentro de `apps/estoque`:
-
-```bash
+# apps/painel-locacao, apps/rh, apps/estoque, apps/programacao, apps/alojamentos
+copy ..\portal\.env .env      # mesmo AUTH_SECRET
 npm install
 npx prisma generate
 npx prisma migrate deploy
@@ -323,218 +228,40 @@ npm run db:seed
 npm run dev
 ```
 
-Repare que **não tem** o passo de criar o `.env` com um segredo novo. Aqui ele precisa ser
-**o mesmo do RH** — é isso que permite os dois conversarem. Copie o arquivo `.env` da pasta
-`apps/rh` para dentro de `apps/estoque` antes de rodar os comandos acima:
+A Frota tem instaladores prontos (`apps/frota/instalar.bat` e `iniciar.bat`), login próprio
+(`frota2026`). O WhatsApp exige pareamento por QR code. A migração Go roda com
+`go run ./cmd/servidor` dentro de `migracao-go` — o roteiro de cada módulo está em
+[`migracao-go/README.md`](migracao-go/README.md).
 
-```bash
-copy ..\rh\.env .env
-```
-
-Abra **http://localhost:3003**. Login: o mesmo dos outros (`admin@siqueiracampos.com.br` /
-`locacao2026`).
-
-> **Por que o mesmo segredo:** quando um EPI sai do estoque, o sistema busca a lista de
-> funcionários no RH e manda a ficha de entrega para lá. Os dois se reconhecem por um token
-> assinado com o `AUTH_SECRET`. Se forem diferentes, a entrega de EPI para de funcionar com
-> uma mensagem de "token inválido" — nada mais quebra, mas essa parte para.
-
-### Passo 8 — Frota
-
-O Frota já vem com instaladores prontos (arquivos `.bat`), então não precisa digitar nada
-no terminal:
-
-1. Entre na pasta `apps/frota`
-2. Dê duplo clique em **`instalar.bat`** — confere o Node, instala tudo e prepara o banco.
-   Leva alguns minutos na primeira vez
-3. Dê duplo clique em **`iniciar.bat`** — abre uma janela mostrando o endereço, algo como
-   `http://localhost:3000`
-4. Abra esse endereço no navegador
-
-**Login:**
-
-| | |
-|---|---|
-| Usuário | `admin@siqueiracampos.com.br` |
-| Senha | `frota2026` |
-
-Deixe a janela do `iniciar.bat` aberta enquanto usa o sistema — fechá-la desliga o servidor.
-
-Detalhes extras (backup, alertas por e-mail, rodar como serviço do Windows) estão em
-[`apps/frota/README.md`](apps/frota/README.md).
-
-> **Atenção às portas:** a Frota usa a porta 3000 e o Painel de Locação usa a porta 3001,
-> por padrão. Assim os dois podem rodar ao mesmo tempo na mesma máquina. Para usar outra
-> porta no Painel: `npm run dev -- --port 3010`.
-
-### Problemas comuns
-
-**"node não é reconhecido como comando interno ou externo"**
-O Node não foi instalado ou o "Add to PATH" não foi marcado. Reinstale pelo
-[nodejs.org](https://nodejs.org) marcando essa opção, e reinicie o computador.
-
-**Aparece `path length ... exceeds max length of filesystem`**
-A pasta onde você colocou o projeto está fundo demais. O Windows tem um limite antigo de
-tamanho de caminho, e os arquivos internos do Next.js são longos. Mova a pasta para perto da
-raiz do disco — `C:\CSC-PAINEL` resolve.
-
-**Aparece `@prisma/client did not initialize yet`**
-Faltou rodar `npx prisma generate` dentro da pasta daquele sistema. As versões novas do npm
-bloqueiam os scripts de instalação dos pacotes, e esse comando é o que normalmente rodaria
-sozinho. Rode ele e repita o comando que falhou.
-
-**A tela de login não aceita, ou dá erro estranho ao abrir**
-Confira se o arquivo `.env` foi criado dentro da pasta certa (`apps/painel-locacao/.env`,
-por exemplo) e se a linha `AUTH_SECRET` tem mais de 32 caracteres.
-
-**Terminal fecha sozinho ou mostra erro em vermelho**
-Copie a mensagem de erro e peça ajuda a quem mantém o projeto — geralmente é uma etapa que
-não terminou (ex.: `npm install` foi interrompido).
-
-**Quero apagar tudo e começar do zero**
-No Painel de Locação: `npm run db:reset` apaga o banco e recadastra os dados de exemplo. No
-RH e no Frota, apague o arquivo do banco (indicado no `.env`, ou a pasta `dados/` no Frota) e
-rode o passo do seed de novo.
+Passo a passo completo, guia de primeiros passos e problemas comuns estão no repositório
+principal ([CSC-PAINEL](https://github.com/EzMorais/CSC-PAINEL)), que mantém a documentação
+de instalação e uso da versão estável.
 
 ---
 
-## Primeira experiência — o que fazer depois de instalar
+## Segurança e dados
 
-Guia rápido pra quem nunca usou nenhum dos sistemas: o que você vê na primeira tela e
-o que fazer com isso, sem precisar entender nada de programação.
+Repositório **privado** — descreve a operação de uma empresa real.
 
-### Painel de Locação — controle de equipamento alugado por obra
-
-**Pra que serve:** saber quais máquinas/equipamentos estão alugados, em qual obra, desde
-quando e até quando — e avisar sozinho quando um aluguel está vencendo.
-
-1. Faça login. O painel aparece **vazio** — isso é esperado, é um banco novo.
-2. Vá em **Importar** e envie a planilha `dados/EXEMPLO_Maquinas_Alugadas.xlsx` (gerada no
-   passo 4 da instalação). O sistema mostra uma prévia do que vai entrar antes de confirmar —
-   confira e clique em confirmar.
-3. Vá em **Locações**: agora a lista aparece com todos os equipamentos importados.
-4. Repare que a coluna de situação (Ativa / Vencendo / Vencida / Devolvida) **não é algo que
-   alguém digitou** — o sistema calcula sozinho a partir da data de fim. Se o prazo passar,
-   o item vira "Vencida" automaticamente, sem ninguém precisar atualizar nada.
-5. Clique em **Devolver** num equipamento: ele não some da lista, só muda de situação e ganha
-   uma linha no histórico — a data de início original continua registrada, então dá pra saber
-   quanto tempo aquele equipamento ficou na obra.
-6. Se aparecer o aviso **"obra a confirmar"** ou **"possível duplicata"** em algum item, não é
-   erro do sistema: é a planilha original tendo informação ambígua (mesma aba usada por duas
-   obras, ou mesmo equipamento aparecendo duas vezes). Use a seleção múltipla da lista pra
-   reclassificar.
-7. **Obras** e **Fornecedores**, no menu, são os cadastros de apoio — quem usa a locação.
-
-### RH — cadastro de funcionários e segurança do trabalho (SST)
-
-**Pra que serve:** substituir planilha de RH por um cadastro único, com histórico de cada
-funcionário e controle do que a lei exige (uniforme entregue, treinamento em dia).
-
-1. Faça login. O **Dashboard** mostra quantos funcionários estão ativos, afastados, em férias,
-   e se falta obra/cargo no cadastro de alguém.
-2. Vá em **Funcionários** — o seed já cadastrou 14 funcionários fictícios pra você explorar.
-   Clique num nome: você vê o cadastro completo (dados pessoais, contrato, endereço) e, ao
-   lado, a **linha do tempo** — tudo que já aconteceu com essa pessoa (admissão, mudança de
-   obra, férias, advertência), em ordem.
-3. Clique em **Novo funcionário** pra ver o formulário de cadastro. Se o cargo da pessoa ainda
-   não existir na lista, tem um botão **"+"** do lado do campo Cargo pra criar um novo sem
-   precisar sair da tela.
-4. Vá em **Uniformes** → **Nova entrega**: escolha um funcionário, o tamanho já vem preenchido
-   do cadastro dele. Desenhe uma assinatura no quadro (é assim que o sistema registra que a
-   pessoa recebeu a peça) e salve. Ela aparece no histórico embaixo.
-5. Vá em **Treinamentos** → **Nova turma**: cadastre um treinamento (ex.: NR-35), escolha quem
-   participou marcando os funcionários na lista, e salve. Depois, abra a turma criada pra
-   anexar o certificado de cada participante (um arquivo PDF ou foto por pessoa).
-6. Se o treinamento tiver data de validade e ela já tiver passado, ele aparece destacado em
-   vermelho no topo da tela de Treinamentos, no painel de "reciclagem vencida" — é o sistema
-   avisando que alguém precisa refazer o curso.
-7. Em **Exames** registre o ASO de cada funcionário (admissional, periódico, demissional),
-   com resultado e validade — o que estiver vencendo aparece destacado no topo.
-8. Em **Documentos** há duas coisas: os documentos da empresa/obra (PGR, PCMSO, LTCAT…),
-   com versionamento, e um **checklist de admissão por funcionário** — escolha alguém no
-   seletor e vá anexando RG, CPF, CTPS, comprovante de residência etc.
-9. Em **Auditorias** monte um checklist de campo; um item marcado como "não conforme" abre
-   uma **Não Conformidade** já vinculada à auditoria de origem, com prazo e responsável.
-10. Em **EPIs** você vê as fichas de entrega — mas repare que **não dá para lançar uma aqui**.
-    Quem entrega EPI é o Almoxarifado, e a ficha chega sozinha de lá (veja abaixo). Isso é
-    de propósito: com dois lugares para lançar, o mesmo capacete acabaria registrado duas
-    vezes, ou sairia do estoque sem nunca virar ficha.
-11. Em **Configurações** ficam os cargos (com o grau de risco, que é o que puxa exigência de
-    EPI e exame) e os usuários do sistema.
-
-### Almoxarifado — controle de materiais
-
-**Pra que serve:** saber o que tem em estoque, quanto cada obra consumiu, o que precisa
-comprar — e, no caso de EPI, para qual pessoa cada equipamento foi entregue.
-
-1. Faça login. O **Dashboard** mostra quanto vale o estoque, o que precisa ser comprado e as
-   últimas movimentações.
-2. Vá em **Materiais**: o seed já cadastrou 18 itens (cimento, areia, vergalhão, EPIs…).
-   Clique num deles para ver o **extrato** — cada entrada e saída que formou o saldo atual.
-3. Repare que **não existe um campo "saldo" para editar**. O saldo é a soma do histórico. Se
-   a prateleira estiver diferente do sistema, use **Conferir contagem física** na tela do
-   material: você digita quanto contou, e o sistema calcula e lança o ajuste sozinho.
-4. Em **Movimentações** → **Nova movimentação**, experimente lançar uma saída maior do que o
-   saldo: o sistema recusa e explica o que fazer. Saldo negativo não existe na prateleira.
-5. Agora escolha um material da categoria **EPI** (capacete, luva, óculos, bota) e o tipo
-   **Saída**. O formulário muda: some o campo de obra e aparece **"funcionário que recebeu"**,
-   com a lista vinda do RH. Isso é a NR-6 — a empresa precisa provar a quem entregou.
-6. Salve e vá no RH, em **EPIs**: a ficha já está lá, com o número do CA e a validade. Você
-   não digitou nada duas vezes.
-7. Se o RH estiver desligado na hora, a saída acontece do mesmo jeito e aparece um aviso
-   amarelo em Movimentações com o botão **Reenviar agora** — a ficha não se perde.
-8. Em **Compras** → **Nova solicitação** → **Gerar sugestão**: o sistema junta tudo que está
-   abaixo do mínimo e sugere quanto comprar. Dá para editar antes de salvar.
-9. Para o pedido **sair sozinho por e-mail**, vá em **Configurações** e vincule uma conta —
-   veja abaixo. Sem vincular nada, a tela do pedido oferece botões que abrem o **Gmail**, o
-   **Outlook** ou o app de e-mail do computador com a mensagem já escrita; você só aperta
-   enviar.
-
-### Fazer as solicitações saírem por e-mail sozinhas
-
-No Almoxarifado, em **Configurações**:
-
-1. Escolha **Gmail** ou **Outlook** — o endereço do servidor é preenchido sozinho.
-2. Preencha o e-mail que vai enviar e o **e-mail do comprador** (para quem o pedido vai).
-3. No campo Senha vai uma **senha de aplicativo**, não a senha normal do e-mail. Os dois
-   provedores já não aceitam mais a senha da conta. A própria tela mostra o passo a passo
-   para gerar a sua (leva um minuto, e exige verificação em duas etapas ligada).
-4. Salve e clique em **Enviar e-mail de teste**. Só depois do teste passar dá para confiar
-   que os pedidos vão sair — a tela avisa em amarelo enquanto isso não foi feito.
-
-Com a conta vinculada, criar uma solicitação já dispara o e-mail. Se o envio falhar (senha
-trocada, internet fora), **o pedido não se perde**: ele fica salvo, a tela mostra o motivo
-da falha e oferece um botão de reenviar, além dos botões de Gmail/Outlook.
-
-> **Por que uma senha de aplicativo:** ela vale só para enviar e-mail e pode ser cancelada a
-> qualquer momento sem mexer na senha da conta. Ela fica guardada no banco de dados local
-> para o sistema conseguir enviar sozinho — e nunca volta para a tela depois de salva.
-
-### Frota — controle de veículos
-
-**Pra que serve:** substituir a planilha de controle de frota, mantendo o mesmo formato de
-saída que a diretoria já recebe.
-
-1. Faça login. Vá em **Veículos** pra ver o cadastro — cada um mostra um "hodômetro" visual
-   (uma régua) indicando quão perto está da próxima revisão.
-2. Em **Manutenções**, registre um problema ou serviço — dá pra anexar foto ou PDF do
-   orçamento; no celular a câmera abre direto.
-3. Em **Abastecimento**, lance um abastecimento à mão ou importe o CSV que o posto exporta.
-4. Em **Alertas**, veja o que precisa de atenção agora (seguro vencendo, revisão atrasada) e o
-   que só precisa ser acompanhado.
-5. O botão de gerar planilha (na tela principal) exporta um `.xlsx` no formato exato que a
-   diretoria já recebia da planilha antiga — com uma aba a mais pra abastecimento e dashboard.
-
-Mais detalhes de uso (backup, importar planilha existente, rodar como serviço do Windows)
-estão em [`apps/frota/README.md`](apps/frota/README.md).
+- Bancos (`*.db`), planilhas de dados reais, arquivos exportados e `.env` **nunca sobem ao
+  Git** (`.gitignore` na raiz, em `apps/` e em `migracao-go/`).
+- Dados de exemplo são fictícios; dados reais de clientes, fornecedores e funcionários ficam
+  em arquivos locais git-ignored (`prisma/dados-locais.json` etc.).
+- A pasta `sessao/` do WhatsApp são as credenciais do número — não versionar, não
+  compartilhar.
 
 ---
 
-## Para quem for mexer no código
+## Documentação
 
-Cada sistema tem seu próprio README com mais detalhes técnicos (estrutura de pastas, decisões
-de arquitetura, comandos de teste): [`apps/painel-locacao/README.md`](apps/painel-locacao/README.md)
-e [`apps/frota/README.md`](apps/frota/README.md).
-
-Este mesmo guia de instalação também está em [`COMECE-AQUI.md`](COMECE-AQUI.md), como arquivo
-avulso caso precise mandar só ele para alguém.
+| Documento | O que é |
+|---|---|
+| [`docs/design-system.md`](docs/design-system.md) | Tokens, componentes e identidade visual |
+| [`docs/deploy.md`](docs/deploy.md) | Roteiro de deploy em VPS com Docker + HTTPS |
+| [`docs/backlog.md`](docs/backlog.md) | Backlog de deploy (issues no GitHub) |
+| [`migracao-go/README.md`](migracao-go/README.md) | **A evolução V2**: plano e status da migração para Go |
+| [`migracao-go/ARQUITETURA.md`](migracao-go/ARQUITETURA.md) | Arquitetura do binário Go único |
+| [`apps/painel-locacao/README.md`](apps/painel-locacao/README.md) | Detalhes do Painel de Locação |
+| [`apps/frota/README.md`](apps/frota/README.md) | Detalhes da Frota |
+| [`apps/programacao/README.md`](apps/programacao/README.md) | Detalhes da Programação Diária |
+| [`apps/whatsapp/README.md`](apps/whatsapp/README.md) | Detalhes do serviço de WhatsApp |
