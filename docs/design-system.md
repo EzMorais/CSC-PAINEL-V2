@@ -18,17 +18,18 @@ Anytype, Discord.
 - glassmorphism, neomorphism, gradients exagerados
 - sombras fortes fora da escala `--shadow-xs/sm/md/lg`
 
-## 2. Layout
+## 2. Layout e HUD
 
 ```
-Sidebar fixa esquerda (sempre escura, mesmo em tema claro)
-Header superior        (ações da página + theme toggle)
+HUD superior sticky    (marca + navegação do módulo + usuário/tema/logout)
 Área conteúdo central  (cards/blocos)
+Hub flutuante          (troca rápida entre módulos)
 ```
 
-Sidebar **colapsável** (64px compact mode, persistida em `localStorage`, chave
-`sidebar-colapsada`). No mobile (≤ 720px) vira drawer com backdrop — comportamento
-separado do collapse de desktop.
+O HUD da Programação diária (porta 3007) é a referência visual e funcional de todas as
+aplicações. Cada módulo mantém seus links e permissões, mas usa a mesma barra sticky, estados
+de link ativo, identificação do usuário, alternância de tema, logout e Hub flutuante. Em telas
+pequenas (≤ 720px) a navegação quebra/rola horizontalmente, sem trocar por uma segunda casca.
 
 ## 3. Cores — neutro + acento colorido (estilo Anytype/Notion/Discord)
 
@@ -47,9 +48,9 @@ Almoxarifado | âmbar | 85
 Alojamentos | âmbar | 85
 Programação (referência) | âmbar | 85
 
-A sidebar é **sempre escura** (near-black, ligeiramente mais escura que o `--background` do
-tema escuro) — não muda com o toggle de tema. É o mesmo truque do Discord/Notion/Linear: a
-"casca" do produto tem cor própria, o conteúdo segue o tema do usuário.
+O HUD usa a mesma superfície neutra do conteúdo e o acento âmbar da Programação. O Hub
+flutuante concentra a troca entre sistemas, evitando duplicar uma sidebar diferente em cada
+módulo.
 
 ### Tokens (por app, em `src/app/globals.css`)
 
@@ -97,12 +98,11 @@ build). A tipografia é a mesma da Programação (porta 3007) em todas as aplica
 
 **Money color:** todo `R$ ...` usa a classe `text-money` (alias de success).
 
-## 6. Sidebar sempre escura + colapsável
+## 6. HUD e navegação compartilhados
 
-Item ativo: fundo `sidebar-accent`, texto `sidebar-accent-foreground`, barra de 2px na cor
-`--primary` do app à esquerda do ícone — é o único lugar onde a cor de identidade do app
-aparece dentro da casca escura. Colapsado (64px): só ícones, com `title` fazendo de
-tooltip nativo.
+Item ativo: `bg-card`, texto `foreground` e `shadow-sm`; itens inativos usam `muted-foreground`
+e elevam a superfície no hover. Os componentes `hud-programacao.tsx` ficam em cada app para
+preservar builds independentes, com a mesma API visual e sem acoplar bancos ou permissões.
 
 ## 7. Feedback e carregamento (adaptado de HTMX para React)
 
@@ -125,10 +125,9 @@ Contraste AA mínimo · `:focus-visible` em todo interativo · labels associadas
 
 ## 9. Navegação
 
-Sidebar com no máximo 2 níveis. Labels PT-BR, ícones Lucide (`lucide-react`, já usado nos 5
-apps). Active link computado client-side via `usePathname()` (Next não tem o equivalente
-direto do "server-side active link" do sistema Go sem reescrever a navegação como Server
-Component puro — o custo de JS é desprezível, já é `'use client'`).
+HUD com no máximo 1 nível visível. Labels PT-BR, ícones Lucide (`lucide-react`, já usado nos
+apps). Active link computado client-side via `usePathname()`; o Hub flutuante mantém o acesso
+às outras aplicações com as permissões já existentes.
 
 ## 10. Ícones
 
@@ -137,8 +136,9 @@ padrão dos 5 apps). `stroke="currentColor"` herda cor do pai.
 
 ## 11. Responsividade
 
-Desktop-first. Mínimo: 1366×768, 1920×1080, 1024×768 (tablet grande). Em ≤720px sidebar
-vira drawer com backdrop, grids 2-col colapsam para 1-col. Mobile não é prioridade.
+Desktop-first. Mínimo: 1366×768, 1920×1080, 1024×768 (tablet grande). Em ≤720px o HUD
+quebra a navegação em uma faixa rolável, grids 2-col colapsam para 1-col e o Hub continua
+acessível no canto inferior direito.
 
 ## 12. Build (adaptado do pipeline Go para Next/Tailwind)
 
@@ -156,11 +156,10 @@ acento muda. Componentes de base (`Button`, `Badge`, `IconTile`) ficam em
 `src/components/ui/` em cada app, mesmo conteúdo replicado.
 
 **`migracao-go`** (Portal/Identidade + Painel de Locação + Almoxarifado, já unificados num
-único binário) implementa a mesma casca server-side, sem React/Tailwind: um único
+único binário) implementa o mesmo HUD server-side, sem React/Tailwind: um único
 `static/estilo.css` com os mesmos tokens (mesmos valores OKLCH), e a cor de acento troca por
 atributo `[data-modulo="identidade|painel|almoxarifado"]` em vez de por app/porta — decidido
 em `static/app.js` a partir de `location.pathname`, no mesmo script bloqueante que evita flash
-de tema. Sidebar/header/hub-flutuante ficam em `templates/layout/` (Templ); ícones são SVG do
+de tema. HUD/header/hub-flutuante ficam em `templates/layout/`/CSS (Templ); ícones são SVG do
 Lucide inlinados à mão (sem bundler). RH, Alojamentos e Frota continuam como processos Next.js
-separados até migrarem — o hub flutuante do Go linka pra eles via `cfg.URLRH`/
-`cfg.URLAlojamentos` (`internal/config/config.go`).
+separados, mas usam a mesma casca visual e o mesmo hub entre portas.

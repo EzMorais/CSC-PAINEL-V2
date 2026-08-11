@@ -1,7 +1,14 @@
-import { redirect } from 'next/navigation'
-import { lerSessao } from '@/lib/auth'
-import { Sidebar } from '@/components/layout/sidebar'
-import { HubNavegacao } from '@/components/layout/hub-navegacao'
+import { redirect } from "next/navigation";
+import {
+  LayoutDashboard,
+  Package,
+  Building2,
+  Truck,
+  Upload,
+} from "lucide-react";
+import { lerSessao } from "@/lib/auth";
+import { HudProgramacao } from "@/components/layout/hud-programacao";
+import { HubNavegacao } from "@/components/layout/hub-navegacao";
 
 /**
  * Porta de entrada de tudo que exige sessão.
@@ -14,17 +21,38 @@ import { HubNavegacao } from '@/components/layout/hub-navegacao'
  * para nenhum dos dois. Cada action chama `exigirSessao()` por conta própria, e as rotas
  * em `api/export/` também.
  */
-export default async function LayoutApp({ children }: { children: React.ReactNode }) {
-  const sessao = await lerSessao()
-  if (!sessao) redirect('/entrar')
+export default async function LayoutApp({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const sessao = await lerSessao();
+  if (!sessao) redirect("/entrar");
+
+  const itens = [
+    { href: "/", rotulo: "Dashboard", Icone: LayoutDashboard },
+    { href: "/locacoes", rotulo: "Locações", Icone: Package },
+    { href: "/obras", rotulo: "Obras", Icone: Building2 },
+    { href: "/fornecedores", rotulo: "Fornecedores", Icone: Truck },
+    { href: "/importar", rotulo: "Importar", Icone: Upload },
+  ];
 
   return (
-    // min-h-dvh no contêiner: sem ele o flex encolhe até o conteúdo e a
-    // borda direita da navegação para no meio da página.
-    <div className="min-h-dvh lg:flex">
-      <Sidebar usuario={{ nome: sessao.nome, email: sessao.email }} />
-      <main className="min-w-0 flex-1">{children}</main>
-      <HubNavegacao cargo={sessao.cargo} modulos={sessao.modulos} atual="PAINEL" />
+    <div className="min-h-dvh">
+      <HudProgramacao
+        usuario={{
+          nome: sessao.nome,
+          email: sessao.email,
+          cargo: sessao.cargo,
+        }}
+        itens={itens}
+      />
+      <main className="min-w-0">{children}</main>
+      <HubNavegacao
+        cargo={sessao.cargo}
+        modulos={sessao.modulos}
+        atual="PAINEL"
+      />
     </div>
-  )
+  );
 }

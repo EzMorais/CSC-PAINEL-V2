@@ -590,3 +590,90 @@ table tbody tr:hover { background: var(--accent); }
   --accent: oklch(0.29 0.014 260);
   --accent-foreground: oklch(0.95 0.005 260);
 }
+
+/* HUD da Programação diária aplicado também ao binário Go.
+   A marca continua sendo a primeira região, os módulos ficam em uma faixa navegável e o
+   Hub flutuante permanece como troca rápida entre sistemas. Em telas pequenas a mesma faixa
+   quebra/rola, em vez de virar um drawer visualmente diferente. */
+.barra-lateral {
+  position: sticky;
+  inset: auto;
+  top: 0;
+  width: 100%;
+  height: auto;
+  min-height: 4.5rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  overflow: visible;
+  background: color-mix(in oklch, var(--background) 92%, transparent);
+  color: var(--foreground);
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+.barra-lateral-topo { flex-shrink: 0; margin: 0; }
+.barra-lateral-topo .marca { color: var(--foreground); }
+.barra-lateral-topo .marca small { color: var(--muted-foreground); }
+.barra-lateral-secoes {
+  min-width: 0;
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  background: var(--muted);
+}
+.secao-nav { flex-direction: row; flex-shrink: 0; gap: 0.15rem; }
+.secao-titulo { display: none; }
+.item-nav,
+.item-nav.ativo {
+  border-left: 0;
+  border-radius: 0.6rem;
+  color: var(--muted-foreground);
+  padding: 0.55rem 0.75rem;
+}
+.item-nav:hover { background: var(--card); color: var(--foreground); }
+.item-nav.ativo { background: var(--card); color: var(--foreground); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); }
+.barra-lateral-rodape {
+  flex-shrink: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+.barra-lateral-rodape .usuario-info { display: none; }
+.barra-lateral-rodape .item-nav { width: auto; }
+.barra-lateral-rodape .item-nav .rotulo { display: none; }
+.barra-lateral.colapsada,
+#barra-lateral.colapsada { width: 100%; }
+.barra-lateral.colapsada .marca span,
+.barra-lateral.colapsada .secao-titulo,
+.barra-lateral.colapsada .rotulo,
+.barra-lateral.colapsada .usuario-info { display: revert; }
+.barra-lateral.colapsada .item-nav { justify-content: flex-start; padding: 0.55rem 0.75rem; }
+.barra-lateral.colapsada .barra-lateral-rodape .rotulo { display: none; }
+.area-principal,
+#barra-lateral.colapsada ~ .area-principal { margin-left: 0; }
+.cabecalho-mobile { display: none !important; }
+.fundo-menu { display: none !important; }
+
+@media (max-width: 720px) {
+  .barra-lateral {
+    position: sticky;
+    width: 100%;
+    min-height: 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+  }
+  .barra-lateral-topo { width: auto; }
+  .barra-lateral-secoes { order: 3; flex-basis: 100%; }
+  .barra-lateral-rodape { margin-left: auto; }
+  .barra-lateral .somente-mobile { display: none; }
+}
