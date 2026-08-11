@@ -9,10 +9,13 @@
 
 ## Resumo executivo
 
-> **Atualização de 2026-08-11 (mesmo dia, sessão seguinte):** o item P0-1 (controle de acesso
-> ausente em 4 módulos) e o P0-2 (migration `0010` duplicada) foram corrigidos — ver
-> "Resolvido" nas seções correspondentes abaixo. O texto original da auditoria foi mantido
-> para registro; o que mudou está marcado inline.
+> **Atualização de 2026-08-11 (mesmo dia, sessões seguintes):** P0-1 (controle de acesso
+> ausente em 4 módulos), P0-2 (migration `0010` duplicada), P1-4 (CI sem RH/Estoque no E2E e
+> só rodando em `main`) e P1-5 (`migracao-go` fora do `docker-compose.yml`) foram corrigidos
+> — ver "Resolvido" nas seções correspondentes abaixo. O texto original da auditoria foi
+> mantido para registro; o que mudou está marcado inline. Nota: durante essas sessões havia
+> outra sessão em paralelo mexendo em `templates/layout/*` (provável adoção do HUD do item
+> 3) e em RH/Compras — este arquivo não reflete esse trabalho, que segue não commitado.
 
 ~~O maior risco hoje não é falta de funcionalidade — é **controle de acesso**: Financeiro,
 Programação Diária e Compras checam se a pessoa tem o módulo liberado antes de servir a
@@ -120,24 +123,43 @@ Isso não é urgente do jeito que o item 1 é, mas é a próxima coisa que vai c
 quem usa o sistema todo dia — e quanto mais módulos o Go absorver sem esse ajuste, maior o
 retrabalho depois.
 
-### 4. CI cobre bem o Go, cobre pela metade os testes de referência que sustentam a migração
+### 4. CI cobre bem o Go, cobre pela metade os testes de referência que sustentam a migração — 🟡 Parcialmente resolvido em 2026-08-11
 
-`.github/workflows/ci.yml`: o job Go roda `gofmt -l .`, `go vet ./...` e `go test ./...` com
-cobertura — sólido. Os jobs Node descobrem os 8 apps automaticamente e rodam lint/typecheck/
-build. Mas o E2E/Playwright — que é literalmente o mecanismo que este projeto usa para provar
-"o Go faz o mesmo que o Next.js antes de desligar o Next.js" (README, seção "Como os testes de
-referência funcionam") — só roda pra **3 dos 8 apps** (Frota, Portal, Painel de Locação),
-mesmo RH, Estoque, Programação e Alojamentos tendo suítes `e2e/*.spec.ts` no repositório. E
-mesmo esses 3 só rodam em push pra `main` ou disparo manual — nunca em PR, então uma quebra só
-aparece depois de já estar em `main`. Some a isso que `docs/WORKFLOW_CI.md` admite que o
-workflow **nunca rodou de verdade num runner do GitHub** — é só testado localmente até agora.
+`.github/workflows/ci.yml` agora roda o E2E de **5 dos 8 apps** (Frota, Portal, Painel de
+Locação, RH, Almoxarifado — os dois últimos adicionados nesta sessão, `apps/rh` e
+`apps/estoque`, contra `playwright.go.config.ts`, validados localmente antes do commit: 65/65
+e 24/24), e o gatilho passou a incluir `pull_request` além de push pra `main` — uma quebra
+agora aparece antes do merge, não depois.
 
-### 5. `docker-compose.yml` não tem serviço nenhum pro binário Go
+Alojamentos e Programação Diária continuam de fora: nenhum dos dois tem suíte Playwright
+nenhuma no repositório ainda (`apps/alojamentos/e2e/` e `apps/programacao/e2e/` vazios) — não
+é configuração de CI que falta, é escrever a suíte inteira contra o binário Go, do zero.
 
-O compose sobe os 8 apps Next.js + nginx, mas não sobe `migracao-go` — apesar de ser,
-segundo o próprio README, "o núcleo do sistema" pro qual tudo está migrando. Hoje não existe
+`docs/WORKFLOW_CI.md` continua com a ressalva de que o workflow nunca rodou de verdade num
+runner do GitHub (só localmente e por leitura) — não dá pra confirmar isso a partir deste
+ambiente, que não tem acesso a disparar Actions.
+
+### 5. `docker-compose.yml` não tem serviço nenhum pro binário Go — ✅ Resolvido em 2026-08-11
+
+`migracao-go/Dockerfile` (multi-stage; `_templ.go` já vem versionado, então é `go build`
+comum) + serviço `migracao-go` no `docker-compose.yml` (porta 3010, mesma da convenção de
+dev) + bloco no `nginx/nginx.conf` no mesmo domínio dos outros 6 do grupo de SSO +
+`migracao-go/.env.production.example` + `docs/deploy.md` atualizado (tabela de endereços,
+passo do `AUTH_SECRET` compartilhado agora com 8 arquivos, firewall, backup). O binário
+continua convivendo com os Next.js equivalentes — isto só o deixa deployável junto, não
+desliga nenhum app Next.js. Não validado num VPS real (sem Docker neste ambiente); validado
+localmente: `go build` com os mesmos flags do Dockerfile (`CGO_ENABLED=0`) e
+`docker-compose.yml`/`nginx.conf` com sintaxe conferida.
+
+<details>
+<summary>Diagnóstico original (2026-08-11, antes da correção)</summary>
+
+O compose subia os 8 apps Next.js + nginx, mas não subia `migracao-go` — apesar de ser,
+segundo o próprio README, "o núcleo do sistema" pro qual tudo está migrando. Não existia
 um jeito documentado/scriptado de colocar o binário Go no ar junto do resto em produção; só
 `scripts/iniciar-projeto.ps1`, que é orquestração de desenvolvimento local, não deploy.
+
+</details>
 
 ### 6. Documentação principal atualizada em 2026-08-11
 
@@ -194,12 +216,16 @@ pequeno; não escala.
 3. Decidir (não necessariamente implementar já) se o binário Go adota o HUD superior novo ou
    se os apps Next.js voltam à sidebar — hoje o ERP tem os dois modelos coexistindo, e quanto
    mais tempo passar, mais módulos vão nascer no padrão "errado".
-4. Ligar Playwright de RH/Estoque/Programação/Alojamentos no CI, e mover E2E pra rodar em PR,
-   não só em `main`.
+4. ~~Ligar Playwright de RH/Estoque no CI, e mover E2E pra rodar em PR~~ — ✅ feito em
+   2026-08-11. Alojamentos/Programação ainda faltam, mas isso é escrever a suíte do zero
+   (ver item 4 acima), não configuração — fica como item novo, maior, mais abaixo.
 5. Manter os dois READMEs sincronizados com cada corte de legado.
-6. Adicionar `migracao-go` ao `docker-compose.yml` quando o deploy real for planejado.
+6. ~~Adicionar `migracao-go` ao `docker-compose.yml`~~ — ✅ feito em 2026-08-11 (não validado
+   num VPS real).
 7. Teste de handler completo (além do gate de acesso, já coberto) + paginação entram como
    trabalho de fundo, não bloqueiam nada imediato.
+8. Escrever a suíte Playwright de referência de Alojamentos e Programação Diária contra o
+   Go, do zero — só depois disso os dois entram no CI (item 4).
 
 Itens específicos de Financeiro (perfis de tesouraria, conciliação bancária, rateio/categoria)
 e Compras (casca visual, devolução sem estorno, contrato recorrente sem job) continuam
