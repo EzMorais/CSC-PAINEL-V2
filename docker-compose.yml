@@ -1,13 +1,14 @@
 # Orquestra as 9 aplicações num único VPS. Ver DEPLOY.md na raiz do repositório para o
 # roteiro completo (DNS, .env de cada app, HTTPS, comandos).
 #
-# Por que o Painel, RH, Almoxarifado, Programação, Alojamentos, Portal e o binário Go não
-# ganham cada um uma URL bonita: o login único (SSO) deles funciona por COOKIE, e cookie sem
-# domínio explícito vale para o mesmo HOST, em qualquer porta — mas não atravessa hosts
+# Por que o Painel, RH, Almoxarifado, Programação, Alojamentos, Portal, Frota e o binário Go
+# não ganham cada um uma URL bonita: o login único (SSO) deles funciona por COOKIE, e cookie
+# sem domínio explícito vale para o mesmo HOST, em qualquer porta — mas não atravessa hosts
 # diferentes. Colocar cada um num subdomínio quebraria o "loga uma vez, circula em todos".
 # Por isso continuam no mesmo domínio, diferenciados por porta, exatamente como em
-# desenvolvimento. Frota e WhatsApp são sistemas à parte (login próprio / sem UI pública) e
-# não têm essa restrição.
+# desenvolvimento. Frota entrou nesse grupo em 2026-08-11 (antes tinha login e AUTH_SECRET
+# próprios, subdomínio à parte — ver ERP_BRIEFING_MELHORIA.md). WhatsApp continua de fora
+# (sem UI pública, não tem tela de login nenhuma).
 #
 # "migracao-go" convive com os 6 apps Next.js do grupo de SSO (Strangler Fig — ver
 # migracao-go/README.md): já serve Portal/Painel/Almoxarifado/RH/Alojamentos/Compras/
@@ -97,6 +98,7 @@ services:
       context: ./apps/programacao
       args:
         NEXT_PUBLIC_URL_PORTAL: ${NEXT_PUBLIC_URL_PORTAL}
+        NEXT_PUBLIC_URL_CADASTROS: ${NEXT_PUBLIC_URL_CADASTROS}
         NEXT_PUBLIC_URL_PAINEL: ${NEXT_PUBLIC_URL_PAINEL}
         NEXT_PUBLIC_URL_RH: ${NEXT_PUBLIC_URL_RH}
         NEXT_PUBLIC_URL_ESTOQUE: ${NEXT_PUBLIC_URL_ESTOQUE}
@@ -141,9 +143,14 @@ services:
     depends_on: [portal, painel-locacao, rh, estoque, alojamentos, frota]
     networks: [csc]
 
+  # Frota entrou no grupo de login único em 2026-08-11 (antes tinha AUTH_SECRET e tela de
+  # login próprios) — por isso ganhou o mesmo bloco "args" dos outros 6: precisa saber onde
+  # fica o Portal (NEXT_PUBLIC_URL_PORTAL) já no build, mesmo motivo do comentário lá em cima.
   frota:
     build:
       context: ./apps/frota
+      args:
+        NEXT_PUBLIC_URL_PORTAL: ${NEXT_PUBLIC_URL_PORTAL}
     env_file: ./apps/frota/.env.production
     volumes:
       - frota_dados:/app/dados
@@ -178,9 +185,9 @@ services:
       - "3003:3003"
       - "3004:3004"
       - "3005:3005"
+      - "3006:3006"
       - "3007:3007"
       - "3010:3010"
-      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certbot/conf:/etc/letsencrypt

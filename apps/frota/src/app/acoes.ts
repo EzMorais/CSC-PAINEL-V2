@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { eq, desc } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -10,7 +9,7 @@ import {
   db, veiculos, manutencoes, abastecimentos, veiculosAutorizados,
   trocasMotorista, anexos,
 } from '@/db';
-import { autenticar, criarSessao, encerrarSessao, exigirSessao } from '@/lib/auth';
+import { exigirSessao } from '@/lib/auth';
 
 const num = (v: FormDataEntryValue | null) => {
   if (v === null) return 0;
@@ -19,24 +18,6 @@ const num = (v: FormDataEntryValue | null) => {
 };
 const int = (v: FormDataEntryValue | null) => Math.round(num(v));
 const txt = (v: FormDataEntryValue | null) => String(v ?? '').trim();
-
-// ── sessão ────────────────────────────────────────────────────────────────────
-export async function entrar(_estado: unknown, fd: FormData) {
-  const email = txt(fd.get('email'));
-  const senha = String(fd.get('senha') ?? '');
-  if (!email || !senha) return { erro: 'Informe e-mail e senha.' };
-
-  const s = await autenticar(email, senha);
-  if (!s) return { erro: 'E-mail ou senha não conferem.' };
-
-  await criarSessao(s);
-  redirect('/veiculos');
-}
-
-export async function sair() {
-  await encerrarSessao();
-  redirect('/entrar');
-}
 
 // ── veículos ──────────────────────────────────────────────────────────────────
 export async function salvarVeiculo(fd: FormData) {

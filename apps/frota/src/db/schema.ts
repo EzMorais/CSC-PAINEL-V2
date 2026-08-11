@@ -1,5 +1,9 @@
 import { sqliteTable, integer, text, real, index } from 'drizzle-orm/sqlite-core';
 
+/**
+ * Não é mais consultada pelo login (integração ao SSO do Portal, 2026-08-11 — ver
+ * `src/lib/auth.ts`). Mantida sem migração de remoção por segurança; não insira nada aqui.
+ */
 export const usuarios = sqliteTable('usuarios', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   nome: text('nome').notNull(),

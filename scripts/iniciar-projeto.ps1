@@ -9,7 +9,6 @@
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 $segredoAuth = if ($env:AUTH_SECRET -and $env:AUTH_SECRET.Length -ge 32) { $env:AUTH_SECRET } else { 'bk/f+v0L7piz5YNU1j0k7AFVLfWeQ5m/ca02em7LpdjiuJQmegE9mKSZ8fwJOnia' }
-$segredoFrota = if ($env:FROTA_AUTH_SECRET -and $env:FROTA_AUTH_SECRET.Length -ge 32) { $env:FROTA_AUTH_SECRET } else { 'frota-preview-2026-0123456789-abcdef' }
 
 function Test-PortaOcupada($porta) {
     $null -ne (Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue)
@@ -75,11 +74,12 @@ function Iniciar-AppNode($app) {
         "[Environment]::SetEnvironmentVariable('DATABASE_URL','$($app.banco)','Process')",
         "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PORTAL','http://localhost:3010','Process')",
         "[Environment]::SetEnvironmentVariable('URL_PORTAL','http://localhost:3010','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PROGRAMACAO','http://localhost:3007','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PAINEL','http://localhost:3001','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_RH','http://localhost:3002','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ESTOQUE','http://localhost:3003','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ALOJAMENTOS','http://localhost:3005','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PROGRAMACAO','http://localhost:3007','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_CADASTROS','http://localhost:3004/cadastros','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PAINEL','http://localhost:3010/painel','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_RH','http://localhost:3010/rh','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ESTOQUE','http://localhost:3010/almoxarifado','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ALOJAMENTOS','http://localhost:3010/alojamentos','Process')",
         "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_FROTA','http://localhost:3000','Process')"
     )
     if ($app.extraEnv) {
@@ -199,7 +199,7 @@ $bancoPreview = {
 
 $apps = @(
     @{ nome = 'Portal';            pasta = 'portal';          porta = 3004; banco = (&$bancoPreview 'portal');        comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'Frota';             pasta = 'frota';            porta = 3000; banco = 'file:./frota-preview.db';       comando = 'npm run dev -- -p 3000'; extraEnv = @{ AUTH_SECRET = $segredoFrota; PORT = '3000' } },
+    @{ nome = 'Frota';             pasta = 'frota';            porta = 3000; banco = 'file:./frota-preview.db';       comando = 'npm run dev -- -p 3000'; extraEnv = @{ PORT = '3000' } },
     @{ nome = 'Painel de Locacao'; pasta = 'painel-locacao';   porta = 3001; banco = (&$bancoPreview 'painel-locacao'); comando = 'npm run dev -- -p 3001'; extraEnv = @{} },
     @{ nome = 'RH e SST';          pasta = 'rh';                porta = 3002; banco = (&$bancoPreview 'rh');           comando = 'npm run dev'; extraEnv = @{} },
     @{ nome = 'Almoxarifado';      pasta = 'estoque';           porta = 3003; banco = (&$bancoPreview 'estoque');      comando = 'npm run dev'; extraEnv = @{} },

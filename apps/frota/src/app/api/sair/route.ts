@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { encerrarSessao } from '@/lib/auth';
+import { encerrarSessao, urlDeLogin } from '@/lib/auth';
 
-export async function POST(req: Request) {
+/**
+ * Sair encerra a sessão de TODOS os módulos, não só deste — mesmo cookie compartilhado.
+ * Ver `apps/rh/src/actions/auth.ts` para o mesmo padrão.
+ */
+export async function POST() {
   await encerrarSessao();
-  return NextResponse.redirect(new URL('/entrar', req.url), { status: 303 });
+  return NextResponse.redirect(urlDeLogin('/'), { status: 303 });
 }

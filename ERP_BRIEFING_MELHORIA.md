@@ -195,11 +195,12 @@ pequeno; não escala.
 
 ## P2 — observações menores, não bloqueiam nada hoje
 
-- **Segredos de desenvolvimento hardcoded**: `scripts/iniciar-projeto.ps1` tem dois fallbacks
-  fixos (`AUTH_SECRET` na linha 11, `FROTA_AUTH_SECRET` na linha 12). Não são segredos de
-  produção vazados — são valores de conveniência pra rodar local sem `.env` — mas merecem um
-  comentário deixando isso explícito, porque um valor fixo em texto puro sempre levanta
-  suspeita numa auditoria rápida.
+- **Segredos de desenvolvimento hardcoded**: `scripts/iniciar-projeto.ps1` tem um fallback
+  fixo (`AUTH_SECRET`). Não é segredo de produção vazado — é valor de conveniência pra rodar
+  local sem `.env` — mas merece um comentário deixando isso explícito, porque um valor fixo
+  em texto puro sempre levanta suspeita numa auditoria rápida. (O `FROTA_AUTH_SECRET`
+  separado que existia aqui foi removido em 2026-08-11, quando o Frota entrou pro grupo de
+  SSO — agora usa o mesmo `$segredoAuth` de todo mundo.)
 - **Credencial padrão do seed** (`admin@siqueiracampos.com.br` / `locacao2026`) está
   documentada em texto puro em vários lugares (`docs/deploy.md`, `cmd/seed/main.go`, scripts de
   e2e). Esperado pra um seed de desenvolvimento — só reforça que trocar essa senha é passo

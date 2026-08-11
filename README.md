@@ -11,6 +11,54 @@ Almoxarifado e Alojamentos num **banco SQLite único** com tabelas compartilhada
 
 ---
 
+## Estado em 2026-08-11 — para continuar de outra máquina
+
+Duas frentes de trabalho fecharam nesta data (commits mais recentes em `git log`, cada um
+com a lista completa de arquivos):
+
+**Segurança e infraestrutura do binário Go** (`a42b798`…`1c33bf5`…`4d1390c`):
+- **Corrigido um P0 real**: Painel, Almoxarifado, RH e Alojamentos em Go só exigiam sessão
+  válida, sem checar se o Portal tinha liberado aquele módulo pra pessoa — qualquer usuário
+  logado lia módulos inteiros que não eram dele. Os 4 handlers ganharam o mesmo gate de
+  `identidade.TemAcesso` que Financeiro/Programação/Compras já usavam, com teste de
+  regressão por módulo.
+- Migration `0010_programacao.sql` renomeada pra `0011` (colidia de prefixo com
+  `0010_financeiro_controles.sql`).
+- CI (`.github/workflows/ci.yml`) passou a rodar o E2E de RH e Almoxarifado contra o binário
+  Go (antes só Frota/Portal/Painel), e o job de E2E passou a rodar em `pull_request`, não só
+  em push pra `main`.
+- `migracao-go` ganhou `Dockerfile`, entrou no `docker-compose.yml` (porta 3010) e no
+  `nginx/nginx.conf` — antes não tinha jeito de colocar o binário no ar em produção.
+- Detalhe completo e o que ainda falta: [`ERP_BRIEFING_MELHORIA.md`](ERP_BRIEFING_MELHORIA.md).
+
+**Frota entrou no grupo de login único (SSO)** — mudança maior, feita por último:
+- Antes: login e `AUTH_SECRET` próprios, tabela de usuários separada (Drizzle), subdomínio
+  `frota.SEUDOMINIO.com.br:443`.
+- Depois: sem login nem tabela de usuários própria — `apps/frota/src/lib/auth.ts` só lê o
+  mesmo cookie `locacao_sessao` que RH/Painel/Almoxarifado leem. O papel dela lá dentro
+  (ADMIN/OPERADOR) é derivado do cargo do Portal (ADMIN/DIRETORIA → ADMIN, resto →
+  OPERADOR), **exige o módulo Frota liberado pra pessoa no Portal**. Em produção, saiu do
+  subdomínio próprio e entrou no grupo `sistemas.SEUDOMINIO.com.br`, porta **3006**.
+  Decisão registrada: o Frota não precisa mais funcionar instalado sozinho, sempre sobe
+  junto do resto do ERP.
+- Build e `tsc --noEmit` do `apps/frota` validados localmente; **não testado ainda contra um
+  Portal rodando de verdade** (login real de ponta a ponta) nem contra um VPS.
+
+**Trabalho de outra sessão, já commitado** (`316ea13`, não detalhado aqui — ver a própria
+mensagem do commit): dashboards de Painel/Almoxarifado/RH/Alojamentos padronizados, Compras
+incorporado ao layout compartilhado, cadastro de funcionários e ficha de cargos completos,
+importadores de inventário e programação, `docs/BRIEFING_ERP_CONSTRUTORA.md` e
+`docs/REVISAO_SETORES_E_DADOS_ERP.md` novos.
+
+**Para continuar em outra máquina**: `git pull`, depois `apps/frota/.env` precisa do mesmo
+`AUTH_SECRET` que `apps/portal/.env` (copie, como os outros módulos — ver "Rodar localmente"
+abaixo) e de `NEXT_PUBLIC_URL_PORTAL` apontando pro Portal/binário Go. Sem isso o Frota some
+com a sessão de todo mundo, não só do login antigo dele. O primeiro teste manual completo
+(entrar pelo Portal → navegar até o Frota sem pedir login de novo) ainda não foi feito e é o
+próximo passo natural.
+
+---
+
 ## O ERP em uma página
 
 | Sistema | Módulo | Porta | Para que serve |
@@ -21,9 +69,9 @@ Almoxarifado e Alojamentos num **banco SQLite único** com tabelas compartilhada
 | [`apps/estoque`](apps/estoque) | **Almoxarifado** | 3003 | Materiais, saldos por obra, compras e EPIs |
 | [`apps/programacao`](apps/programacao) | **Programação Diária** | 3007 | Escala diária de equipes, veículos e máquinas por frente |
 | [`apps/alojamentos`](apps/alojamentos) | **Alojamentos** | 3005 | Gestão de moradores e pedidos de alojamento |
-| [`apps/frota`](apps/frota) | **Frota** | 3000 (web) | Veículos, manutenções e abastecimento (login próprio) |
+| [`apps/frota`](apps/frota) | **Frota** | 3000 (web) | Veículos, manutenções e abastecimento — no SSO desde 2026-08-11 |
 | [`apps/whatsapp`](apps/whatsapp) | **WhatsApp** | 3006 | Integração: pedidos do Alojamento via WhatsApp (sem tela) |
-| [`migracao-go`](migracao-go) | **Migração Go** | 9000 (binário único) | Núcleo do ERP em Go: Portal, Painel, Almoxarifado, RH, Alojamentos, Compras, Financeiro e Programação |
+| [`migracao-go`](migracao-go) | **Migração Go** | 3010 (binário único) | Núcleo do ERP em Go: Portal, Painel, Almoxarifado, RH, Alojamentos, Compras, Financeiro e Programação |
 
 > O **Painel de Locação** migrado para Go responde em `/painel` no binário único; o app
 > Next.js original segue na porta 3000 enquanto a migração não é concluída.
@@ -70,8 +118,10 @@ Detalhes completos em [`migracao-go/README.md`](migracao-go/README.md) e
 ### Login único (SSO)
 
 **Comece pelo Portal.** É ele que tem a tela de login e o cadastro de usuários; os outros
-módulos leem o crachá de sessão que o Portal assina. Entrando uma vez, a pessoa circula por
-todos.
+módulos — inclusive o Frota, desde 2026-08-11 — leem o crachá de sessão que o Portal assina.
+Entrando uma vez, a pessoa circula por todos. Frota é o único do grupo sem cargo próprio: o
+papel que ele mostra (ADMIN/OPERADOR) é derivado do cargo do Portal na hora de ler a sessão,
+não guardado em lugar nenhum.
 
 Enquanto o Go convive com os apps Next.js, a sessão usa **cookie assinado com o mesmo
 `AUTH_SECRET`** em todos os `.env`. Quando a migração terminar, a sessão passa a ser do
@@ -176,8 +226,10 @@ Integração opcional com Google Maps para autocompletar endereço de obra.
 ### Frota — veículos, manutenções e abastecimento
 Hodômetro de revisão, manutenções com foto/PDF, abastecimento à mão ou CSV do posto,
 alertas e exportação da **planilha da diretoria** no formato exato já recebido — com abas
-extras de abastecimento e dashboard. Login próprio, fora do SSO. Usa `node:sqlite` nativo
-(adaptador `vendor/better-sqlite3`), sem módulos nativos.
+extras de abastecimento e dashboard. Entrou pro SSO em 2026-08-11 (antes tinha login e
+`AUTH_SECRET` próprios): não tem mais conta de usuário separada, o papel de cada pessoa
+(ADMIN/OPERADOR) vem do cargo dela no Portal, e o módulo Frota precisa estar liberado pra
+ela lá. Usa `node:sqlite` nativo (adaptador `vendor/better-sqlite3`), sem módulos nativos.
 
 ### WhatsApp — serviço de integração
 Sem tela. Conecta o número corporativo como dispositivo vinculado (Baileys) e repassa
@@ -198,10 +250,11 @@ responde a quem escreveu primeiro, só avisa quem tem pedido em aberto, espaça 
   por app (Portal azul, Locação índigo, RH verde-azulado, Almoxarifado terracota, Alojamentos
   âmbar), sidebar sempre escura e colapsável, Inter + JetBrains Mono, sem glow/glassmorphism/
   gradientes exagerados.
-- **Deploy** (em [`docs/deploy.md`](docs/deploy.md)): Docker Compose com 8 serviços + nginx
+- **Deploy** (em [`docs/deploy.md`](docs/deploy.md)): Docker Compose com 9 serviços + nginx
   em HTTPS (Let's Encrypt com renovação automática), bancos em volumes que sobrevivem a
-  rebuilds. Os 6 módulos do SSO no mesmo domínio por portas (`sistemas.SEUDOMINIO:3000`,
-  `:3002`, `:3003`, `:3004`, `:3005`, `:3007`); Frota em `frota.SEUDOMINIO` (login próprio).
+  rebuilds. Os 8 sistemas do SSO (inclusive Frota, desde 2026-08-11, e o binário Go) no
+  mesmo domínio por portas (`sistemas.SEUDOMINIO:3000`, `:3002`, `:3003`, `:3004`, `:3005`,
+  `:3006`, `:3007`, `:3010`).
 
 ---
 
@@ -234,10 +287,12 @@ npm run db:seed
 npm run dev
 ```
 
-A Frota tem instaladores prontos (`apps/frota/instalar.bat` e `iniciar.bat`), login próprio
-(`frota2026`). O WhatsApp exige pareamento por QR code. A migração Go roda com
-`go run ./cmd/servidor` dentro de `migracao-go` — o roteiro de cada módulo está em
-[`migracao-go/README.md`](migracao-go/README.md).
+A Frota entrou pro SSO em 2026-08-11 — copie o `.env` do Portal como os outros módulos
+(`AUTH_SECRET` compartilhado) e rode `npm install && npm run dev -- -p 3000`; não tem mais
+login nem `npm run seed` de usuário próprios (os instaladores `.bat` em `apps/frota/` são da
+época em que rodava isolado — ver `apps/frota/README.md`). O WhatsApp exige pareamento por QR
+code. A migração Go roda com `go run ./cmd/servidor` dentro de `migracao-go` — o roteiro de
+cada módulo está em [`migracao-go/README.md`](migracao-go/README.md).
 
 Passo a passo completo, guia de primeiros passos e problemas comuns estão no repositório
 principal ([CSC-PAINEL](https://github.com/EzMorais/CSC-PAINEL)), que mantém a documentação

@@ -1,6 +1,6 @@
 # Deploy em produção (VPS)
 
-Roteiro para colocar as 8 aplicações no ar num servidor (VPS) com Docker, atrás de um
+Roteiro para colocar as 9 aplicações no ar num servidor (VPS) com Docker, atrás de um
 domínio próprio e HTTPS. Assume um VPS **Linux** (Ubuntu ou Debian — os comandos abaixo são
 para esses dois; noutra distro os passos de instalação do Docker mudam, o resto é igual) e
 que você já tem acesso SSH a ele.
@@ -13,16 +13,23 @@ verdade, num servidor, para todo mundo acessar pela internet.
 
 ## Antes de começar: como as peças se encaixam
 
-O repositório tem 9 aplicações (8 Next.js + o binário único em Go, `migracao-go`). Sete
+O repositório tem 9 aplicações (8 Next.js + o binário único em Go, `migracao-go`). Oito
 delas dividem um **login único**: entrar no Portal deixa a pessoa já autenticada no Painel
-de Locação, RH, Almoxarifado, Programação, Alojamentos e no próprio binário Go. Isso
+de Locação, RH, Almoxarifado, Programação, Alojamentos, Frota e no próprio binário Go. Isso
 funciona por causa de um cookie de sessão que o Portal emite e os outros conferem — e
 **cookie sem domínio explícito vale para o mesmo host, em qualquer porta, mas não atravessa
-hosts diferentes**. Por isso, ao contrário do que se poderia imaginar, esses sete sistemas
+hosts diferentes**. Por isso, ao contrário do que se poderia imaginar, esses oito sistemas
 **não** ganham cada um um subdomínio bonito (`rh.suaempresa.com`, `estoque.suaempresa.com`...)
 — eles continuam no mesmo domínio, diferenciados por porta, exatamente como quando você roda
 tudo em `localhost` no seu computador. Trocar isso por subdomínios separados quebraria o
 "loga uma vez, circula em todos".
+
+Frota entrou nesse grupo em 2026-08-11 — antes tinha login, `AUTH_SECRET` e subdomínio
+próprios (decisão revertida porque, na prática, o Frota sempre roda junto com o resto do ERP
+neste projeto; não é mais vendido/instalado separado). O papel de cada pessoa lá dentro
+(ADMIN ou OPERADOR) agora vem do cargo dela no Portal — ADMIN/DIRETORIA viram ADMIN, o resto
+vira OPERADOR, desde que o módulo Frota esteja liberado pra pessoa no Portal. Não existe mais
+conta de usuário própria do Frota.
 
 | Sistema | Endereço em produção |
 |---|---|
@@ -30,10 +37,10 @@ tudo em `localhost` no seu computador. Trocar isso por subdomínios separados qu
 | Painel de Locação | `https://sistemas.SEUDOMINIO.com.br:3000` |
 | RH | `https://sistemas.SEUDOMINIO.com.br:3002` |
 | Almoxarifado | `https://sistemas.SEUDOMINIO.com.br:3003` |
+| Frota | `https://sistemas.SEUDOMINIO.com.br:3006` |
 | Programação | `https://sistemas.SEUDOMINIO.com.br:3007` |
 | Alojamentos | `https://sistemas.SEUDOMINIO.com.br:3005` |
 | Binário Go (`migracao-go`) | `https://sistemas.SEUDOMINIO.com.br:3010` |
-| Frota | `https://frota.SEUDOMINIO.com.br` (login próprio, sem essa restrição) |
 | WhatsApp | não tem tela — roda por dentro, os Alojamentos conversam com ele |
 
 `migracao-go` **convive** com os apps Next.js acima em vez de substituí-los — é o Strangler
@@ -53,23 +60,21 @@ recebe tudo em HTTPS e encaminha para o contêiner certo.
 ## Passo 1 — Domínio e DNS
 
 Você precisa de um domínio (`SEUDOMINIO.com.br`, ou o que já tiver). No painel do seu
-provedor de domínio, crie **dois registros A** apontando para o IP do VPS:
+provedor de domínio, crie **um registro A** apontando para o IP do VPS:
 
 | Tipo | Nome | Valor |
 |---|---|---|
 | A | `sistemas` | `IP_DO_SEU_VPS` |
-| A | `frota` | `IP_DO_SEU_VPS` |
 
 Propagação costuma levar de alguns minutos a algumas horas. Para conferir, de qualquer
 computador:
 
 ```bash
 ping sistemas.SEUDOMINIO.com.br
-ping frota.SEUDOMINIO.com.br
 ```
 
-Os dois precisam responder com o IP do VPS antes de seguir para o Passo 6 (o certificado
-HTTPS só sai se o domínio já estiver apontando certo).
+Precisa responder com o IP do VPS antes de seguir para o Passo 6 (o certificado HTTPS só
+sai se o domínio já estiver apontando certo).
 
 ---
 
@@ -149,15 +154,15 @@ cp migracao-go/.env.production.example migracao-go/.env.production
 
 ### 5.2 — O segredo compartilhado (login único)
 
-Portal, Painel de Locação, RH, Almoxarifado, Programação, Alojamentos, WhatsApp e o binário
-Go (`migracao-go`) precisam do **mesmo** `AUTH_SECRET`. Gere um valor:
+Portal, Painel de Locação, RH, Almoxarifado, Programação, Alojamentos, Frota, WhatsApp e o
+binário Go (`migracao-go`) precisam do **mesmo** `AUTH_SECRET`. Gere um valor:
 
 ```bash
 openssl rand -base64 48
 ```
 
-Cole o resultado no lugar de `COLOQUE_O_SEGREDO_COMPARTILHADO_DOS_6_SISTEMAS_AQUI` nos 8
-arquivos:
+Cole o resultado no lugar de `COLOQUE_O_SEGREDO_COMPARTILHADO_DOS_6_SISTEMAS_AQUI` (ou
+`COLOQUE_O_SEGREDO_COMPARTILHADO_AQUI`, no caso do Frota) nos 9 arquivos:
 
 ```bash
 apps/portal/.env.production
@@ -166,6 +171,7 @@ apps/rh/.env.production
 apps/estoque/.env.production
 apps/programacao/.env.production
 apps/alojamentos/.env.production
+apps/frota/.env.production
 apps/whatsapp/.env.production
 migracao-go/.env.production
 ```
@@ -176,17 +182,12 @@ migracao-go/.env.production
 > pessoa simplesmente é jogada de volta pro login ao entrar naquele sistema, o que é confuso
 > de diagnosticar. Se isso acontecer depois do deploy, confira primeiro se todos os
 > `AUTH_SECRET` são byte-a-byte iguais.
+>
+> O Frota teve segredo e login próprios até 2026-08-11 — se você está atualizando um deploy
+> antigo, vale conferir se sobrou algum `AUTH_SECRET` ou `SENHA_ADMIN` desatualizado em
+> `apps/frota/.env.production`.
 
-### 5.3 — O segredo do Frota (separado, não reaproveite o de cima)
-
-```bash
-openssl rand -base64 48
-```
-
-Cole em `apps/frota/.env.production`, no lugar de `COLOQUE_UM_SEGREDO_SO_DO_FROTA_AQUI`.
-Aproveite e defina a senha do admin do Frota no mesmo arquivo (`SENHA_ADMIN`).
-
-### 5.4 — Chave do Google Maps (Alojamentos, opcional)
+### 5.3 — Chave do Google Maps (Alojamentos, opcional)
 
 Usada para autocompletar endereço no cadastro de obras. Sem uma chave válida, o resto do
 sistema funciona normalmente — só esse autocompletar que não aparece. Gere uma em
@@ -206,12 +207,12 @@ mesmo de chegar no servidor):
 
 ```bash
 sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
 sudo ufw allow 3000/tcp
 sudo ufw allow 3002/tcp
 sudo ufw allow 3003/tcp
 sudo ufw allow 3004/tcp
 sudo ufw allow 3005/tcp
+sudo ufw allow 3006/tcp
 sudo ufw allow 3007/tcp
 sudo ufw allow 3010/tcp
 sudo ufw enable
@@ -233,12 +234,12 @@ docker run -d --name nginx-bootstrap \
   -v "$(pwd)/nginx/certbot/www:/var/www/certbot" \
   nginx:1.27-alpine
 
-# 2. Pede o certificado (troque o e-mail; cobre os dois domínios de uma vez)
+# 2. Pede o certificado (troque o e-mail)
 docker run --rm \
   -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" \
   -v "$(pwd)/nginx/certbot/www:/var/www/certbot" \
   certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d sistemas.suaempresa.com.br -d frota.suaempresa.com.br \
+  -d sistemas.suaempresa.com.br \
   --email seu-email@exemplo.com --agree-tos --no-eff-email
 
 # 3. Derruba o nginx temporário — o de verdade sobe no próximo passo
@@ -268,10 +269,8 @@ Quando os logs pararem de rolar coisas em vermelho, teste:
 - `https://sistemas.suaempresa.com.br:3004` → tela de login do Portal
 - Entre com `admin@siqueiracampos.com.br` / `locacao2026`
 - Clique nos ícones do hub de navegação (canto da tela) e confira se entra direto nos
-  outros sistemas, sem pedir login de novo
+  outros sistemas, inclusive o Frota (`:3006`), sem pedir login de novo
 - `https://sistemas.suaempresa.com.br:3010` → mesma sessão, hub servido pelo binário Go
-- `https://frota.suaempresa.com.br` → login separado, `admin@siqueiracampos.com.br` / a
-  senha que você definiu em `SENHA_ADMIN`
 
 O primeiro boot de cada sistema roda sozinho as migrações do banco e cria os dados de
 exemplo (contas de teste, veículos de exemplo etc. — apague-os pelas telas de cada sistema
@@ -349,10 +348,17 @@ Mesma causa do item acima — os dois fazem parte do mesmo grupo e usam o mesmo
 `AUTH_SECRET`.
 
 **Alojamentos não consegue mandar mensagem no WhatsApp**
-O `AUTH_SECRET` do `apps/whatsapp/.env.production` também precisa ser igual ao dos outros 6
-— é ele que assina o pedido entre os dois sistemas. Depois de corrigir, `docker compose
-restart whatsapp alojamentos`. Para conectar o número pela primeira vez, veja o QR code nos
-logs: `docker compose logs -f whatsapp`.
+O `AUTH_SECRET` do `apps/whatsapp/.env.production` também precisa ser igual ao dos outros
+sistemas do grupo — é ele que assina o pedido entre os dois sistemas. Depois de corrigir,
+`docker compose restart whatsapp alojamentos`. Para conectar o número pela primeira vez, veja
+o QR code nos logs: `docker compose logs -f whatsapp`.
+
+**Entrei no Portal mas o Frota pede pra entrar de novo**
+Confira se `apps/frota/.env.production` tem o mesmo `AUTH_SECRET` dos outros (Passo 5.2) e se
+o build pegou `NEXT_PUBLIC_URL_PORTAL` certo (o Frota precisa do `args` no
+`docker-compose.yml`, igual aos outros 6 — se você copiou o serviço de uma versão antiga do
+compose, confira se esse bloco existe). Se o Frota já tinha uma conta local antes de
+2026-08-11, ela deixou de valer — o acesso agora vem do cargo/módulo da pessoa no Portal.
 
 **`docker compose up -d --build` falha com erro do Prisma**
 Normalmente falta de memória do VPS durante a compilação (o `next build` de 6 apps ao mesmo

@@ -1,7 +1,6 @@
 import 'dotenv/config';
-import bcrypt from 'bcryptjs';
 import { db } from './conexao';
-import { veiculos, manutencoes, usuarios } from './schema';
+import { veiculos, manutencoes } from './schema';
 import dados from './dados-iniciais.json';
 
 type VeiculoJson = {
@@ -24,16 +23,6 @@ async function main() {
     console.log(`Banco já tem ${jaTem.length} veículos. Nada a fazer.`);
     return;
   }
-
-  const senha = process.env.SENHA_ADMIN || 'frota2026';
-  db.insert(usuarios).values({
-    nome: 'Administrador',
-    email: 'admin@siqueiracampos.com.br',
-    senhaHash: bcrypt.hashSync(senha, 10),
-    papel: 'ADMIN',
-    ativo: true,
-    criadoEm: new Date(),
-  }).run();
 
   const vs = dados.veiculos as VeiculoJson[];
   const inseridos = new Map<string, number>();
@@ -83,7 +72,6 @@ async function main() {
   }
 
   console.log(`OK — ${vs.length} veículos, ${ms.length} manutenções.`);
-  console.log(`Login: admin@siqueiracampos.com.br  |  Senha: ${senha}`);
 }
 
 main();
