@@ -32,7 +32,7 @@ export function BotaoTema({ className = '' }: { className?: string }) {
       onClick={() => setTheme(escuro ? 'light' : 'dark')}
       aria-label={escuro ? 'Usar tema claro' : 'Usar tema escuro'}
       data-testid="tema"
-      className={`grid size-9 place-items-center rounded-md border border-concreto-300 text-grafite-600 transition-colors hover:bg-concreto-100 hover:text-grafite ${className}`}
+      className={`grid size-9 place-items-center rounded-sm border-2 border-concreto-300 bg-superficie text-grafite-600 transition-all hover:-translate-y-0.5 hover:bg-concreto-100 hover:text-grafite ${className}`}
     >
       {montado ? (
         escuro ? <Sun size={16} strokeWidth={1.75} /> : <Moon size={16} strokeWidth={1.75} />

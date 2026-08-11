@@ -8,14 +8,9 @@ type Props = {
   compacto?: boolean;
 };
 
-/**
- * Hodômetro de revisão — régua da última revisão até a próxima, com agulha na
- * posição atual. É o dado mais operacional da frota: mostra de relance quanto
- * falta para a máquina parar para manutenção.
- */
 export function Hodometro({ kmRevisao, kmAtual, kmProxima, compacto }: Props) {
   if (!kmProxima) {
-    return <span className="dado text-xs text-grafite-600/60">sem revisão programada</span>;
+    return <span className="dado text-xs text-grafite-600/60">sem revisao programada</span>;
   }
 
   const intervalo = kmProxima - kmRevisao;
@@ -30,16 +25,14 @@ export function Hodometro({ kmRevisao, kmAtual, kmProxima, compacto }: Props) {
 
   return (
     <div className={clsx('w-full', compacto ? 'space-y-1' : 'space-y-1.5')}>
-      {/* régua */}
-      <div className={clsx('relative h-1.5 w-full rounded-full', corTrilho)}>
+      <div className={clsx('relative h-2 w-full rounded-sm border border-black/10', corTrilho)}>
         <div
-          className={clsx('h-full rounded-full transition-[width] duration-500', corBarra)}
+          className={clsx('h-full rounded-sm transition-[width] duration-500', corBarra)}
           style={{ width: `${pct}%` }}
         />
-        {/* agulha */}
         <div
           className={clsx(
-            'absolute top-1/2 h-3.5 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full',
+            'absolute top-1/2 h-4 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full',
             vencida ? 'bg-sinal' : proxima ? 'bg-ambar' : 'bg-barra'
           )}
           style={{ left: `${pct}%` }}
@@ -47,14 +40,13 @@ export function Hodometro({ kmRevisao, kmAtual, kmProxima, compacto }: Props) {
         />
       </div>
 
-      {/* leitura */}
       <div className="flex items-baseline justify-between gap-2">
         <span className="dado text-[11px] text-grafite-600">
           {fmtKm(kmRevisao)} <span className="text-grafite-600/40">→</span> {fmtKm(kmProxima)}
         </span>
         <span
           className={clsx(
-            'dado text-[11px] font-semibold',
+            'dado text-[11px] font-semibold uppercase tracking-[0.08em]',
             vencida ? 'text-sinal' : proxima ? 'text-ambar' : 'text-grafite-700'
           )}
         >

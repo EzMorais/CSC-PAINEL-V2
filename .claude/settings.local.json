@@ -27,7 +27,8 @@
       "PowerShell(Get-Command choco -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command scoop -ErrorAction SilentlyContinue)",
       "PowerShell(winget install --id GoLang.Go -e --accept-source-agreements --accept-package-agreements)",
-      "Bash(git -C \"c:\\\\Users\\\\TÉCNICO\\\\Documents\\\\GitHub\\\\CSC-PAINEL\" check-ignore -v apps/painel-locacao/dados/Maquinas_Alugadas_Controle_REVISADA.xlsx)"
+      "Bash(git -C \"c:\\\\Users\\\\TÉCNICO\\\\Documents\\\\GitHub\\\\CSC-PAINEL\" check-ignore -v apps/painel-locacao/dados/Maquinas_Alugadas_Controle_REVISADA.xlsx)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; grep -m1 \"^description:\" \"{}\"')"
     ]
   }
 }

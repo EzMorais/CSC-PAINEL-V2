@@ -14,7 +14,7 @@ const TONS: Record<Tom, string> = {
 /** Badge do sistema — fundo `*-soft`, texto saturado, pill. Ver DESIGN-SYSTEM.md §5. */
 export function Badge({ tom = 'neutro', icone, children }: { tom?: Tom; icone?: ReactNode; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${TONS[tom]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${TONS[tom]}`}>
       {icone}
       {children}
     </span>

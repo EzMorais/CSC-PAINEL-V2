@@ -1,0 +1,21 @@
+package rh
+
+templ Relatorios() {
+	@Pagina("Relatórios") {
+		<div class="linha-topo">
+			<h1>Relatórios</h1>
+		</div>
+		<p>Exportação em PDF e Excel.</p>
+
+		<div class="linha-topo">
+			<a href="/rh/relatorios/funcionarios.xlsx" class="botao" data-testid="baixar-funcionarios-xlsx">Funcionários (Excel)</a>
+			<a href="/rh/relatorios/funcionarios.xlsx?modelo=1" class="botao" data-testid="baixar-modelo-xlsx">Modelo vazio para importação (Excel)</a>
+			<a href="/rh/relatorios/resumo.pdf" class="botao" data-testid="baixar-resumo-pdf">Resumo de SST (PDF)</a>
+		</div>
+
+		<p>
+			O modelo vazio tem exatamente as mesmas colunas do relatório — é o formato que a
+			<a href="/rh/funcionarios/importar">importação em lote</a> espera.
+		</p>
+	}
+}

@@ -1,0 +1,142 @@
+package rh
+
+import (
+	"fmt"
+	"strings"
+)
+
+type ItemPreviaView struct {
+	Nome, CPF, Cargo, Obra, Admissao, Situacao string
+	CriaCargo, CriaObra                        bool
+}
+
+type PreviaImportacaoView struct {
+	Token                    string
+	Itens                    []ItemPreviaView
+	Novos, JaExistem         int
+	SemAdmissao              int
+	CargosNovos, ObrasNovas []string
+	Ignoradas                []string
+	ColunasIgnoradas         []string
+}
+
+type ResultadoImportacaoView struct {
+	Criados, Pulados, CargosCriados, ObrasCriadas int
+}
+
+func situacaoTexto(s string) string {
+	if s == "NOVO" {
+		return "entra"
+	}
+	return "já existe"
+}
+
+templ ImportarFuncionarios(erro string, previa *PreviaImportacaoView, resultado *ResultadoImportacaoView) {
+	@Pagina("Importar funcionários") {
+		<div class="linha-topo">
+			<h1>Importar por planilha</h1>
+			<a href="/rh/funcionarios">Funcionários</a>
+		</div>
+		<p>Cadastra vários funcionários de uma vez, a partir do Excel que o RH já usa.</p>
+
+		if erro != "" {
+			<p role="alert" data-testid="erro-importacao">{ erro }</p>
+		}
+
+		if resultado != nil {
+			<div data-testid="importacao-concluida">
+				<p>{ fmt.Sprint(resultado.Criados) } funcionários cadastrados.</p>
+				if resultado.CargosCriados > 0 {
+					<p>{ fmt.Sprint(resultado.CargosCriados) } cargos criados.</p>
+				}
+				if resultado.ObrasCriadas > 0 {
+					<p>{ fmt.Sprint(resultado.ObrasCriadas) } obras criadas.</p>
+				}
+				if resultado.Pulados > 0 {
+					<p>{ fmt.Sprint(resultado.Pulados) } linhas puladas (já existiam ou falharam).</p>
+				}
+			</div>
+		}
+
+		if previa == nil {
+			<form class="formulario" method="POST" action="/rh/funcionarios/importar/previa" enctype="multipart/form-data">
+				<div class="campo">
+					<label for="arquivo">Planilha de funcionários</label>
+					<input type="file" id="arquivo" name="arquivo" data-testid="importar-planilha" accept=".xlsx,.xlsm" required?={ true }/>
+				</div>
+				<p>
+					Precisa de uma linha de cabeçalho com <strong>Nome</strong> e <strong>CPF</strong>.
+					As outras colunas são aproveitadas se existirem, em qualquer ordem: matrícula,
+					admissão, cargo, obra, RG, nascimento, telefone, e-mail, sexo, salário, cidade, UF
+					e os tamanhos de camisa, calça e calçado.
+				</p>
+				<button type="submit">Analisar</button>
+			</form>
+		} else {
+			<div data-testid="previa-importacao">
+				<div class="linha-topo">
+					<p>Entram: <span data-testid="previa-novos">{ fmt.Sprint(previa.Novos) }</span></p>
+					<p>Já no RH: <span data-testid="previa-pulados">{ fmt.Sprint(previa.JaExistem) }</span></p>
+					<p>Sem admissão: <span data-testid="previa-sem-admissao">{ fmt.Sprint(previa.SemAdmissao) }</span></p>
+				</div>
+
+				if previa.ColunasIgnoradas != nil && len(previa.ColunasIgnoradas) > 0 {
+					<p>Colunas que não reconheci e vou ignorar: { strings.Join(previa.ColunasIgnoradas, ", ") }.</p>
+				}
+
+				if len(previa.CargosNovos) > 0 || len(previa.ObrasNovas) > 0 {
+					<div role="alert">
+						<p>Serão criados junto:</p>
+						if len(previa.CargosNovos) > 0 {
+							<p>Cargos: { strings.Join(previa.CargosNovos, ", ") }</p>
+						}
+						if len(previa.ObrasNovas) > 0 {
+							<p>Obras: { strings.Join(previa.ObrasNovas, ", ") }</p>
+						}
+						<p>Confira se não é o mesmo cargo escrito de outro jeito.</p>
+					</div>
+				}
+
+				<table class="lista-usuarios" data-testid="tabela-previa">
+					<tbody>
+						for _, i := range previa.Itens {
+							<tr>
+								<td>{ i.Nome }</td>
+								<td>{ i.CPF }</td>
+								<td>{ i.Cargo }</td>
+								<td>{ i.Obra }</td>
+								<td>{ i.Admissao }</td>
+								<td>{ situacaoTexto(i.Situacao) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+
+				if len(previa.Ignoradas) > 0 {
+					<details>
+						<summary>{ fmt.Sprint(len(previa.Ignoradas)) } linhas descartadas</summary>
+						<ul>
+							for _, g := range previa.Ignoradas {
+								<li>{ g }</li>
+							}
+						</ul>
+					</details>
+				}
+
+				<div class="linha-topo">
+					<form method="POST" action="/rh/funcionarios/importar/confirmar">
+						<input type="hidden" name="token" value={ previa.Token }/>
+						<button type="submit" data-testid="confirmar-importacao" disabled?={ previa.Novos == 0 }>
+							Confirmar importação
+						</button>
+					</form>
+					<a href="/rh/funcionarios/importar">Cancelar</a>
+				</div>
+
+				if previa.Novos == 0 {
+					<p>Nenhum funcionário novo — todos os CPFs já estão no RH.</p>
+				}
+			</div>
+		}
+	}
+}

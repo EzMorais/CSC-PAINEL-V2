@@ -12,12 +12,15 @@ import (
 	"syscall"
 	"time"
 
+	aplicacaoCompras "siqueiracampos/servidor/internal/application/compras"
 	aplicacaoEstoque "siqueiracampos/servidor/internal/application/estoque"
 	aplicacaoIdentidade "siqueiracampos/servidor/internal/application/identidade"
 	aplicacaoPainel "siqueiracampos/servidor/internal/application/painel"
 	aplicacaoRH "siqueiracampos/servidor/internal/application/rh"
 	"siqueiracampos/servidor/internal/config"
 	dominioIdentidade "siqueiracampos/servidor/internal/domain/identidade"
+	dominioPainel "siqueiracampos/servidor/internal/domain/painel"
+	handlersCompras "siqueiracampos/servidor/internal/handlers/compras"
 	handlersEstoque "siqueiracampos/servidor/internal/handlers/estoque"
 	handlersIdentidade "siqueiracampos/servidor/internal/handlers/identidade"
 	handlersPainel "siqueiracampos/servidor/internal/handlers/painel"
@@ -47,7 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("sessão: %v", err)
 	}
-	sessoes := middleware.NovoSessoes(servicoSessao)
+	sessoes := middleware.NovoSessoes(servicoSessao, cfg.ForcaHTTPS)
 
 	mux := http.NewServeMux()
 
@@ -122,6 +125,16 @@ func main() {
 	repoSolicitacoes := database.NovoEstoqueSolicitacaoRepositorio(db)
 	repoAprovacoes := database.NovoEstoqueAprovacaoRepositorio(db)
 	repoConfiguracaoEmail := database.NovoEstoqueConfiguracaoEmailRepositorio(db)
+	repoPedidosCompra := database.NovoComprasPedidoRepositorio(db)
+	repoRecebimentosCompra := database.NovoComprasRecebimentoRepositorio(db)
+	repoContasPagar := database.NovoContasPagarRepositorio(db)
+
+	gerenciadorCompras := &aplicacaoCompras.Gerenciador{
+		Pedidos: repoPedidosCompra, Recebimentos: repoRecebimentosCompra, Contas: repoContasPagar,
+		Fornecedores: repoFornecedores, Solicitacoes: repoSolicitacoes, Materiais: repoMateriais,
+		Movimentacoes: repoMovimentacoes,
+	}
+	hCompras := handlersCompras.Novo(sessoes, gerenciadorCompras, repoPedidosCompra)
 
 	gerenciadorMateriais := &aplicacaoEstoque.GerenciadorMateriais{Materiais: repoMateriais}
 	gerenciadorMovimentacoes := &aplicacaoEstoque.GerenciadorMovimentacoes{
@@ -166,12 +179,12 @@ func main() {
 	mux.HandleFunc("POST /almoxarifado/configuracoes", hEstoque.ConfiguracoesSalvar)
 	mux.HandleFunc("POST /almoxarifado/configuracoes/testar", hEstoque.ConfiguracoesTestar)
 	mux.HandleFunc("POST /almoxarifado/configuracoes/desativar", hEstoque.ConfiguracoesDesativar)
+	mux.HandleFunc("GET /compras", hCompras.Dashboard)
+	mux.HandleFunc("POST /compras/pedidos", hCompras.PedidoCriar)
+	mux.HandleFunc("GET /compras/pedidos/{id}", hCompras.PedidoDetalhe)
+	mux.HandleFunc("POST /compras/pedidos/{id}/receber", hCompras.RecebimentoRegistrar)
 
 	// ── RH e SST — montado sob /rh ─────────────────────────────────────────────
-	// Primeira fatia: cadastros (Cargo/Departamento) + Funcionário (CRUD, timeline
-	// automática, exclusão) + dashboard. Treinamentos/Exames/Uniformes/Documentos/
-	// Auditorias/EPI/relatórios/importação ainda não migraram — ver
-	// migracao-go/rh/COMPORTAMENTO.md e o README para o que falta.
 	repoRHCargos := database.NovoRHCargoRepositorio(db)
 	repoRHDepartamentos := database.NovoRHDepartamentoRepositorio(db)
 	repoRHFuncionarios := database.NovoRHFuncionarioRepositorio(db)
@@ -195,6 +208,31 @@ func main() {
 			return o.Codigo, nil
 		},
 	}
+	gerenciadorRHRelatorios := &aplicacaoRH.GerenciadorRelatorios{
+		Funcionarios: repoRHFuncionarios, Treinamentos: repoRHTreinamentos, Exames: repoRHExames,
+		Auditorias: repoRHAuditorias, NaoConformidades: repoRHNaoConformidades,
+	}
+	gerenciadorRHImportacao := &aplicacaoRH.GerenciadorImportacao{
+		Funcionarios: repoRHFuncionarios, Cargos: repoRHCargos,
+		ListarObras: func(ctx context.Context) ([]aplicacaoRH.OpcaoObraImportacao, error) {
+			obras, err := repoObras.Listar(ctx)
+			if err != nil {
+				return nil, err
+			}
+			opcoes := make([]aplicacaoRH.OpcaoObraImportacao, len(obras))
+			for i, o := range obras {
+				opcoes[i] = aplicacaoRH.OpcaoObraImportacao{ID: o.ID, Codigo: o.Codigo, Descricao: o.Descricao}
+			}
+			return opcoes, nil
+		},
+		CriarObra: func(ctx context.Context, cliente, codigo, descricao string) (string, error) {
+			o := &dominioPainel.Obra{Cliente: cliente, Codigo: codigo, Descricao: descricao}
+			if err := repoObras.Criar(ctx, o); err != nil {
+				return "", err
+			}
+			return o.ID, nil
+		},
+	}
 	hRH := handlersRH.Novo(handlersRH.Handlers{
 		Sessoes:           sessoes,
 		Cargos:            &aplicacaoRH.GerenciadorCargos{Cargos: repoRHCargos},
@@ -208,6 +246,8 @@ func main() {
 		Auditorias:        &aplicacaoRH.GerenciadorAuditorias{Auditorias: repoRHAuditorias, NaoConformidades: repoRHNaoConformidades},
 		NaoConformidades:  &aplicacaoRH.GerenciadorNaoConformidades{NaoConformidades: repoRHNaoConformidades},
 		Epi:               &aplicacaoRH.GerenciadorEpi{Epi: repoRHEpi, Funcionarios: repoRHFuncionarios},
+		Relatorios:        gerenciadorRHRelatorios,
+		Importacao:        gerenciadorRHImportacao,
 		Integracao:        servicoIntegracao,
 		URLEstoque:        cfg.URLEstoque,
 		RepoCargos:        repoRHCargos,
@@ -230,6 +270,20 @@ func main() {
 				opcoes[i] = handlersRH.OpcaoObra{ID: o.ID, Codigo: o.Codigo}
 			}
 			return opcoes, nil
+		},
+		ListarObrasFn: func(ctx context.Context) ([]handlersRH.ObraListagem, error) {
+			obras, err := repoObras.Listar(ctx)
+			if err != nil {
+				return nil, err
+			}
+			lista := make([]handlersRH.ObraListagem, len(obras))
+			for i, o := range obras {
+				lista[i] = handlersRH.ObraListagem{
+					ID: o.ID, Codigo: o.Codigo, Descricao: o.Descricao, Cliente: o.Cliente,
+					Responsavel: o.Responsavel, Ativa: o.Ativa,
+				}
+			}
+			return lista, nil
 		},
 	})
 	mux.HandleFunc("GET /rh", hRH.DashboardPagina)
@@ -261,6 +315,13 @@ func main() {
 	mux.HandleFunc("POST /rh/auditorias/{id}/itens", hRH.AuditoriaItemAdicionar)
 	mux.HandleFunc("GET /rh/nao-conformidades", hRH.ListarNaoConformidades)
 	mux.HandleFunc("GET /rh/epis", hRH.ListarEpis)
+	mux.HandleFunc("GET /rh/obras", hRH.ListarObras)
+	mux.HandleFunc("GET /rh/relatorios", hRH.RelatoriosPagina)
+	mux.HandleFunc("GET /rh/relatorios/funcionarios.xlsx", hRH.RelatorioFuncionariosXLSX)
+	mux.HandleFunc("GET /rh/relatorios/resumo.pdf", hRH.RelatorioResumoPDF)
+	mux.HandleFunc("GET /rh/funcionarios/importar", hRH.ImportarFuncionariosPagina)
+	mux.HandleFunc("POST /rh/funcionarios/importar/previa", hRH.ImportarFuncionariosPrevia)
+	mux.HandleFunc("POST /rh/funcionarios/importar/confirmar", hRH.ImportarFuncionariosConfirmar)
 	// Rotas de integração — SEM prefixo /rh, contrato externo com Almoxarifado/Alojamentos/
 	// Portal (COMPORTAMENTO.md §6), mesmo padrão de internal/infrastructure/clienterh.
 	mux.HandleFunc("POST /api/integracao/entregas-epi", hRH.IntegracaoEntregaEpiCriar)
@@ -269,14 +330,19 @@ func main() {
 
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 
+	// /healthz (liveness) e /readyz (readiness) — sem exigir sessão, são consultados por
+	// orquestrador/monitoramento, não por gente logada.
+	mux.HandleFunc("GET /healthz", handlerSaude())
+	mux.HandleFunc("GET /readyz", handlerProntidao(db))
+
 	// Injeta sessão + URLs de navegação cruzada no context.Context de toda requisição — é o
 	// que permite templates/layout/base.templ montar a sidebar sem que nenhum handler ou
 	// template-folha precise passar esses dados por parâmetro. Ver ARQUITETURA.md e o adendo
 	// de layout em DESIGN-SYSTEM.md.
-	handler := middleware.ComContextoDeRequisicao(sessoes, middleware.Navegacao{
+	handler := middleware.Logging(sessoes)(middleware.ComContextoDeRequisicao(sessoes, middleware.Navegacao{
 		URLRH:          cfg.URLRH,
 		URLAlojamentos: cfg.URLAlojamentos,
-	}, mux)
+	}, mux))
 
 	servidor := &http.Server{
 		Addr:         ":" + cfg.Porta,

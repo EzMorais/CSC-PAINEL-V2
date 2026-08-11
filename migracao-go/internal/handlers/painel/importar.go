@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
-	"time"
 
 	dominio "siqueiracampos/servidor/internal/domain/painel"
+	"siqueiracampos/servidor/internal/infrastructure/upload"
 	tpl "siqueiracampos/servidor/templates/painel"
 )
 
@@ -20,14 +19,14 @@ func (h *Handlers) Importar(w http.ResponseWriter, r *http.Request) {
 	tpl.Importar("", nil, nil).Render(r.Context(), w)
 }
 
-var reNomeArquivoValido = regexp.MustCompile(`(?i)\.(xlsx|xlsm)$`)
+const tamanhoMaximoUpload = 32 << 20 // 32 MB — mesmo limite de sempre, só centralizado aqui
 
 func (h *Handlers) ImportarUpload(w http.ResponseWriter, r *http.Request) {
 	if _, ok := h.exigirLancamento(w, r); !ok {
 		return
 	}
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		tpl.Importar("Falha ao receber o arquivo.", nil, nil).Render(r.Context(), w)
+	if err := r.ParseMultipartForm(tamanhoMaximoUpload); err != nil {
+		tpl.Importar("Falha ao receber o arquivo — confira se não passa de 32 MB.", nil, nil).Render(r.Context(), w)
 		return
 	}
 	arquivo, cabecalho, err := r.FormFile("planilha")
@@ -37,8 +36,21 @@ func (h *Handlers) ImportarUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer arquivo.Close()
 
-	if !reNomeArquivoValido.MatchString(cabecalho.Filename) {
+	if err := upload.ValidarExtensao(cabecalho.Filename, ".xlsx", ".xlsm"); err != nil {
 		tpl.Importar("Envie um arquivo .xlsx ou .xlsm.", nil, nil).Render(r.Context(), w)
+		return
+	}
+
+	// A extensão só confere o NOME que o cliente declarou; a assinatura confere o CONTEÚDO —
+	// um arquivo renomeado pra .xlsx sem ser um ZIP/Office válido é recusado aqui, antes de
+	// gravar qualquer coisa em disco.
+	inicio, conteudo, err := upload.LerAssinatura(arquivo)
+	if err != nil {
+		tpl.Importar("Falha ao ler o arquivo.", nil, nil).Render(r.Context(), w)
+		return
+	}
+	if err := upload.ValidarAssinaturaXLSX(inicio); err != nil {
+		tpl.Importar("O arquivo não parece ser um Excel (.xlsx/.xlsm) válido.", nil, nil).Render(r.Context(), w)
 		return
 	}
 
@@ -46,13 +58,13 @@ func (h *Handlers) ImportarUpload(w http.ResponseWriter, r *http.Request) {
 		tpl.Importar("Falha ao preparar a pasta de uploads.", nil, nil).Render(r.Context(), w)
 		return
 	}
-	caminho := filepath.Join(h.PastaUploads, "upload-"+strconv.FormatInt(time.Now().UnixMilli(), 10)+".xlsx")
+	caminho := filepath.Join(h.PastaUploads, upload.NomeInterno("upload", ".xlsx"))
 	destino, err := os.Create(caminho)
 	if err != nil {
 		tpl.Importar("Falha ao gravar o arquivo.", nil, nil).Render(r.Context(), w)
 		return
 	}
-	if _, err := io.Copy(destino, arquivo); err != nil {
+	if _, err := io.Copy(destino, conteudo); err != nil {
 		destino.Close()
 		tpl.Importar("Falha ao gravar o arquivo.", nil, nil).Render(r.Context(), w)
 		return
@@ -92,6 +104,14 @@ func (h *Handlers) ImportarConfirmar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	caminho := r.PostFormValue("caminho")
+
+	// `caminho` vem de um campo oculto do formulário — dado do cliente. Sem esta checagem, um
+	// valor adulterado (ex.: "../../../algum/arquivo") seria aberto e lido como se fosse a
+	// planilha da prévia. Confere que resolve pra dentro da pasta de uploads antes de usar.
+	if !upload.CaminhoDentroDaPasta(caminho, h.PastaUploads) {
+		tpl.Importar("Arquivo da prévia não encontrado — envie a planilha de novo.", nil, nil).Render(r.Context(), w)
+		return
+	}
 
 	resultado, err := h.Importador.ConfirmarImportacao(r.Context(), caminho)
 	if err != nil {

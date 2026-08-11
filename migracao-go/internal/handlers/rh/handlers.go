@@ -27,6 +27,8 @@ type Handlers struct {
 	Auditorias       *aplicacao.GerenciadorAuditorias
 	NaoConformidades *aplicacao.GerenciadorNaoConformidades
 	Epi              *aplicacao.GerenciadorEpi
+	Relatorios       *aplicacao.GerenciadorRelatorios
+	Importacao       *aplicacao.GerenciadorImportacao
 
 	RepoCargos        dominio.CargoRepositorio
 	RepoDepartamentos dominio.DepartamentoRepositorio
@@ -45,9 +47,19 @@ type Handlers struct {
 	// mesma decisão do pacote application/rh (ver funcionarios.go ResolverObraCodigo).
 	ContarObrasAtivas func(ctx context.Context) (int, error)
 	ListarObrasAtivas func(ctx context.Context) ([]OpcaoObra, error)
+	// ListarObrasFn devolve TODAS as obras (ativas e inativas), pra /rh/obras — só leitura,
+	// mesmo motivo de COMPORTAMENTO.md §2 ("RH não tem tela de criar/editar Obra"). Nome com
+	// sufixo Fn porque o método HTTP ListarObras (obras.go) já ocupa esse nome no mesmo tipo.
+	ListarObrasFn func(ctx context.Context) ([]ObraListagem, error)
 }
 
 type OpcaoObra struct{ ID, Codigo string }
+
+type ObraListagem struct {
+	ID, Codigo, Descricao, Cliente string
+	Responsavel                    *string
+	Ativa                          bool
+}
 
 // Novo recebe a struct já preenchida (campos nomeados no site de chamada, em
 // cmd/servidor/main.go) — em vez de uma lista posicional de ~15 parâmetros, fácil de

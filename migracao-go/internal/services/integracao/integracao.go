@@ -59,10 +59,11 @@ func (s *Servico) Verificar(autorizacao string) (origem string, ok bool) {
 	if token == "" {
 		return "", false
 	}
+	// WithValidMethods trava o algoritmo em HS256 — mesma razão de sessao.Servico.Ler.
 	var c claims
 	_, err := jwt.ParseWithClaims(token, &c, func(t *jwt.Token) (interface{}, error) {
 		return s.segredo, nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil || c.Tipo != "integracao" || !EmissoresValidos[c.Origem] {
 		return "", false
 	}

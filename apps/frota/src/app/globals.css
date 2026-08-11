@@ -84,7 +84,14 @@
   }
 
   body {
-    @apply bg-concreto text-grafite antialiased;
+    background:
+      linear-gradient(90deg, rgb(0 0 0 / 0.05) 1px, transparent 1px),
+      linear-gradient(180deg, rgb(0 0 0 / 0.05) 1px, transparent 1px),
+      radial-gradient(circle at top right, rgb(228 87 46 / 0.12), transparent 22%),
+      radial-gradient(circle at top left, rgb(215 224 33 / 0.08), transparent 18%),
+      rgb(var(--background));
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+    @apply text-grafite antialiased;
     font-family: var(--fonte-corpo);
     font-feature-settings: 'tnum' 1;
   }
@@ -112,13 +119,14 @@
 
 @layer components {
   .cartao {
-    @apply rounded-lg border border-concreto-200 bg-white;
+    @apply rounded-sm border-2 border-concreto-300 bg-white;
+    box-shadow: 6px 6px 0 rgb(18 22 28 / 0.12);
   }
 
   .campo {
-    @apply w-full rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm
+    @apply w-full rounded-sm border-2 border-concreto-300 bg-white px-3 py-2 text-sm
            text-grafite placeholder:text-grafite-600/50
-           focus:border-grafite-700 focus:outline-none focus:ring-1 focus:ring-grafite-700;
+           focus:border-grafite-700 focus:outline-none focus:ring-2 focus:ring-hivis-escuro;
   }
 
   .rotulo-campo {
@@ -126,24 +134,24 @@
   }
 
   .botao {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2
-           text-sm font-medium transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border-2 px-4 py-2
+           text-sm font-semibold uppercase tracking-[0.08em] transition-all disabled:opacity-50;
   }
 
   .botao-primario {
-    @apply botao bg-grafite text-concreto hover:bg-grafite-800;
+    @apply botao border-grafite bg-grafite text-concreto shadow-[4px_4px_0_rgb(18_22_28_/_0.28)] hover:-translate-y-0.5 hover:bg-grafite-800;
   }
 
   .botao-destaque {
-    @apply botao bg-hivis text-grafite hover:bg-hivis-escuro;
+    @apply botao border-hivis-escuro bg-hivis text-grafite shadow-[4px_4px_0_rgb(228_87_46_/_0.24)] hover:-translate-y-0.5 hover:bg-hivis-escuro;
   }
 
   .botao-fantasma {
-    @apply botao border border-concreto-300 bg-white text-grafite hover:bg-concreto-100;
+    @apply botao border-concreto-300 bg-white text-grafite hover:bg-concreto-100;
   }
 
   .selo {
-    @apply inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-sm border-2 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em];
   }
 }
 

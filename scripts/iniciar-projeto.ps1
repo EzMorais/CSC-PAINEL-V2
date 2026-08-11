@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
-$segredoAuth = 'bk/f+v0L7piz5YNU1j0k7AFVLfWeQ5m/ca02em7LpdjiuJQmegE9mKSZ8fwJOnia'
+$segredoAuth = if ($env:AUTH_SECRET -and $env:AUTH_SECRET.Length -ge 32) { $env:AUTH_SECRET } else { 'bk/f+v0L7piz5YNU1j0k7AFVLfWeQ5m/ca02em7LpdjiuJQmegE9mKSZ8fwJOnia' }
 
 function Test-PortaOcupada($porta) {
     $null -ne (Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue)
@@ -24,6 +24,12 @@ function Wait-Porta($porta, $timeoutSegundos) {
 }
 
 Write-Host "== CSC Painel - subindo o projeto completo ==" -ForegroundColor Cyan
+
+if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
+    Write-Host "Go nao encontrado no PATH." -ForegroundColor Red
+    Read-Host "Pressione ENTER para sair"
+    exit 1
+}
 
 # -- Binario unico em Go (migracao-go) - porta 3010 -----------------------------------------
 if (Test-PortaOcupada 3010) {
@@ -62,6 +68,10 @@ foreach ($app in $apps) {
     $pasta = "$raiz\apps\$($app.pasta)"
     if (-not (Test-Path $pasta)) {
         Write-Host ("[{0}] pasta nao encontrada: {1}" -f $app.nome, $pasta) -ForegroundColor Red
+        continue
+    }
+    if (-not (Test-Path "$pasta\node_modules")) {
+        Write-Host ("[{0}] dependencias ausentes; execute npm install em {1}" -f $app.nome,$pasta) -ForegroundColor Red
         continue
     }
     Write-Host ("[{0} {1}] iniciando..." -f $app.nome, $app.porta) -ForegroundColor Yellow

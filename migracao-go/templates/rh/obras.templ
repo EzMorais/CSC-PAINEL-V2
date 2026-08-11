@@ -1,0 +1,43 @@
+package rh
+
+import "fmt"
+
+type LinhaObra struct {
+	ID, Codigo, Descricao, Cliente, Responsavel string
+	Ativa                                       bool
+	Efetivo                                     int
+}
+
+// Obras é tela só leitura — COMPORTAMENTO.md §2: "RH não tem tela de criar/editar Obra". O
+// cadastro é o mesmo do Painel de Locação, referenciado por FK (banco único).
+templ Obras(linhas []LinhaObra) {
+	@Pagina("Obras") {
+		<div class="linha-topo">
+			<h1>Obras</h1>
+		</div>
+		<p>Espelham o cadastro do Painel de Locação. O código é a chave que liga os dois sistemas.</p>
+
+		<table class="lista-usuarios" data-testid="tabela-obras">
+			<tbody>
+				for _, o := range linhas {
+					<tr>
+						<td>{ o.Codigo }</td>
+						<td>{ o.Descricao }</td>
+						<td>{ o.Cliente }</td>
+						<td>{ o.Responsavel }</td>
+						<td>
+							<a href={ templ.URL("/rh/funcionarios?obraId=" + o.ID) }>{ fmt.Sprint(o.Efetivo) }</a>
+						</td>
+						<td>
+							if o.Ativa {
+								Ativa
+							} else {
+								Inativa
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

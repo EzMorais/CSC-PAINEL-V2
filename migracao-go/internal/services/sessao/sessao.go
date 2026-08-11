@@ -63,10 +63,12 @@ func (s *Servico) Emitir(sess identidade.Sessao) (string, error) {
 // ou adulterado tudo vira token inválido; ver COMPORTAMENTO.md §2 ("verificação nunca
 // lança"). O único uso do erro aqui é decidir se o resultado é válido.
 func (s *Servico) Ler(token string) (*identidade.Sessao, error) {
+	// WithValidMethods trava o algoritmo em HS256 — sem isso, um token forjado com "alg" trocado
+	// (ex.: "none") passaria pelo parser sem nunca cair na checagem de assinatura.
 	var c claims
 	_, err := jwt.ParseWithClaims(token, &c, func(t *jwt.Token) (interface{}, error) {
 		return s.segredo, nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 
 	"siqueiracampos/servidor/internal/domain/identidade"
 	"siqueiracampos/servidor/internal/services/sessao"
@@ -18,9 +17,15 @@ const diasSessao = 7
 
 type Sessoes struct {
 	Servico *sessao.Servico
+	// ForcaHTTPS vem de Config (única fonte de variável de ambiente do processo — ver
+	// internal/config) — antes era lido direto de os.Getenv aqui, duplicando a leitura que
+	// Config já faz na inicialização.
+	ForcaHTTPS bool
 }
 
-func NovoSessoes(s *sessao.Servico) *Sessoes { return &Sessoes{Servico: s} }
+func NovoSessoes(s *sessao.Servico, forcaHTTPS bool) *Sessoes {
+	return &Sessoes{Servico: s, ForcaHTTPS: forcaHTTPS}
+}
 
 func (s *Sessoes) Criar(w http.ResponseWriter, sess identidade.Sessao) error {
 	token, err := s.Servico.Emitir(sess)
@@ -33,7 +38,7 @@ func (s *Sessoes) Criar(w http.ResponseWriter, sess identidade.Sessao) error {
 		// Sem HTTPS o cookie `secure` nunca é enviado, e o sistema roda em rede local por
 		// HTTP — mesma condição de lib/auth.ts. Fica atrás de uma variável pra quem
 		// colocar um proxy TLS na frente.
-		Secure: os.Getenv("FORCA_HTTPS") == "1",
+		Secure: s.ForcaHTTPS,
 	})
 	return nil
 }

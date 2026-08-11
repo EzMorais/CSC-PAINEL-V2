@@ -44,7 +44,10 @@ test.describe('Importação de funcionários — Go', () => {
     await page.goto('/rh/funcionarios')
     await expect(page.getByText('NOVO FUNCIONARIO TESTE')).toBeVisible()
 
+    // Obra nova grava cliente/código/descrição todos iguais ao texto da planilha (mesmo
+    // comportamento de actions/importar-funcionarios.ts:174-176), então o texto aparece 3
+    // vezes na mesma linha — .first() evita violação de modo estrito.
     await page.goto('/rh/obras')
-    await expect(page.getByText('EX-9999-26')).toBeVisible()
+    await expect(page.getByText('EX-9999-26').first()).toBeVisible()
   })
 })

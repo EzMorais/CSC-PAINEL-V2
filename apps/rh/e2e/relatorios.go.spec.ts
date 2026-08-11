@@ -40,12 +40,19 @@ test.describe('Relatórios — Go', () => {
     expect(download.suggestedFilename()).toMatch(/\.pdf$/)
   })
 
-  test('sem sessão, as rotas de relatório devolvem 401', async ({ request }) => {
-    // Downloads ficam sob /rh (diferente das rotas de integração — ver
-    // integracao-epi.go.spec.ts e integracao-funcionarios.go.spec.ts — que ficam em
-    // /api/integracao/... sem prefixo, porque têm contrato externo com outros sistemas;
-    // relatório só é chamado pela própria UI do RH, então prefixar não quebra nada).
-    const resp = await request.get('/rh/relatorios/funcionarios.xlsx')
-    expect(resp.status()).toBe(401)
+  // Bloco próprio: o fixture `request` herda o storageState autenticado do projeto (mesmo
+  // cookie usado por `page` nos testes acima) a menos que seja limpo aqui — mesmo ajuste de
+  // apps/painel-locacao/e2e/autenticacao.go.spec.ts para `/painel/export/xlsx`.
+  test.describe('sem sessão', () => {
+    test.use({ storageState: { cookies: [], origins: [] } })
+
+    test('sem sessão, as rotas de relatório devolvem 401', async ({ request }) => {
+      // Downloads ficam sob /rh (diferente das rotas de integração — ver
+      // integracao-epi.go.spec.ts e integracao-funcionarios.go.spec.ts — que ficam em
+      // /api/integracao/... sem prefixo, porque têm contrato externo com outros sistemas;
+      // relatório só é chamado pela própria UI do RH, então prefixar não quebra nada).
+      const resp = await request.get('/rh/relatorios/funcionarios.xlsx')
+      expect(resp.status()).toBe(401)
+    })
   })
 })

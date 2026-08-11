@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "locacao_sessao",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNiMzczNTgwLWNhOTktNDQwOS1hMjdlLTViYTNlZDlhNTUzYiIsIm5vbWUiOiJBZG1pbmlzdHJhZG9yIiwiZW1haWwiOiJhZG1pbkBzaXF1ZWlyYWNhbXBvcy5jb20uYnIiLCJjYXJnbyI6IkFETUlOIiwibW9kdWxvcyI6W10sInBhcGVsIjoiQURNSU4iLCJleHAiOjE3ODcwMjUzNTIsImlhdCI6MTc4NjQyMDU1Mn0.Xitbd1CsTGczPs1mCxBfBbgnhP0v71qoiWk18ui3Z0g",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1787025352.541251,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
