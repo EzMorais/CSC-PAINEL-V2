@@ -3,6 +3,8 @@ node_modules/
 
 # build
 .next/
+.next-dev/
+.next-runtime/
 out/
 # cache incremental do TypeScript: é regenerado sozinho a cada `tsc`, e versionado
 # aparecia como "modificado" toda vez que alguém rodava uma checagem de tipos.
