@@ -1,13 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, type LucideIcon } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Marca } from "@/components/marca/logo";
 import { sair } from "@/actions/auth";
 
-export type HudItem = { href: string; rotulo: string; Icone: LucideIcon };
+/**
+ * `icone` já vem renderizado (`<Icone className="size-4" />`) do layout que monta este
+ * array — Server Component não pode passar a REFERÊNCIA da função do ícone pra um Client
+ * Component (não serializa; ver React "Functions cannot be passed directly to Client
+ * Components"), só o elemento já resolvido.
+ */
+export type HudItem = { href: string; rotulo: string; icone: ReactNode };
 
 export function HudProgramacao({
   usuario,
@@ -39,7 +46,7 @@ export function HudProgramacao({
           aria-label="Navegação do módulo"
           className="order-3 flex min-w-0 max-w-full flex-1 flex-wrap gap-1 rounded-xl bg-muted/60 p-1 sm:order-none sm:flex-nowrap sm:overflow-x-auto"
         >
-          {itens.map(({ href, rotulo, Icone }) => {
+          {itens.map(({ href, rotulo, icone }) => {
             const ativo =
               href === "/"
                 ? pathname === "/"
@@ -55,7 +62,7 @@ export function HudProgramacao({
                     : "text-muted-foreground hover:bg-card/70 hover:text-foreground"
                 }`}
               >
-                <Icone className="size-4" /> {rotulo}
+                {icone} {rotulo}
               </Link>
             );
           })}

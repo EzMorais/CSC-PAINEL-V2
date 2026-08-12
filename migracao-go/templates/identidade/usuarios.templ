@@ -15,6 +15,7 @@ templ Usuarios(
 	acessos []LinhaAcesso,
 	cargos []OpcaoCargo,
 	modulos []OpcaoModulo,
+	papeisFinanceiro []OpcaoPapelFinanceiro,
 	totalTexto string,
 ) {
 	@Pagina("Usuários") {
@@ -57,6 +58,15 @@ templ Usuarios(
 								<option value={ c.Valor } selected?={ c.Valor == criacao.Cargo }>{ c.Rotulo }</option>
 							}
 						</select>
+					</div>
+					<div class="campo">
+						<label for="papelFinanceiro">Papel no Financeiro</label>
+						<select id="papelFinanceiro" name="papelFinanceiro">
+							for _, p := range papeisFinanceiro {
+								<option value={ p.Valor } selected?={ p.Valor == criacao.PapelFinanceiro }>{ p.Rotulo }</option>
+							}
+						</select>
+						<small>Sem escolha = segue a regra do cargo.</small>
 					</div>
 					<div class="campo">
 						<p>Sistemas que acessa</p>
@@ -106,6 +116,14 @@ templ Usuarios(
 											<select name="cargo">
 												for _, c := range cargos {
 													<option value={ c.Valor } selected?={ c.Valor == u.Cargo }>{ c.Rotulo }</option>
+												}
+											</select>
+										</div>
+										<div class="campo">
+											<label>Papel no Financeiro</label>
+											<select name="papelFinanceiro">
+												for _, p := range papeisFinanceiro {
+													<option value={ p.Valor } selected?={ p.Valor == u.PapelFinanceiro }>{ p.Rotulo }</option>
 												}
 											</select>
 										</div>

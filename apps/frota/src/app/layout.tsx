@@ -22,16 +22,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // `suppressHydrationWarning` porque o next-themes escreve a classe do tema no <html>
     // antes do React assumir — sem isto, todo carregamento avisa que o HTML não bate.
     <html lang="pt-BR" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
-      <head>
-        {/* Melhoria progressiva: se o servidor tiver internet, sobe para as fontes
-            desenhadas. Sem rede, a stack nativa do Windows assume sem quebrar nada. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-        />
-      </head>
       <body>
         <ProvedorTema>{children}</ProvedorTema>
       </body>

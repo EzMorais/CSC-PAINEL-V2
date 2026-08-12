@@ -3,6 +3,7 @@ package financeirocompras
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -64,6 +65,64 @@ func (l *Local) CriarTituloCompra(ctx context.Context, e dominio.TituloFinanceir
 	}
 	payload := fmt.Sprintf(`{"origem":"COMPRAS","recebimentoId":%q,"tituloId":%q}`, e.ChaveOrigem, id)
 	_, err = tx.ExecContext(ctx, `INSERT INTO financeiro_outbox(id,tipo,agregado_id,payload_json,criado_em)VALUES(?,?,?,?,?)`, uuid.NewString(), "FINANCEIRO_TITULO_CRIADO", id, payload, agora)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// AbaterDevolucao reduz o saldo aberto do título materializado pelo recebimento.
+// O abatimento é registrado na auditoria com a devolução como correlação, o que
+// torna a chamada idempotente: reentregas não reduzem o mesmo título duas vezes.
+func (l *Local) AbaterDevolucao(ctx context.Context, e dominio.AbatimentoDevolucao) error {
+	if e.RecebimentoID == "" || e.ValorCentavos <= 0 {
+		return fmt.Errorf("recebimento e valor positivo de abatimento são obrigatórios")
+	}
+	tx, err := l.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var tituloID string
+	err = tx.QueryRowContext(ctx, `SELECT id FROM financeiro_titulos WHERE origem_modulo='COMPRAS' AND origem_tipo='RECEBIMENTO' AND origem_id=?`, e.RecebimentoID).Scan(&tituloID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var aplicada string
+	err = tx.QueryRowContext(ctx, `SELECT id FROM financeiro_auditoria WHERE agregado_tipo='TITULO' AND agregado_id=? AND acao='ABATER_DEVOLUCAO' AND correlacao_id=?`, tituloID, e.DevolucaoID).Scan(&aplicada)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	var abertoAtual int64
+	var statusAtual string
+	if err = tx.QueryRowContext(ctx, `SELECT valor_aberto_centavos,status FROM financeiro_titulos WHERE id=?`, tituloID).Scan(&abertoAtual, &statusAtual); err != nil {
+		return err
+	}
+	if abertoAtual < e.ValorCentavos {
+		return fmt.Errorf("abatimento excede o saldo aberto do título")
+	}
+	novoAberto := abertoAtual - e.ValorCentavos
+	status := statusAtual
+	if novoAberto == 0 {
+		status = "LIQUIDADO"
+	}
+	agora := time.Now().UTC().Format(time.RFC3339)
+	if _, err = tx.ExecContext(ctx, `UPDATE financeiro_titulos SET valor_aberto_centavos=?,status=?,atualizado_em=? WHERE id=?`, novoAberto, status, agora, tituloID); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE financeiro_parcelas SET valor_aberto_centavos=?,status=CASE WHEN ?<=0 THEN 'LIQUIDADA' ELSE status END WHERE titulo_id=? AND valor_aberto_centavos>=?`, novoAberto, novoAberto, tituloID, e.ValorCentavos); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO financeiro_auditoria(id,agregado_tipo,agregado_id,acao,ator_nome,depois_json,correlacao_id,criado_em)VALUES(?,?,?,?,?,?,?,?)`, uuid.NewString(), "TITULO", tituloID, "ABATER_DEVOLUCAO", e.RegistradoPor, fmt.Sprintf(`{"valorAbertoCentavos":%d,"status":%q,"devolucao":%q}`, novoAberto, status, e.DevolucaoNumero), e.DevolucaoID, agora); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO financeiro_outbox(id,tipo,agregado_id,payload_json,criado_em)VALUES(?,?,?,?,?)`, uuid.NewString(), "FINANCEIRO_TITULO_ABATIDO", tituloID, fmt.Sprintf(`{"origem":"COMPRAS","recebimentoId":%q,"tituloId":%q,"devolucaoId":%q,"valorCentavos":%d}`, e.RecebimentoID, tituloID, e.DevolucaoID, e.ValorCentavos), agora)
 	if err != nil {
 		return err
 	}

@@ -183,14 +183,19 @@ jobs:
             config: playwright.config.ts
           - app: apps/painel-locacao
             config: playwright.config.ts
-          # RH e Almoxarifado já têm suíte de referência completa contra o binário Go
-          # (apps/<módulo>/e2e/*.go.spec.ts — ver migracao-go/README.md). Alojamentos e
-          # Programação Diária ainda não têm suíte Playwright nenhuma (não é troca de config,
-          # é escrever a suíte do zero), então continuam de fora até isso existir.
+          # RH, Almoxarifado e Alojamentos têm suíte de referência contra o binário Go.
+          # Programação é exercitada através desse gateway, mas renderizada pelo Next.js
+          # legado em /programacao — a mesma composição publicada para o usuário.
           - app: apps/rh
             config: playwright.go.config.ts
             needsGo: true
           - app: apps/estoque
+            config: playwright.go.config.ts
+            needsGo: true
+          - app: apps/alojamentos
+            config: playwright.go.config.ts
+            needsGo: true
+          - app: apps/programacao
             config: playwright.go.config.ts
             needsGo: true
     defaults:
@@ -249,8 +254,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-${{ matrix.app }}
+          # Nomes de artifact não aceitam "/" — matrix.app é "apps/<app>" (#erros-ci).
+          name: playwright-${{ replace(matrix.app, '/', '-') }}
           path: |
             ${{ matrix.app }}/playwright-report
+            ${{ matrix.app }}/playwright-report-go
+            ${{ matrix.app }}/playwright-report-gateway
             ${{ matrix.app }}/test-results
           if-no-files-found: ignore

@@ -6,3 +6,6 @@
 # Saídas locais do servidor Go
 migracao-go/servidor.stdout.log
 migracao-go/servidor.stderr.log
+
+# Saída local de análise de dependências e código
+graphify-out/

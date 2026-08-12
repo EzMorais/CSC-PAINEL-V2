@@ -5,17 +5,14 @@
 # não ganham cada um uma URL bonita: o login único (SSO) deles funciona por COOKIE, e cookie
 # sem domínio explícito vale para o mesmo HOST, em qualquer porta — mas não atravessa hosts
 # diferentes. Colocar cada um num subdomínio quebraria o "loga uma vez, circula em todos".
-# Por isso continuam no mesmo domínio, diferenciados por porta, exatamente como em
-# desenvolvimento. Frota entrou nesse grupo em 2026-08-11 (antes tinha login e AUTH_SECRET
+# Por isso continuam no mesmo domínio, diferenciados por ramificações de URL. Frota entrou
+# nesse grupo em 2026-08-11 (antes tinha login e AUTH_SECRET
 # próprios, subdomínio à parte — ver ERP_BRIEFING_MELHORIA.md). WhatsApp continua de fora
 # (sem UI pública, não tem tela de login nenhuma).
 #
-# "migracao-go" convive com os 6 apps Next.js do grupo de SSO (Strangler Fig — ver
-# migracao-go/README.md): já serve Portal/Painel/Almoxarifado/RH/Alojamentos/Compras/
-# Financeiro/Programação num único processo, mas nenhum dos Next.js correspondentes é
-# desligado por este arquivo — isso só acontece módulo a módulo, depois que a suíte de
-# referência de cada um passar contra o Go (ver README.md, "Como os testes de referência
-# funcionam"). Até lá os dois convivem, cada um na sua porta.
+# "migracao-go" serve Portal/Painel/Almoxarifado/RH/Alojamentos/Compras/Financeiro e atua
+# como gateway para Cadastros, Frota, Programação e WhatsApp. A Programação é o app Next.js
+# legado sob /programacao; a implementação Go desse módulo não é publicada.
 
 name: csc-painel
 
@@ -97,6 +94,8 @@ services:
     build:
       context: ./apps/programacao
       args:
+        NEXT_PUBLIC_BASE_PATH: /programacao
+        NEXT_PUBLIC_URL_APP: ${NEXT_PUBLIC_URL_PROGRAMACAO}
         NEXT_PUBLIC_URL_PORTAL: ${NEXT_PUBLIC_URL_PORTAL}
         NEXT_PUBLIC_URL_CADASTROS: ${NEXT_PUBLIC_URL_CADASTROS}
         NEXT_PUBLIC_URL_PAINEL: ${NEXT_PUBLIC_URL_PAINEL}
@@ -136,11 +135,20 @@ services:
     env_file: ./migracao-go/.env.production
     environment:
       PORTA: "3010"
+      URL_RH: ${NEXT_PUBLIC_URL_RH}
+      URL_ESTOQUE: ${NEXT_PUBLIC_URL_ESTOQUE}
+      URL_ALOJAMENTOS: ${NEXT_PUBLIC_URL_ALOJAMENTOS}
+      URL_FROTA: ${NEXT_PUBLIC_URL_FROTA}
+      URL_PORTAL: ${NEXT_PUBLIC_URL_CADASTROS}
+      FROTA_UPSTREAM: http://frota:3000
+      CADASTROS_UPSTREAM: http://portal:3004
+      PROGRAMACAO_UPSTREAM: http://programacao:3007
+      WHATSAPP_UPSTREAM: http://whatsapp:3006
     volumes:
       - migracao_go_data:/app/data
       - migracao_go_dados:/app/dados
     restart: unless-stopped
-    depends_on: [portal, painel-locacao, rh, estoque, alojamentos, frota]
+    depends_on: [portal, painel-locacao, rh, estoque, programacao, alojamentos, frota, whatsapp]
     networks: [csc]
 
   # Frota entrou no grupo de login único em 2026-08-11 (antes tinha AUTH_SECRET e tela de
@@ -150,7 +158,15 @@ services:
     build:
       context: ./apps/frota
       args:
+        NEXT_PUBLIC_BASE_PATH: /frota
+        NEXT_PUBLIC_URL_APP: ${NEXT_PUBLIC_URL_FROTA}
         NEXT_PUBLIC_URL_PORTAL: ${NEXT_PUBLIC_URL_PORTAL}
+        NEXT_PUBLIC_URL_PAINEL: ${NEXT_PUBLIC_URL_PAINEL}
+        NEXT_PUBLIC_URL_RH: ${NEXT_PUBLIC_URL_RH}
+        NEXT_PUBLIC_URL_ESTOQUE: ${NEXT_PUBLIC_URL_ESTOQUE}
+        NEXT_PUBLIC_URL_PROGRAMACAO: ${NEXT_PUBLIC_URL_PROGRAMACAO}
+        NEXT_PUBLIC_URL_ALOJAMENTOS: ${NEXT_PUBLIC_URL_ALOJAMENTOS}
+        NEXT_PUBLIC_URL_FROTA: ${NEXT_PUBLIC_URL_FROTA}
     env_file: ./apps/frota/.env.production
     volumes:
       - frota_dados:/app/dados
@@ -180,14 +196,7 @@ services:
       - migracao-go
     ports:
       - "80:80"
-      - "3000:3000"
-      - "3002:3002"
-      - "3003:3003"
-      - "3004:3004"
-      - "3005:3005"
-      - "3006:3006"
-      - "3007:3007"
-      - "3010:3010"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certbot/conf:/etc/letsencrypt

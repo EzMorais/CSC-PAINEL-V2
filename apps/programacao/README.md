@@ -42,7 +42,10 @@ npm run db:import-cadastro
 npm run dev
 ```
 
-O módulo roda por padrão em `http://localhost:3007`.
+No ambiente unificado, acesse o módulo em `http://localhost:3010/programacao`: a entrada
+abre diretamente `http://localhost:3010/programacao/dia/2026-08-13`. A porta `3007` fica
+interna para o gateway; para executar o app isoladamente, sem `NEXT_PUBLIC_BASE_PATH`, ele
+continua usando `http://localhost:3007`.
 
 O importador é idempotente: ele cadastra o conjunto complementar de funcionários e
 veículos usado na programação diária sem duplicar registros quando for executado de novo.

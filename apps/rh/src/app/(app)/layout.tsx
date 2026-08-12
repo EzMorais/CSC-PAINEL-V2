@@ -36,22 +36,22 @@ export default async function LayoutApp({
   if (!sessao) redirect("/entrar");
 
   const itens = [
-    { href: "/", rotulo: "Dashboard", Icone: LayoutDashboard },
-    { href: "/funcionarios", rotulo: "Funcionários", Icone: Users },
-    { href: "/obras", rotulo: "Obras", Icone: Building2 },
-    { href: "/treinamentos", rotulo: "Treinamentos", Icone: GraduationCap },
-    { href: "/epis", rotulo: "EPIs", Icone: HardHat },
-    { href: "/uniformes", rotulo: "Uniformes", Icone: Shirt },
-    { href: "/exames", rotulo: "Exames", Icone: Stethoscope },
-    { href: "/documentos", rotulo: "Documentos", Icone: FileText },
-    { href: "/auditorias", rotulo: "Auditorias", Icone: ClipboardCheck },
+    { href: "/", rotulo: "Dashboard", icone: <LayoutDashboard className="size-4" /> },
+    { href: "/funcionarios", rotulo: "Funcionários", icone: <Users className="size-4" /> },
+    { href: "/obras", rotulo: "Obras", icone: <Building2 className="size-4" /> },
+    { href: "/treinamentos", rotulo: "Treinamentos", icone: <GraduationCap className="size-4" /> },
+    { href: "/epis", rotulo: "EPIs", icone: <HardHat className="size-4" /> },
+    { href: "/uniformes", rotulo: "Uniformes", icone: <Shirt className="size-4" /> },
+    { href: "/exames", rotulo: "Exames", icone: <Stethoscope className="size-4" /> },
+    { href: "/documentos", rotulo: "Documentos", icone: <FileText className="size-4" /> },
+    { href: "/auditorias", rotulo: "Auditorias", icone: <ClipboardCheck className="size-4" /> },
     {
       href: "/nao-conformidades",
       rotulo: "Não conformidades",
-      Icone: TriangleAlert,
+      icone: <TriangleAlert className="size-4" />,
     },
-    { href: "/relatorios", rotulo: "Relatórios", Icone: BarChart3 },
-    { href: "/configuracoes", rotulo: "Configurações", Icone: Settings },
+    { href: "/relatorios", rotulo: "Relatórios", icone: <BarChart3 className="size-4" /> },
+    { href: "/configuracoes", rotulo: "Configurações", icone: <Settings className="size-4" /> },
   ];
 
   return (

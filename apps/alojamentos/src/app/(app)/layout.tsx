@@ -32,17 +32,17 @@ export default async function LayoutApp({
   if (!sessao) redirect("/entrar");
 
   const itens = [
-    { href: "/", rotulo: "Dashboard", Icone: LayoutDashboard },
-    { href: "/alojamentos", rotulo: "Alojamentos", Icone: House },
-    { href: "/moradores", rotulo: "Moradores", Icone: BedDouble },
-    { href: "/pedidos", rotulo: "Pedidos", Icone: ClipboardList },
-    { href: "/programacao", rotulo: "Programação", Icone: CalendarDays },
-    { href: "/rotas", rotulo: "Ônibus", Icone: Bus },
-    { href: "/obras", rotulo: "Obras", Icone: Building2 },
+    { href: "/", rotulo: "Dashboard", icone: <LayoutDashboard className="size-4" /> },
+    { href: "/alojamentos", rotulo: "Alojamentos", icone: <House className="size-4" /> },
+    { href: "/moradores", rotulo: "Moradores", icone: <BedDouble className="size-4" /> },
+    { href: "/pedidos", rotulo: "Pedidos", icone: <ClipboardList className="size-4" /> },
+    { href: "/programacao", rotulo: "Programação", icone: <CalendarDays className="size-4" /> },
+    { href: "/rotas", rotulo: "Ônibus", icone: <Bus className="size-4" /> },
+    { href: "/obras", rotulo: "Obras", icone: <Building2 className="size-4" /> },
     {
       href: "/configuracoes/whatsapp",
       rotulo: "WhatsApp",
-      Icone: MessageCircle,
+      icone: <MessageCircle className="size-4" />,
     },
   ];
 

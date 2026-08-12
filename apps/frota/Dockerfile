@@ -12,6 +12,18 @@ COPY vendor ./vendor
 RUN npm ci
 
 COPY . .
+
+# Frota é publicado pelo gateway Go sob /frota. Os NEXT_PUBLIC_* precisam existir já no
+# build porque o Next.js os inclui no JavaScript entregue ao navegador.
+ARG NEXT_PUBLIC_BASE_PATH
+ARG NEXT_PUBLIC_URL_APP
+ARG NEXT_PUBLIC_URL_PORTAL
+ARG NEXT_PUBLIC_URL_PAINEL
+ARG NEXT_PUBLIC_URL_RH
+ARG NEXT_PUBLIC_URL_ESTOQUE
+ARG NEXT_PUBLIC_URL_PROGRAMACAO
+ARG NEXT_PUBLIC_URL_ALOJAMENTOS
+ARG NEXT_PUBLIC_URL_FROTA
 RUN npm run build
 
 RUN groupadd --system app \

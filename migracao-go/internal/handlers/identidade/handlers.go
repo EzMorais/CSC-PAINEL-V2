@@ -49,3 +49,11 @@ func opcoesModulo() []tpl.OpcaoModulo {
 	}
 	return op
 }
+
+func opcoesPapelFinanceiro() []tpl.OpcaoPapelFinanceiro {
+	op := make([]tpl.OpcaoPapelFinanceiro, len(dominio.PapeisFinanceiro))
+	for i, p := range dominio.PapeisFinanceiro {
+		op[i] = tpl.OpcaoPapelFinanceiro{Valor: string(p), Rotulo: dominio.RotuloPapelFinanceiro[p], Descricao: dominio.DescricaoPapelFinanceiro[p]}
+	}
+	return op
+}

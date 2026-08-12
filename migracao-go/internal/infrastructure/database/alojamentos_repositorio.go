@@ -34,7 +34,7 @@ func (r *AlojamentosRepositorio) RegistrarMensagem(ctx context.Context, externoI
 			return true, nil
 		}
 	}
-	_, err := r.DB.ExecContext(ctx, `INSERT INTO mensagens_whatsapp_alojamento(id,telefone,grupo_id,direcao,texto,externo_id,criado_em) VALUES(?,?,?,'RECEBIDA',?,?,?)`, uuid.NewString(), telefone, grupoID, func() any {
+	_, err := r.DB.ExecContext(ctx, `INSERT INTO mensagens_whatsapp_alojamento(id,telefone,grupo_id,direcao,texto,externo_id,criado_em) VALUES(?,?,?,'RECEBIDA',?,?,?)`, uuid.NewString(), telefone, grupoID, texto, func() any {
 		if externoID == "" {
 			return nil
 		}
@@ -417,7 +417,7 @@ func (r *AlojamentosRepositorio) ListarPedidos(ctx context.Context, status strin
 }
 func (r *AlojamentosRepositorio) CriarPedido(ctx context.Context, p *dominio.Pedido) error {
 	p.ID = uuid.NewString()
-	_, e := r.DB.ExecContext(ctx, `INSERT INTO pedidos_alojamento(id,alojamento_id,tipo,titulo,descricao,status,prioridade,alocacao_id,funcionario_nome,origem,registrado_por,criado_em,atualizado_em)VALUES(?,?,?,?,?,'ABERTO',?,?,?,?,?,?,?)`, p.ID, p.AlojamentoID, p.Tipo, p.Titulo, p.Descricao, p.Prioridade, p.AlocacaoID, p.FuncionarioNome, p.Origem, p.RegistradoPor, rfc3339(&p.CriadoEm), rfc3339(&p.AtualizadoEm))
+	_, e := r.DB.ExecContext(ctx, `INSERT INTO pedidos_alojamento(id,alojamento_id,tipo,titulo,descricao,status,prioridade,alocacao_id,funcionario_nome,origem,telefone_origem,grupo_origem_id,nome_origem,registrado_por,criado_em,atualizado_em)VALUES(?,?,?,?,?,'ABERTO',?,?,?,?,?,?,?,?,?,?)`, p.ID, p.AlojamentoID, p.Tipo, p.Titulo, p.Descricao, p.Prioridade, p.AlocacaoID, p.FuncionarioNome, p.Origem, p.TelefoneOrigem, p.GrupoOrigemID, p.NomeOrigem, p.RegistradoPor, rfc3339(&p.CriadoEm), rfc3339(&p.AtualizadoEm))
 	return e
 }
 func (r *AlojamentosRepositorio) AtualizarPedido(ctx context.Context, id, status string, obs *string, nome string, quando *time.Time) error {

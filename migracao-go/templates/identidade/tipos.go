@@ -9,6 +9,7 @@ type LinhaUsuario struct {
 	Ativo               bool
 	SistemasTexto       string
 	ModulosSelecionados []string
+	PapelFinanceiro     string
 	SouEu               bool
 	Aberta              bool
 	Mensagem            string
@@ -16,10 +17,11 @@ type LinhaUsuario struct {
 }
 
 type FormCriacao struct {
-	Aberto                       bool
-	Erro                         string
-	Nome, Email, Telefone, Cargo string
-	Modulos                      []string
+	Aberto                           bool
+	Erro                             string
+	Nome, Email, Telefone, Cargo     string
+	Modulos                          []string
+	PapelFinanceiro                  string
 }
 
 type LinhaAcesso struct {
@@ -31,3 +33,4 @@ type LinhaAcesso struct {
 
 type OpcaoCargo struct{ Valor, Rotulo, Descricao string }
 type OpcaoModulo struct{ Valor, Rotulo string }
+type OpcaoPapelFinanceiro struct{ Valor, Rotulo, Descricao string }

@@ -20,7 +20,7 @@ func NovoUsuarioRepositorio(db *sql.DB) *UsuarioRepositorio {
 	return &UsuarioRepositorio{DB: db}
 }
 
-const colunasUsuario = `id, nome, email, senha_hash, cargo, ativo, telefone, observacao, criado_em, atualizado_em, ultimo_acesso`
+const colunasUsuario = `id, nome, email, senha_hash, cargo, ativo, telefone, observacao, criado_em, atualizado_em, ultimo_acesso, papel_financeiro`
 
 type linhaEscaneavel interface {
 	Scan(dest ...any) error
@@ -29,18 +29,20 @@ type linhaEscaneavel interface {
 func lerUsuario(linha linhaEscaneavel) (*identidade.Usuario, error) {
 	var u identidade.Usuario
 	var cargo string
+	var papelFinanceiro string
 	var ativo int
 	var criadoEm, atualizadoEm string
 	var ultimoAcesso sql.NullString
 
 	if err := linha.Scan(
 		&u.ID, &u.Nome, &u.Email, &u.SenhaHash, &cargo, &ativo,
-		&u.Telefone, &u.Observacao, &criadoEm, &atualizadoEm, &ultimoAcesso,
+		&u.Telefone, &u.Observacao, &criadoEm, &atualizadoEm, &ultimoAcesso, &papelFinanceiro,
 	); err != nil {
 		return nil, err
 	}
 
 	u.Cargo = identidade.Cargo(cargo)
+	u.PapelFinanceiro = identidade.PapelFinanceiro(papelFinanceiro)
 	u.Ativo = ativo != 0
 	u.CriadoEm, _ = time.Parse(time.RFC3339, criadoEm)
 	u.AtualizadoEm, _ = time.Parse(time.RFC3339, atualizadoEm)
@@ -156,9 +158,9 @@ func (r *UsuarioRepositorio) Criar(ctx context.Context, u *identidade.Usuario, m
 	defer tx.Rollback()
 
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO usuarios (id, nome, email, senha_hash, cargo, ativo, telefone, observacao, criado_em, atualizado_em)
-		VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-		id, u.Nome, u.Email, u.SenhaHash, string(u.Cargo), u.Telefone, u.Observacao, agora, agora)
+		INSERT INTO usuarios (id, nome, email, senha_hash, cargo, ativo, telefone, observacao, criado_em, atualizado_em, papel_financeiro)
+		VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+		id, u.Nome, u.Email, u.SenhaHash, string(u.Cargo), u.Telefone, u.Observacao, agora, agora, string(u.PapelFinanceiro))
 	if err != nil {
 		// Detecção pragmática por texto — o mesmo que o código Next.js original fazia
 		// com `e.message.includes('Unique')` em actions/usuarios.ts.
@@ -181,7 +183,7 @@ func (r *UsuarioRepositorio) Criar(ctx context.Context, u *identidade.Usuario, m
 	return nil
 }
 
-func (r *UsuarioRepositorio) AtualizarCargoEAcessos(ctx context.Context, id string, cargo identidade.Cargo, ativo bool, modulos []identidade.Modulo) error {
+func (r *UsuarioRepositorio) AtualizarCargoEAcessos(ctx context.Context, id string, cargo identidade.Cargo, ativo bool, modulos []identidade.Modulo, papelFinanceiro identidade.PapelFinanceiro) error {
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -193,8 +195,8 @@ func (r *UsuarioRepositorio) AtualizarCargoEAcessos(ctx context.Context, id stri
 		ativoInt = 1
 	}
 	if _, err := tx.ExecContext(ctx,
-		`UPDATE usuarios SET cargo = ?, ativo = ?, atualizado_em = ? WHERE id = ?`,
-		string(cargo), ativoInt, time.Now().UTC().Format(time.RFC3339), id,
+		`UPDATE usuarios SET cargo = ?, ativo = ?, papel_financeiro = ?, atualizado_em = ? WHERE id = ?`,
+		string(cargo), ativoInt, string(papelFinanceiro), time.Now().UTC().Format(time.RFC3339), id,
 	); err != nil {
 		return err
 	}

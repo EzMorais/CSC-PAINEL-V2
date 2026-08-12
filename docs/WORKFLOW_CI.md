@@ -23,14 +23,17 @@ sucesso artificial.
 - E2E deixou de instalar Playwright globalmente e passou a instalar o navegador por aplicação.
 - Relatórios Playwright gerados localmente passaram a ser ignorados pelo ESLint.
 - Código Go formatado com `gofmt`; `go vet` e 112 testes passam localmente.
+- WhatsApp portado para o módulo Go de Alojamentos: webhook de mensagens de grupo e
+  individuais, parser por gatilhos, criação de pedidos a partir de mensagens e cobertura E2E
+  dedicada (`apps/alojamentos/e2e/whatsapp.go.spec.ts`).
+- `ModuloCompras` criado e `TemAcesso` aplicado nos handlers de Compras.
 
 ## Próximas pendências fora do CI
 
 - Executar o workflow em um runner GitHub após o push e ajustar diferenças específicas do
   ambiente Linux.
-- Portar o webhook/conversa WhatsApp para o módulo Go de Alojamentos e cobrir o fluxo com E2E.
-- Criar `ModuloCompras` e aplicar `TemAcesso` nos handlers de Compras.
-- Integrar devolução de Compras ao estorno financeiro e criar perfis de tesouraria dedicados.
+- Integrar devolução de Compras ao estorno financeiro e criar perfis de tesouraria dedicados
+  (em andamento).
 - Configurar publicadores externos do outbox (bancos, CNAB/PIX, e-mail e SEFAZ/Sebrae).
 - Concluir implantação de produção, HTTPS, backups e teste de restauração descritos em
   [`backlog.md`](backlog.md).

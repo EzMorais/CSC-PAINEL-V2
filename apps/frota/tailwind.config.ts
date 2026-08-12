@@ -56,6 +56,25 @@ export default {
         ambar: { DEFAULT: cor('--cor-ambar'), fraco: cor('--cor-ambar-fraco') },
         mata: { DEFAULT: cor('--cor-mata'), fraco: cor('--cor-mata-fraco') },
         aco: { DEFAULT: cor('--cor-aco'), fraco: cor('--cor-aco-fraco') },
+
+        /**
+         * Nomes padrão dos outros 6 apps (DESIGN-SYSTEM.md §6) — mesma API que
+         * `hud-programacao.tsx`/`hub-navegacao.tsx` deles esperam, apontando pras MESMAS
+         * variáveis já aliasadas em globals.css (`--background`, `--card`, `--primary`
+         * etc.). Não redefine nada: só expõe como classe Tailwind o que já existia como
+         * variável CSS, pra poder reusar os componentes compartilhados sem reescrevê-los
+         * com os nomes industriais (`bg-concreto`, `text-grafite`...) deste app.
+         */
+        background: cor('--background'),
+        foreground: cor('--foreground'),
+        card: { DEFAULT: cor('--card'), foreground: cor('--card-foreground') },
+        muted: { DEFAULT: cor('--muted'), foreground: cor('--muted-foreground') },
+        border: cor('--border'),
+        input: cor('--input'),
+        accent: { DEFAULT: cor('--accent'), foreground: cor('--accent-foreground') },
+        ring: cor('--ring'),
+        primary: { DEFAULT: cor('--primary'), foreground: cor('--primary-foreground') },
+        destructive: { DEFAULT: cor('--destructive'), foreground: cor('--destructive-foreground') },
       },
       fontFamily: {
         cond: ['var(--fonte-cond)', 'Arial Narrow', 'sans-serif'],

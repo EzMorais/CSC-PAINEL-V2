@@ -33,7 +33,7 @@ func (f *usuariosFake) Listar(ctx context.Context) ([]dominio.Usuario, error) { 
 func (f *usuariosFake) Criar(ctx context.Context, u *dominio.Usuario, modulos []dominio.Modulo) error {
 	return nil
 }
-func (f *usuariosFake) AtualizarCargoEAcessos(ctx context.Context, id string, cargo dominio.Cargo, ativo bool, modulos []dominio.Modulo) error {
+func (f *usuariosFake) AtualizarCargoEAcessos(ctx context.Context, id string, cargo dominio.Cargo, ativo bool, modulos []dominio.Modulo, papelFinanceiro dominio.PapelFinanceiro) error {
 	return nil
 }
 func (f *usuariosFake) AtualizarSenha(ctx context.Context, id string, senhaHash string) error {

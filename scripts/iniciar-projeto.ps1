@@ -1,26 +1,64 @@
-# Sobe o projeto inteiro para demonstracao local: o binario unico em Go (Portal + Painel de
-# Locacao + Almoxarifado + RH + Compras + Alojamentos, porta 3010) e todos os apps Next.js
-# complementares/legados em portas proprias. Cada app Prisma usa seu proprio SQLite de
-# preview; compartilhar portal.db entre Go e Next quebra por incompatibilidade de schema.
-# So inicia o que ainda nao estiver rodando - seguro rodar de novo com tudo ja de pe.
+# Sobe o projeto inteiro para demonstracao local por uma unica entrada publica (porta 3010).
+# O binario Go atende Portal, Painel de Locacao, Almoxarifado, RH, Compras, Alojamentos,
+# Financeiro; ele encaminha /frota, /cadastros, /programacao e /whatsapp aos quatro processos
+# que ainda nao migraram. As portas internas existem apenas entre os processos locais.
 #
 # Chamado pelo atalho "Abrir Projeto CSC.bat" na Area de Trabalho.
 
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 $segredoAuth = if ($env:AUTH_SECRET -and $env:AUTH_SECRET.Length -ge 32) { $env:AUTH_SECRET } else { 'bk/f+v0L7piz5YNU1j0k7AFVLfWeQ5m/ca02em7LpdjiuJQmegE9mKSZ8fwJOnia' }
+# NEXT_PUBLIC_URL_* vao dentro do JS que o navegador baixa - se o acesso for de outro
+# computador (ex.: via Tailscale), precisam apontar pro host da rede, nao "localhost",
+# senao os links entre modulos abrem o localhost de quem esta clicando. Defina
+# $env:CSC_HOST (ex.: "meu-pc.tailXXXXX.ts.net") antes de rodar o atalho para isso.
+$hostPublico = if ($env:CSC_HOST) { $env:CSC_HOST } else { 'localhost' }
+$urlPublica = "http://${hostPublico}:3010"
+# Frota e Programação continuam em Next.js atrás do gateway. As portas internas não são
+# públicas: quem usa o ERP sempre entra por $urlPublica/frota ou $urlPublica/programacao.
+$portaFrotaInterna = 3008
+$portaProgramacaoInterna = 3007
 
 function Test-PortaOcupada($porta) {
     $null -ne (Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue)
 }
 
-function Wait-Porta($porta, $timeoutSegundos) {
-    $limite = (Get-Date).AddSeconds($timeoutSegundos)
-    while ((Get-Date) -lt $limite) {
-        if (Test-PortaOcupada $porta) { return $true }
-        Start-Sleep -Milliseconds 500
+function Test-ServicoHTTP([string]$url) {
+    $resposta = $null
+    try {
+        $requisicao = [System.Net.HttpWebRequest][System.Net.WebRequest]::Create($url)
+        $requisicao.Method = 'GET'
+        $requisicao.AllowAutoRedirect = $false
+        # O primeiro acesso a uma rota do `next dev` compila a página; 3s classificava um
+        # módulo saudável como conflito de porta durante essa compilação inicial.
+        $requisicao.Timeout = 15000
+        $requisicao.ReadWriteTimeout = 15000
+        $resposta = $requisicao.GetResponse()
+        $codigo = [int]$resposta.StatusCode
+        return $codigo -ge 200 -and $codigo -lt 400
+    } catch [System.Net.WebException] {
+        $resposta = $_.Exception.Response
+        if ($null -eq $resposta) { return $false }
+        $codigo = [int]$resposta.StatusCode
+        return $codigo -ge 200 -and $codigo -lt 400
+    } catch {
+        return $false
+    } finally {
+        if ($null -ne $resposta) { $resposta.Close() }
     }
-    return $false
+}
+
+function Esperar-Servicos($servicos, $timeoutSegundos) {
+    $limite = (Get-Date).AddSeconds($timeoutSegundos)
+    do {
+        $pendentes = @($servicos | Where-Object { -not (Test-ServicoHTTP $_.url) })
+        if ($pendentes.Count -eq 0) {
+            return @{ Pronto = $true; Pendentes = @() }
+        }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date) -lt $limite)
+
+    return @{ Pronto = $false; Pendentes = $pendentes }
 }
 
 function Preparar-BancosPreview {
@@ -72,15 +110,15 @@ function Iniciar-AppNode($app) {
     $atribuicoes = @(
         "[Environment]::SetEnvironmentVariable('AUTH_SECRET','$segredoAuth','Process')",
         "[Environment]::SetEnvironmentVariable('DATABASE_URL','$($app.banco)','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PORTAL','http://localhost:3010','Process')",
-        "[Environment]::SetEnvironmentVariable('URL_PORTAL','http://localhost:3010','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PROGRAMACAO','http://localhost:3007','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_CADASTROS','http://localhost:3004/cadastros','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PAINEL','http://localhost:3010/painel','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_RH','http://localhost:3010/rh','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ESTOQUE','http://localhost:3010/almoxarifado','Process')",
-		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ALOJAMENTOS','http://localhost:3010/alojamentos','Process')",
-        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_FROTA','http://localhost:3000','Process')"
+        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PORTAL','$urlPublica','Process')",
+        "[Environment]::SetEnvironmentVariable('URL_PORTAL','$urlPublica','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PROGRAMACAO','$urlPublica/programacao','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_CADASTROS','$urlPublica/cadastros','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_PAINEL','$urlPublica/painel','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_RH','$urlPublica/rh','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ESTOQUE','$urlPublica/almoxarifado','Process')",
+		"[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_ALOJAMENTOS','$urlPublica/alojamentos','Process')",
+        "[Environment]::SetEnvironmentVariable('NEXT_PUBLIC_URL_FROTA','$urlPublica/frota','Process')"
     )
     if ($app.extraEnv) {
         foreach ($item in $app.extraEnv.GetEnumerator()) {
@@ -164,8 +202,12 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
 }
 
 # -- Binario unico em Go (migracao-go) - porta 3010 -----------------------------------------
-if (Test-PortaOcupada 3010) {
-    Write-Host "[Go 3010] ja esta no ar." -ForegroundColor DarkGray
+$servicoGo = @{ nome = 'Nucleo ERP Go'; porta = 3010; url = 'http://localhost:3010/healthz' }
+if (Test-ServicoHTTP $servicoGo.url) {
+    Write-Host "[Go 3010] ja esta respondendo." -ForegroundColor DarkGray
+} elseif (Test-PortaOcupada $servicoGo.porta) {
+    Write-Host "[Go 3010] porta ocupada, mas /healthz nao responde. Pare o processo conflitante e rode novamente." -ForegroundColor Red
+    exit 1
 } else {
     Write-Host "[Go 3010] compilando e iniciando..." -ForegroundColor Yellow
     Push-Location "$raiz\migracao-go"
@@ -182,10 +224,12 @@ if (Test-PortaOcupada 3010) {
     & go build -o servidor.exe .\cmd\servidor
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[Go 3010] falha ao compilar - veja o erro acima." -ForegroundColor Red
+        Pop-Location
+        exit 1
     } else {
-        Start-Process powershell -WindowStyle Minimized -ArgumentList @(
-            '-NoExit', '-Command',
-            "cd '$raiz\migracao-go'; `$env:DATABASE_PATH='servidor.db'; `$env:AUTH_SECRET='$segredoAuth'; `$env:PORTA='3010'; .\servidor.exe"
+        Start-Process powershell -WindowStyle Hidden -ArgumentList @(
+            '-NoProfile', '-Command',
+            "cd '$raiz\migracao-go'; `$env:DATABASE_PATH='servidor.db'; `$env:AUTH_SECRET='$segredoAuth'; `$env:PORTA='3010'; `$env:URL_RH='$urlPublica/rh'; `$env:URL_ESTOQUE='$urlPublica/almoxarifado'; `$env:URL_ALOJAMENTOS='$urlPublica/alojamentos'; `$env:URL_FROTA='$urlPublica/frota'; `$env:URL_PORTAL='$urlPublica/cadastros'; `$env:FROTA_UPSTREAM='http://localhost:$portaFrotaInterna'; `$env:CADASTROS_UPSTREAM='http://localhost:3004'; `$env:PROGRAMACAO_UPSTREAM='http://localhost:$portaProgramacaoInterna'; `$env:WHATSAPP_UPSTREAM='http://localhost:3006'; .\servidor.exe"
         )
     }
     Pop-Location
@@ -198,14 +242,10 @@ $bancoPreview = {
 }
 
 $apps = @(
-    @{ nome = 'Portal';            pasta = 'portal';          porta = 3004; banco = (&$bancoPreview 'portal');        comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'Frota';             pasta = 'frota';            porta = 3000; banco = 'file:./frota-preview.db';       comando = 'npm run dev -- -p 3000'; extraEnv = @{ PORT = '3000' } },
-    @{ nome = 'Painel de Locacao'; pasta = 'painel-locacao';   porta = 3001; banco = (&$bancoPreview 'painel-locacao'); comando = 'npm run dev -- -p 3001'; extraEnv = @{} },
-    @{ nome = 'RH e SST';          pasta = 'rh';                porta = 3002; banco = (&$bancoPreview 'rh');           comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'Almoxarifado';      pasta = 'estoque';           porta = 3003; banco = (&$bancoPreview 'estoque');      comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'Alojamentos';       pasta = 'alojamentos';      porta = 3005; banco = (&$bancoPreview 'alojamentos'); comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'Programacao';       pasta = 'programacao';      porta = 3007; banco = (&$bancoPreview 'programacao'); comando = 'npm run dev'; extraEnv = @{} },
-    @{ nome = 'WhatsApp';          pasta = 'whatsapp';         porta = 3006; banco = '';                              comando = 'npm run dev'; extraEnv = @{ PORTA_WHATSAPP = '3006'; URL_ALOJAMENTOS = 'http://localhost:3005' } }
+    @{ nome = 'Cadastros (Portal legado)'; pasta = 'portal';   porta = 3004; url = 'http://localhost:3004/cadastros'; banco = (&$bancoPreview 'portal'); comando = 'npm run dev'; extraEnv = @{ NEXT_PUBLIC_URL_APP = $urlPublica } },
+    @{ nome = 'Frota';                     pasta = 'frota';    porta = $portaFrotaInterna; url = "http://localhost:$portaFrotaInterna/frota/veiculos"; banco = 'file:./frota-preview.db'; comando = "npm run dev -- -p $portaFrotaInterna"; extraEnv = @{ PORT = "$portaFrotaInterna"; NEXT_PUBLIC_BASE_PATH = '/frota'; NEXT_PUBLIC_URL_APP = "$urlPublica/frota" } },
+    @{ nome = 'Programação (legado)';      pasta = 'programacao'; porta = $portaProgramacaoInterna; url = "http://localhost:$portaProgramacaoInterna/programacao/dia/2026-08-13"; banco = (&$bancoPreview 'programacao'); comando = 'npm run dev'; extraEnv = @{ NEXT_PUBLIC_BASE_PATH = '/programacao'; NEXT_PUBLIC_URL_APP = "$urlPublica/programacao"; URL_RH = $urlPublica; URL_FROTA = "$urlPublica/frota" } },
+    @{ nome = 'WhatsApp';                  pasta = 'whatsapp'; porta = 3006; url = 'http://localhost:3006/saude';     banco = ''; comando = 'npm run dev'; extraEnv = @{ PORTA_WHATSAPP = '3006'; URL_ALOJAMENTOS = "$urlPublica/alojamentos" } }
 )
 
 # Cria/atualiza _prisma_migrations e aplica os SQL versionados antes de subir as telas.
@@ -222,26 +262,37 @@ if (-not (Test-Path -LiteralPath $frotaDependencias)) {
 }
 Preparar-BancosPreview
 
+$conflitosPorta = @()
 foreach ($app in $apps) {
+    if (Test-ServicoHTTP $app.url) {
+        Write-Host ("[{0} {1}] ja esta respondendo." -f $app.nome, $app.porta) -ForegroundColor DarkGray
+        continue
+    }
     if (Test-PortaOcupada $app.porta) {
-        Write-Host ("[{0} {1}] ja esta no ar." -f $app.nome, $app.porta) -ForegroundColor DarkGray
+        $conflitosPorta += $app
+        Write-Host ("[{0} {1}] porta ocupada, mas {2} nao responde." -f $app.nome, $app.porta, $app.url) -ForegroundColor Red
         continue
     }
     Iniciar-AppNode $app
 }
 
-# -- Espera o essencial responder e abre o hub unico ----------------------------------------
-Write-Host "Aguardando Portal (3004), WhatsApp (3006), Programacao (3007) e Go (3010)..." -ForegroundColor Cyan
-$portalOk = Wait-Porta 3004 60
-$whatsappOk = Wait-Porta 3006 60
-$programacaoOk = Wait-Porta 3007 60
-$goOk = Wait-Porta 3010 60
+# -- Espera todos os modulos responderem antes de declarar sucesso ---------------------------
+if ($conflitosPorta.Count -gt 0) {
+    $nomesConflitantes = $conflitosPorta | ForEach-Object { "$($_.nome) ($($_.porta))" }
+    Write-Host ("Inicio interrompido por portas conflitantes: {0}." -f ($nomesConflitantes -join ', ')) -ForegroundColor Red
+    exit 1
+}
 
-if (-not $portalOk) { Write-Host "Portal (3004) nao respondeu a tempo - confira a janela dele." -ForegroundColor Red }
-if (-not $whatsappOk) { Write-Host "WhatsApp (3006) nao respondeu a tempo - confira a janela dele." -ForegroundColor Red }
-if (-not $programacaoOk) { Write-Host "Programacao (3007) nao respondeu a tempo - confira a janela dele." -ForegroundColor Red }
-if (-not $goOk) { Write-Host "Binario Go (3010) nao respondeu a tempo - confira a janela dele." -ForegroundColor Red }
+$todosServicos = @($servicoGo) + $apps
+Write-Host "Aguardando todos os modulos responderem..." -ForegroundColor Cyan
+$verificacao = Esperar-Servicos $todosServicos 90
+if (-not $verificacao.Pronto) {
+    $nomesPendentes = $verificacao.Pendentes | ForEach-Object { "$($_.nome) ($($_.porta))" }
+    Write-Host ("Falha ao iniciar: {0}. O projeto nao esta pronto para teste." -f ($nomesPendentes -join ', ')) -ForegroundColor Red
+    exit 1
+}
 
-if ($goOk -and $env:ABRIR_NAVEGADOR -eq '1') { Start-Process "http://localhost:3010" }
+if ($env:ABRIR_NAVEGADOR -eq '1') { Start-Process "http://localhost:3010" }
 
-Write-Host "== Pronto. Hub: http://localhost:3010 | WhatsApp: http://localhost:3006/saude ==" -ForegroundColor Cyan
+Write-Host "== Pronto. Entrada unica: $urlPublica ==" -ForegroundColor Cyan
+Write-Host "   Ramificacoes: /painel /almoxarifado /rh /alojamentos /compras /financeiro /programacao /frota /cadastros /whatsapp/saude" -ForegroundColor DarkGray

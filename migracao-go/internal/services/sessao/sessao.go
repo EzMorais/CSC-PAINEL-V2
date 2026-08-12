@@ -25,6 +25,9 @@ type claims struct {
 	// Papel é cópia de Cargo — ver COMPORTAMENTO.md §2, mantida pra módulos Next.js que
 	// ainda leem o campo antigo.
 	Papel string `json:"papel"`
+	// PapelFinanceiro separa tesouraria/aprovação dentro do Financeiro — ver
+	// domain/identidade/usuario.go. Vazio = regra do cargo.
+	PapelFinanceiro string `json:"papel_financeiro"`
 	jwt.RegisteredClaims
 }
 
@@ -51,6 +54,7 @@ func (s *Servico) Emitir(sess identidade.Sessao) (string, error) {
 	c := claims{
 		ID: sess.ID, Nome: sess.Nome, Email: sess.Email,
 		Cargo: string(sess.Cargo), Modulos: modulos, Papel: string(sess.Papel),
+		PapelFinanceiro: string(sess.PapelFinanceiro),
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(agora),
 			ExpiresAt: jwt.NewNumericDate(agora.Add(dias * 24 * time.Hour)),
@@ -93,5 +97,6 @@ func (s *Servico) Ler(token string) (*identidade.Sessao, error) {
 	return &identidade.Sessao{
 		ID: c.ID, Nome: c.Nome, Email: c.Email,
 		Cargo: identidade.Cargo(cargo), Modulos: modulos, Papel: identidade.Cargo(papel),
+		PapelFinanceiro: identidade.PapelFinanceiro(c.PapelFinanceiro),
 	}, nil
 }

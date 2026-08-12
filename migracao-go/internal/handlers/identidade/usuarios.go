@@ -56,6 +56,7 @@ func (h *Handlers) renderUsuarios(w http.ResponseWriter, r *http.Request, admin 
 			Ativo:               u.Ativo,
 			SistemasTexto:       textoSistemas(u),
 			ModulosSelecionados: modulosString(u.Modulos),
+			PapelFinanceiro:     string(u.PapelFinanceiro),
 			SouEu:               u.ID == admin.ID,
 		}
 		if u.ID == overrideID {
@@ -92,7 +93,7 @@ func (h *Handlers) renderUsuarios(w http.ResponseWriter, r *http.Request, admin 
 		total += "s"
 	}
 
-	tpl.Usuarios(linhas, criacao, acessos, opcoesCargo(), opcoesModulo(), total).Render(r.Context(), w)
+	tpl.Usuarios(linhas, criacao, acessos, opcoesCargo(), opcoesModulo(), opcoesPapelFinanceiro(), total).Render(r.Context(), w)
 }
 
 func (h *Handlers) UsuariosListar(w http.ResponseWriter, r *http.Request) {
@@ -126,14 +127,14 @@ func (h *Handlers) UsuariosCriar(w http.ResponseWriter, r *http.Request) {
 	entrada := aplicacao.EntradaCriarUsuario{
 		Nome: r.PostFormValue("nome"), Email: r.PostFormValue("email"), Senha: r.PostFormValue("senha"),
 		Cargo: r.PostFormValue("cargo"), Telefone: r.PostFormValue("telefone"),
-		Modulos: r.PostForm["modulos"],
+		Modulos: r.PostForm["modulos"], PapelFinanceiro: r.PostFormValue("papelFinanceiro"),
 	}
 
 	if _, err := h.Gerenciador.Criar(r.Context(), entrada); err != nil {
 		criacao := tpl.FormCriacao{
 			Aberto: true, Erro: err.Error(),
 			Nome: entrada.Nome, Email: entrada.Email, Telefone: entrada.Telefone, Cargo: entrada.Cargo,
-			Modulos: entrada.Modulos,
+			Modulos: entrada.Modulos, PapelFinanceiro: entrada.PapelFinanceiro,
 		}
 		h.renderUsuarios(w, r, *admin, criacao, "", overrideLinha{})
 		return
@@ -155,7 +156,7 @@ func (h *Handlers) UsuariosEditar(w http.ResponseWriter, r *http.Request) {
 
 	entrada := aplicacao.EntradaEditarUsuario{
 		Cargo: r.PostFormValue("cargo"), Ativo: r.PostFormValue("ativo") == "1",
-		Modulos: r.PostForm["modulos"],
+		Modulos: r.PostForm["modulos"], PapelFinanceiro: r.PostFormValue("papelFinanceiro"),
 	}
 
 	if err := h.Gerenciador.Editar(r.Context(), *admin, id, entrada); err != nil {

@@ -41,7 +41,7 @@ func (h *Handlers) lancamento(w http.ResponseWriter, r *http.Request) (*identida
 	if !ok {
 		return nil, false
 	}
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(*s) {
 		http.Error(w, "Seu cargo permite apenas consultar.", http.StatusForbidden)
 		return nil, false
 	}
@@ -206,7 +206,7 @@ func (h *Handlers) MovimentoEstornar(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !identidade.PodeAprovar(s.Cargo) {
+	if !identidade.FinanceiroPodeAprovar(*s) {
 		http.Error(w, "estorno exige aprovador financeiro", http.StatusForbidden)
 		return
 	}
@@ -235,7 +235,7 @@ func (h *Handlers) FecharCompetencia(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !identidade.PodeAdministrar(s.Cargo) {
+	if !identidade.FinanceiroPodeAdministrar(*s) {
 		http.Error(w, "somente administração fecha competência", http.StatusForbidden)
 		return
 	}
@@ -256,7 +256,7 @@ func (h *Handlers) ReabrirCompetencia(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !identidade.PodeAdministrar(s.Cargo) {
+	if !identidade.FinanceiroPodeAdministrar(*s) {
 		http.Error(w, "somente administração reabre competência", http.StatusForbidden)
 		return
 	}

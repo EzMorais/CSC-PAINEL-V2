@@ -166,6 +166,17 @@ func (g *GerenciadorProcesso) CriarDevolucao(ctx context.Context, s identidade.S
 			}
 		}
 	}
+	if g.Pedidos.Financeiro != nil {
+		var abater int64
+		for _, item := range d.Itens {
+			abater += int64(item.Quantidade*float64(item.ValorUnitarioCentavos) + 0.5)
+		}
+		if abater > 0 {
+			if err := g.Pedidos.Financeiro.AbaterDevolucao(ctx, dominio.AbatimentoDevolucao{RecebimentoID: d.RecebimentoID, DevolucaoID: d.ID, DevolucaoNumero: d.Numero, Motivo: d.Motivo, ValorCentavos: abater, RegistradoPor: s.Nome, OcorridoEm: time.Now().UTC()}); err != nil {
+				return nil, fmt.Errorf("integrar Financeiro: %w", err)
+			}
+		}
+	}
 	return d, nil
 }
 func (g *GerenciadorProcesso) CriarContrato(ctx context.Context, s identidade.Sessao, e EntradaContrato) (*dominio.Contrato, error) {

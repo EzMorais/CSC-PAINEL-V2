@@ -16,13 +16,10 @@ verdade, num servidor, para todo mundo acessar pela internet.
 O repositório tem 9 aplicações (8 Next.js + o binário único em Go, `migracao-go`). Oito
 delas dividem um **login único**: entrar no Portal deixa a pessoa já autenticada no Painel
 de Locação, RH, Almoxarifado, Programação, Alojamentos, Frota e no próprio binário Go. Isso
-funciona por causa de um cookie de sessão que o Portal emite e os outros conferem — e
-**cookie sem domínio explícito vale para o mesmo host, em qualquer porta, mas não atravessa
-hosts diferentes**. Por isso, ao contrário do que se poderia imaginar, esses oito sistemas
-**não** ganham cada um um subdomínio bonito (`rh.suaempresa.com`, `estoque.suaempresa.com`...)
-— eles continuam no mesmo domínio, diferenciados por porta, exatamente como quando você roda
-tudo em `localhost` no seu computador. Trocar isso por subdomínios separados quebraria o
-"loga uma vez, circula em todos".
+funciona por causa de um cookie de sessão que o Portal emite e os outros conferem. Todos os
+módulos ficam no **mesmo host e na mesma porta HTTPS**, organizados por ramificações de URL
+(`.../painel`, `.../rh`, `.../frota` etc.). Assim o login único não depende de portas expostas
+nem de subdomínios separados.
 
 Frota entrou nesse grupo em 2026-08-11 — antes tinha login, `AUTH_SECRET` e subdomínio
 próprios (decisão revertida porque, na prática, o Frota sempre roda junto com o resto do ERP
@@ -33,23 +30,22 @@ conta de usuário própria do Frota.
 
 | Sistema | Endereço em produção |
 |---|---|
-| Portal | `https://sistemas.SEUDOMINIO.com.br:3004` |
-| Painel de Locação | `https://sistemas.SEUDOMINIO.com.br:3000` |
-| RH | `https://sistemas.SEUDOMINIO.com.br:3002` |
-| Almoxarifado | `https://sistemas.SEUDOMINIO.com.br:3003` |
-| Frota | `https://sistemas.SEUDOMINIO.com.br:3006` |
-| Programação | `https://sistemas.SEUDOMINIO.com.br:3007` |
-| Alojamentos | `https://sistemas.SEUDOMINIO.com.br:3005` |
-| Binário Go (`migracao-go`) | `https://sistemas.SEUDOMINIO.com.br:3010` |
-| WhatsApp | não tem tela — roda por dentro, os Alojamentos conversam com ele |
+| Hub e login | `https://sistemas.SEUDOMINIO.com.br/` |
+| Painel de Locação | `https://sistemas.SEUDOMINIO.com.br/painel` |
+| RH e SST | `https://sistemas.SEUDOMINIO.com.br/rh` |
+| Almoxarifado | `https://sistemas.SEUDOMINIO.com.br/almoxarifado` |
+| Alojamentos | `https://sistemas.SEUDOMINIO.com.br/alojamentos` |
+| Compras | `https://sistemas.SEUDOMINIO.com.br/compras` |
+| Financeiro | `https://sistemas.SEUDOMINIO.com.br/financeiro` |
+| Programação | `https://sistemas.SEUDOMINIO.com.br/programacao` |
+| Frota | `https://sistemas.SEUDOMINIO.com.br/frota` |
+| Cadastros legados | `https://sistemas.SEUDOMINIO.com.br/cadastros` |
+| WhatsApp (saúde) | `https://sistemas.SEUDOMINIO.com.br/whatsapp/saude` |
 
-`migracao-go` **convive** com os apps Next.js acima em vez de substituí-los — é o Strangler
-Fig documentado em `migracao-go/README.md`: já serve Portal/Painel/Almoxarifado/RH/
-Alojamentos/Compras/Financeiro/Programação por dentro, num único processo, mas nenhum
-Next.js correspondente é desligado por este roteiro. Isso só acontece módulo a módulo,
-depois que a suíte de referência Playwright daquele módulo passar contra o Go. Até lá, ambos
-ficam no ar — normal ter, por exemplo, RH acessível tanto em `:3002` (Next.js) quanto em
-`:3010/rh` (Go).
+`migracao-go` é o gateway público do Strangler Fig documentado em `migracao-go/README.md`.
+Ele serve diretamente Portal/Painel/Almoxarifado/RH/Alojamentos/Compras/Financeiro/
+Programação e encaminha Cadastros, Frota e WhatsApp aos processos internos que ainda não
+migraram. Os contêineres Next.js continuam privados na rede Docker, sem portas públicas.
 
 Cada aplicação roda no seu próprio contêiner Docker, com seu próprio banco SQLite guardado
 num volume (sobrevive a reinícios e a `docker compose up --build`). Um nginx na frente
@@ -200,21 +196,13 @@ o mesmo valor em dois lugares: `GOOGLE_MAPS_API_KEY` em
 
 ## Passo 6 — Abrir as portas no firewall
 
-O sistema usa portas fora do padrão para o grupo de login único (explicado no topo deste
-arquivo). Libere no firewall do VPS **e** no painel do provedor de nuvem, se ele tiver um
-firewall próprio (AWS Security Group, DigitalOcean Cloud Firewall etc. — bloqueiam antes
-mesmo de chegar no servidor):
+O nginx expõe somente HTTP para renovar o certificado e HTTPS para o ERP. Libere no firewall
+do VPS **e** no painel do provedor de nuvem, se ele tiver um firewall próprio (AWS Security
+Group, DigitalOcean Cloud Firewall etc. — bloqueiam antes mesmo de chegar no servidor):
 
 ```bash
 sudo ufw allow 80/tcp
-sudo ufw allow 3000/tcp
-sudo ufw allow 3002/tcp
-sudo ufw allow 3003/tcp
-sudo ufw allow 3004/tcp
-sudo ufw allow 3005/tcp
-sudo ufw allow 3006/tcp
-sudo ufw allow 3007/tcp
-sudo ufw allow 3010/tcp
+sudo ufw allow 443/tcp
 sudo ufw enable
 ```
 
@@ -266,11 +254,11 @@ docker compose logs -f
 
 Quando os logs pararem de rolar coisas em vermelho, teste:
 
-- `https://sistemas.suaempresa.com.br:3004` → tela de login do Portal
+- `https://sistemas.suaempresa.com.br/` → tela de login e hub do ERP
 - Entre com `admin@siqueiracampos.com.br` / `locacao2026`
 - Clique nos ícones do hub de navegação (canto da tela) e confira se entra direto nos
-  outros sistemas, inclusive o Frota (`:3006`), sem pedir login de novo
-- `https://sistemas.suaempresa.com.br:3010` → mesma sessão, hub servido pelo binário Go
+  outros sistemas, inclusive o Frota (`/frota`), sem pedir login de novo
+- Confira uma ramificação migrada, como `https://sistemas.suaempresa.com.br/rh`
 
 O primeiro boot de cada sistema roda sozinho as migrações do banco e cria os dados de
 exemplo (contas de teste, veículos de exemplo etc. — apague-os pelas telas de cada sistema
@@ -369,8 +357,7 @@ build painel-locacao`, e assim por diante, antes do `up -d`.
 O cron do Passo 9 não rodou ou falhou. Rode manualmente o comando de renovação do Passo 9
 (sem o `-q`, para ver o erro) e confira o cron com `crontab -l`.
 
-**Preciso trocar a porta de algum sistema**
-Não é só trocar no `docker-compose.yml` — o nginx, os `NEXT_PUBLIC_URL_*` de todos os apps do
-grupo de login único, `URL_FROTA`/`URL_PORTAL` do `migracao-go/.env.production` (se a porta
-trocada for a do Frota ou do Portal) e o firewall também mudam. Evite, a menos que seja
-realmente necessário.
+**Preciso trocar a porta pública**
+O padrão é HTTPS na `443`; as portas dos módulos são privadas na rede Docker. Se a porta
+pública precisar mudar, altere somente o mapeamento do serviço `nginx`, as URLs públicas do
+`.env` raiz e o firewall. Evite expor os contêineres individuais.

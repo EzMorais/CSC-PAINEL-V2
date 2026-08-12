@@ -17,21 +17,31 @@ type Config struct {
 	// (obras/casas/veículos/máquinas/materiais), que ainda não migrou pro binário Go.
 	URLPortal    string
 	PastaUploads string
+	// Endereços privados dos processos que ainda não migraram e do conector WhatsApp.
+	// Nunca vão para o navegador: o binário os expõe sob /frota, /cadastros, /programacao e /whatsapp.
+	FrotaUpstream       string
+	CadastrosUpstream   string
+	ProgramacaoUpstream string
+	WhatsAppUpstream    string
 }
 
 func Carregar() Config {
 	return Config{
-		Porta:          getenv("PORTA", "3004"),
-		CaminhoBanco:   getenv("DATABASE_PATH", "portal.db"),
-		AuthSecret:     os.Getenv("AUTH_SECRET"),
-		ForcaHTTPS:     os.Getenv("FORCA_HTTPS") == "1",
-		URLPainel:      getenv("URL_PAINEL", "http://localhost:3001"),
-		URLRH:          getenv("URL_RH", "http://localhost:3002"),
-		URLEstoque:     getenv("URL_ESTOQUE", "http://localhost:3003"),
-		URLAlojamentos: getenv("URL_ALOJAMENTOS", "http://localhost:3005"),
-		URLFrota:       getenv("URL_FROTA", "http://localhost:3000"),
-		URLPortal:      getenv("URL_PORTAL", "http://localhost:3004"),
-		PastaUploads:   getenv("PASTA_UPLOADS", "dados"),
+		Porta:               getenv("PORTA", "3004"),
+		CaminhoBanco:        getenv("DATABASE_PATH", "portal.db"),
+		AuthSecret:          os.Getenv("AUTH_SECRET"),
+		ForcaHTTPS:          os.Getenv("FORCA_HTTPS") == "1",
+		URLPainel:           getenv("URL_PAINEL", "/painel"),
+		URLRH:               getenv("URL_RH", "/rh"),
+		URLEstoque:          getenv("URL_ESTOQUE", "/almoxarifado"),
+		URLAlojamentos:      getenv("URL_ALOJAMENTOS", "/alojamentos"),
+		URLFrota:            getenv("URL_FROTA", "/frota"),
+		URLPortal:           getenv("URL_PORTAL", "/cadastros"),
+		PastaUploads:        getenv("PASTA_UPLOADS", "dados"),
+		FrotaUpstream:       getenv("FROTA_UPSTREAM", "http://localhost:3000"),
+		CadastrosUpstream:   getenv("CADASTROS_UPSTREAM", "http://localhost:3004"),
+		ProgramacaoUpstream: getenv("PROGRAMACAO_UPSTREAM", "http://localhost:3007"),
+		WhatsAppUpstream:    getenv("WHATSAPP_UPSTREAM", "http://localhost:3006"),
 	}
 }
 

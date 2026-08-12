@@ -30,11 +30,11 @@ export default async function LayoutApp({
   if (!sessao) redirect("/entrar");
 
   const itens = [
-    { href: "/", rotulo: "Dashboard", Icone: LayoutDashboard },
-    { href: "/locacoes", rotulo: "Locações", Icone: Package },
-    { href: "/obras", rotulo: "Obras", Icone: Building2 },
-    { href: "/fornecedores", rotulo: "Fornecedores", Icone: Truck },
-    { href: "/importar", rotulo: "Importar", Icone: Upload },
+    { href: "/", rotulo: "Dashboard", icone: <LayoutDashboard className="size-4" /> },
+    { href: "/locacoes", rotulo: "Locações", icone: <Package className="size-4" /> },
+    { href: "/obras", rotulo: "Obras", icone: <Building2 className="size-4" /> },
+    { href: "/fornecedores", rotulo: "Fornecedores", icone: <Truck className="size-4" /> },
+    { href: "/importar", rotulo: "Importar", icone: <Upload className="size-4" /> },
   ];
 
   return (

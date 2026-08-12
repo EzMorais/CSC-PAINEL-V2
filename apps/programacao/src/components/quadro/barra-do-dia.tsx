@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { Copy, Download, CircleCheck } from 'lucide-react'
 import { chamarAction } from '@/lib/chamar-action'
 import { copiarDe, publicar } from '@/actions/programacao'
+import { caminhoPublico } from '@/lib/url-publica'
 
 /**
  * A barra de ações do dia: copiar de outro dia, baixar a imagem, publicar.
@@ -86,7 +87,7 @@ export function BarraDoDia({
 
         {temConteudo && (
           <a
-            href={`/api/imagem/${data}`} download={`programacao-${data}.png`}
+            href={caminhoPublico(`/api/imagem/${data}`)} download={`programacao-${data}.png`}
             data-testid="baixar-imagem"
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm shadow-sm hover:bg-muted"
           >

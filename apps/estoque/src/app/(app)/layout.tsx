@@ -33,15 +33,15 @@ export default async function LayoutApp({
   if (!sessao) redirect("/entrar");
 
   const itens = [
-    { href: "/", rotulo: "Dashboard", Icone: LayoutDashboard },
-    { href: "/materiais", rotulo: "Materiais", Icone: Package },
-    { href: "/movimentacoes", rotulo: "Movimentações", Icone: ArrowLeftRight },
-    { href: "/solicitacoes", rotulo: "Compras", Icone: ShoppingCart },
-    { href: "/aprovacoes", rotulo: "Aprovações", Icone: ClipboardCheck },
-    { href: "/obras", rotulo: "Obras", Icone: Building2 },
-    { href: "/fornecedores", rotulo: "Fornecedores", Icone: Truck },
-    { href: "/relatorios", rotulo: "Relatórios", Icone: BarChart3 },
-    { href: "/configuracoes", rotulo: "Configurações", Icone: Settings },
+    { href: "/", rotulo: "Dashboard", icone: <LayoutDashboard className="size-4" /> },
+    { href: "/materiais", rotulo: "Materiais", icone: <Package className="size-4" /> },
+    { href: "/movimentacoes", rotulo: "Movimentações", icone: <ArrowLeftRight className="size-4" /> },
+    { href: "/solicitacoes", rotulo: "Compras", icone: <ShoppingCart className="size-4" /> },
+    { href: "/aprovacoes", rotulo: "Aprovações", icone: <ClipboardCheck className="size-4" /> },
+    { href: "/obras", rotulo: "Obras", icone: <Building2 className="size-4" /> },
+    { href: "/fornecedores", rotulo: "Fornecedores", icone: <Truck className="size-4" /> },
+    { href: "/relatorios", rotulo: "Relatórios", icone: <BarChart3 className="size-4" /> },
+    { href: "/configuracoes", rotulo: "Configurações", icone: <Settings className="size-4" /> },
   ];
 
   return (

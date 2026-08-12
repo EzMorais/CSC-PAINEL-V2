@@ -51,6 +51,7 @@ func (a *Autenticador) Autenticar(ctx context.Context, email, senha string) (*do
 	return &dominio.Sessao{
 		ID: u.ID, Nome: u.Nome, Email: u.Email,
 		Cargo: u.Cargo, Modulos: u.Modulos, Papel: u.Cargo,
+		PapelFinanceiro: u.PapelFinanceiro,
 	}, nil
 }
 

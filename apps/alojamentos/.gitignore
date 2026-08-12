@@ -61,6 +61,7 @@ exports/
 # Playwright
 /test-results/
 /playwright-report/
+/playwright-report-go/
 /blob-report/
 /playwright/.cache/
 
@@ -77,3 +78,4 @@ prisma/dados-locais.json
 # Cookie de sessão gravado pelo projeto `setup` do Playwright — é uma credencial
 # válida, ainda que só contra o teste.db.
 e2e/.sessao.json
+e2e/.sessao-go.json

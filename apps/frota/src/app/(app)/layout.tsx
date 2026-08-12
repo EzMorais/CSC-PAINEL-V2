@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
+import { Truck, Wrench, Fuel, Bell } from 'lucide-react';
 import { lerSessaoBase, temAcessoFrota, urlDeLogin } from '@/lib/auth';
-import { Casca } from '@/components/Casca';
+import { HudProgramacao } from '@/components/layout/hud-programacao';
+import { HubNavegacao } from '@/components/layout/hub-navegacao';
 
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const base = await lerSessaoBase();
@@ -19,6 +21,18 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     );
   }
 
-  const admin = base.cargo === 'ADMIN' || base.cargo === 'DIRETORIA';
-  return <Casca usuario={{ nome: base.nome, papel: admin ? 'ADMIN' : 'OPERADOR' }}>{children}</Casca>;
+  const itens = [
+    { href: '/veiculos', rotulo: 'Veículos', icone: <Truck size={16} strokeWidth={1.8} /> },
+    { href: '/manutencoes', rotulo: 'Manutenções', icone: <Wrench size={16} strokeWidth={1.8} /> },
+    { href: '/abastecimento', rotulo: 'Abastecimento', icone: <Fuel size={16} strokeWidth={1.8} /> },
+    { href: '/alertas', rotulo: 'Alertas', icone: <Bell size={16} strokeWidth={1.8} /> },
+  ];
+
+  return (
+    <div className="min-h-dvh bg-concreto text-grafite">
+      <HudProgramacao usuario={{ nome: base.nome, email: base.email, cargo: base.cargo }} itens={itens} />
+      <main className="pb-8">{children}</main>
+      <HubNavegacao cargo={base.cargo} modulos={base.modulos} atual="FROTA" />
+    </div>
+  );
 }

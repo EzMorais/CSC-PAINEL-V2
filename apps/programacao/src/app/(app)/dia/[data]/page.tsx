@@ -10,8 +10,13 @@ import { conferirQuadro } from '@/lib/dominio/conflitos'
 import { deIso, diaUtc, paraIso, tituloDoDia, STATUS_PROGRAMACAO } from '@/lib/dominio/constantes'
 import { Quadro } from '@/components/quadro/quadro'
 import { BarraDoDia } from '@/components/quadro/barra-do-dia'
+import { caminhoPublico } from '@/lib/url-publica'
 
 export const dynamic = 'force-dynamic'
+
+// A seta principal sai do módulo e retorna ao hub unificado. Os controles à direita
+// continuam responsáveis apenas por trocar o dia exibido.
+const URL_PORTAL = process.env.NEXT_PUBLIC_URL_PORTAL ?? 'http://localhost:3010'
 
 export async function generateMetadata({ params }: { params: Promise<{ data: string }> }) {
   const { data } = await params
@@ -74,7 +79,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
   return (
     <div className="mx-auto max-w-[1900px] space-y-6 p-4 sm:p-8">
       <header className="flex flex-wrap items-center gap-4">
-        <Link href="/" className="grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground" aria-label="Voltar">
+        <Link href={URL_PORTAL} className="grid size-10 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground" aria-label="Voltar ao painel principal">
           <ArrowLeft className="size-5" />
         </Link>
         <div className="min-w-0">
@@ -167,7 +172,7 @@ export default async function DiaPage({ params }: { params: Promise<{ data: stri
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element -- PNG gerado sob demanda pela rota, sem dimensão fixa conhecida aqui */}
           <img
-            src={`/api/imagem/${iso}`} alt={`Programação de ${tituloDoDia(data)}`}
+            src={caminhoPublico(`/api/imagem/${iso}`)} alt={`Programação de ${tituloDoDia(data)}`}
             className="mt-4 w-full rounded-xl border border-border/70 bg-white shadow-sm"
           />
         </section>

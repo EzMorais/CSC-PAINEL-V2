@@ -282,3 +282,66 @@ func TestRecebimentoFiscalDetectaDivergenciaEEhIdempotente(t *testing.T) {
 		t.Fatal("retentativa duplicou efeitos")
 	}
 }
+
+type financeiroFake struct{ abatimentos []dominio.AbatimentoDevolucao }
+
+func (f *financeiroFake) CriarTituloCompra(context.Context, dominio.TituloFinanceiroCompra) error {
+	return nil
+}
+func (f *financeiroFake) AbaterDevolucao(_ context.Context, a dominio.AbatimentoDevolucao) error {
+	f.abatimentos = append(f.abatimentos, a)
+	return nil
+}
+
+type processoDevolucoesFake struct {
+	dominio.ProcessoRepositorio
+	criadas []dominio.Devolucao
+}
+
+func (f *processoDevolucoesFake) UltimoNumeroDevolucao(context.Context, string) (string, error) {
+	return "", nil
+}
+func (f *processoDevolucoesFake) CriarDevolucao(_ context.Context, d *dominio.Devolucao) error {
+	d.ID = "dev-1"
+	f.criadas = append(f.criadas, *d)
+	return nil
+}
+func (f *processoDevolucoesFake) ListarDevolucoes(context.Context) ([]dominio.Devolucao, error) {
+	return f.criadas, nil
+}
+
+func TestCriarDevolucaoAcionaAbatimentoFinanceiro(t *testing.T) {
+	preco := 12.5
+	s := &estoque.SolicitacaoCompra{ID: "sol-1", Status: estoque.StatusEnviada, Itens: []estoque.ItemSolicitacao{{MaterialID: "mat-1", Quantidade: 10, PrecoEstimado: &preco}}}
+	pedidos := &pedidosFake{porID: map[string]*dominio.PedidoCompra{"pedido-1": {ID: "pedido-1", FornecedorID: "for-1", FornecedorNome: "Fornecedor A", Itens: []dominio.ItemPedidoCompra{{ID: "item-1", MaterialID: "mat-1", QuantidadeSolicitada: 10}}}}}
+	fin := &financeiroFake{}
+	recebimentos := &recebimentosFake{criados: []*dominio.RecebimentoCompra{{ID: "rec-1", PedidoID: "pedido-1", Itens: []dominio.ItemRecebimentoCompra{{MaterialID: "mat-1", Quantidade: 10, ValorUnitario: 12.5}}, ContaPagarID: strPtr("conta-1")}}}
+	g := &Gerenciador{Pedidos: pedidos, Recebimentos: recebimentos, Contas: &contasFake{}, Fornecedores: &fornecedoresFake{porID: map[string]*cadastro.Fornecedor{"for-1": {ID: "for-1", Nome: "Fornecedor A", Ativo: true}}}, Solicitacoes: &solicitacoesFake{porID: map[string]*estoque.SolicitacaoCompra{"sol-1": s}}, Financeiro: fin}
+	proc := &GerenciadorProcesso{Repo: &processoDevolucoesFake{}, Pedidos: g, Movimentacoes: &movimentacoesFake{}}
+
+	d, err := proc.CriarDevolucao(context.Background(), identidade.Sessao{Nome: "Operador"}, "rec-1", "for-1", "Mercadoria avariada", []dominio.ItemDevolucao{{MaterialID: "mat-1", Quantidade: 4, ValorUnitarioCentavos: 1250}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d == nil || d.ID != "dev-1" {
+		t.Fatalf("devolução: %+v", d)
+	}
+	if len(fin.abatimentos) != 1 {
+		t.Fatalf("abatimentos=%d, esperado 1", len(fin.abatimentos))
+	}
+	a := fin.abatimentos[0]
+	if a.RecebimentoID != "rec-1" || a.DevolucaoID != "dev-1" || a.ValorCentavos != 5000 {
+		t.Fatalf("abatimento inesperado: %+v", a)
+	}
+}
+
+func TestCriarDevolucaoSemFinanceiroNaoFalha(t *testing.T) {
+	pedidos := &pedidosFake{porID: map[string]*dominio.PedidoCompra{"pedido-1": {ID: "pedido-1", FornecedorID: "for-1", Itens: []dominio.ItemPedidoCompra{{ID: "item-1", MaterialID: "mat-1"}}}}}
+	recebimentos := &recebimentosFake{criados: []*dominio.RecebimentoCompra{{ID: "rec-1", PedidoID: "pedido-1", Itens: []dominio.ItemRecebimentoCompra{{MaterialID: "mat-1", Quantidade: 10, ValorUnitario: 12.5}}}}}
+	g := &Gerenciador{Pedidos: pedidos, Recebimentos: recebimentos, Contas: &contasFake{}, Fornecedores: &fornecedoresFake{porID: map[string]*cadastro.Fornecedor{"for-1": {ID: "for-1", Ativo: true}}}, Solicitacoes: &solicitacoesFake{porID: map[string]*estoque.SolicitacaoCompra{"sol-1": {ID: "sol-1", Itens: []estoque.ItemSolicitacao{{MaterialID: "mat-1"}}}}}}
+	proc := &GerenciadorProcesso{Repo: &processoDevolucoesFake{}, Pedidos: g}
+	d, err := proc.CriarDevolucao(context.Background(), identidade.Sessao{Nome: "Operador"}, "rec-1", "for-1", "Motivo", []dominio.ItemDevolucao{{MaterialID: "mat-1", Quantidade: 2, ValorUnitarioCentavos: 1000}})
+	if err != nil || d == nil {
+		t.Fatalf("devolução sem financeiro: %v %+v", err, d)
+	}
+}

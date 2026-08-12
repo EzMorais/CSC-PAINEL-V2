@@ -48,6 +48,15 @@ func main() {
 		tabelas := []string{
 			"registros_acesso", "acessos_modulo", "usuarios",
 			"aprovacoes_estoque", "itens_solicitacao", "solicitacoes_compra", "movimentacoes_estoque", "materiais", "configuracao_email_estoque",
+			// Alojamentos — filhos antes de pais: mensagens/conversas/pedidos/programações
+			// referenciam alocacoes/alojamentos; alocacoes referencia funcionarios e obras
+			// (RH/Painel), então entra antes da limpeza dos dois. A suíte e2e do módulo
+			// (apps/alojamentos) se auto-semeia pela interface — aqui só se garante o reset.
+			"mensagens_whatsapp_alojamento", "conversas_whatsapp_alojamento", "pedidos_alojamento", "programacoes_alojamento",
+			"alocacoes", "quartos", "rotas_onibus", "alojamentos",
+			// Programação Diária — sem FK com RH/Painel, pode vir depois.
+			"programacao_escalas", "programacao_recursos", "programacoes",
+			"programacao_veiculos", "programacao_funcionarios", "programacao_funcoes", "programacao_frentes",
 			// RH — filhos antes de pais (foreign_keys = ON): nao_conformidades referencia
 			// auditoria_itens, que referencia auditorias; documentos/exames/entregas_*/
 			// eventos/dependentes referenciam funcionarios, que referencia obras/cargos/

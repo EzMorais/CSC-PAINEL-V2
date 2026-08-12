@@ -18,6 +18,13 @@ func (r *respostaComStatus) WriteHeader(codigo int) {
 	r.ResponseWriter.WriteHeader(codigo)
 }
 
+// Unwrap preserva as capacidades opcionais do writer original para ResponseController e
+// ReverseProxy. Sem isso, o proxy não consegue fazer hijack de WebSocket (como o HMR do
+// Next.js em desenvolvimento) porque enxerga somente este invólucro de logging.
+func (r *respostaComStatus) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
 // Logging registra cada requisição em log estruturado (log/slog, stdlib — sem dependência
 // nova): método, rota, status, duração e usuário (se houver sessão). Lê a sessão direto do
 // cookie, a mesma leitura barata que Sessoes.Ler já faz — não depende do valor que

@@ -142,7 +142,7 @@ func (g *GerenciadorOperacional) competenciaAberta(ctx context.Context, competen
 }
 
 func (g *GerenciadorOperacional) CriarTitulo(ctx context.Context, s identidade.Sessao, e EntradaTitulo) (*dominio.Titulo, error) {
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(s) {
 		return nil, fmt.Errorf("seu cargo não lança títulos")
 	}
 	tipo := dominio.TipoTitulo(strings.ToUpper(strings.TrimSpace(e.Tipo)))
@@ -174,7 +174,7 @@ func (g *GerenciadorOperacional) CriarTitulo(ctx context.Context, s identidade.S
 	return t, nil
 }
 func (g *GerenciadorOperacional) CriarConta(ctx context.Context, s identidade.Sessao, nome, tipo string) error {
-	if !identidade.PodeAdministrar(s.Cargo) {
+	if !identidade.FinanceiroPodeAdministrar(s) {
 		return fmt.Errorf("somente administração cadastra contas financeiras")
 	}
 	nome, tipo = strings.TrimSpace(nome), strings.ToUpper(strings.TrimSpace(tipo))
@@ -184,14 +184,14 @@ func (g *GerenciadorOperacional) CriarConta(ctx context.Context, s identidade.Se
 	return g.Repo.CriarConta(ctx, &dominio.ContaFinanceira{Nome: nome, Tipo: tipo, Moeda: "BRL", Ativo: true})
 }
 func (g *GerenciadorOperacional) AprovarTitulo(ctx context.Context, s identidade.Sessao, id string) error {
-	if !identidade.PodeAprovar(s.Cargo) {
+	if !identidade.FinanceiroPodeAprovar(s) {
 		return fmt.Errorf("seu cargo não aprova títulos")
 	}
 	return g.Repo.AprovarTitulo(ctx, id, s.ID, s.Nome)
 }
 
 func (g *GerenciadorOperacional) CriarFaturamento(ctx context.Context, s identidade.Sessao, e EntradaFaturamento) (*dominio.Faturamento, error) {
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(s) {
 		return nil, fmt.Errorf("seu cargo não cria faturamento")
 	}
 	if strings.TrimSpace(e.ClienteNome) == "" || strings.TrimSpace(e.Descricao) == "" {
@@ -257,7 +257,7 @@ func (g *GerenciadorOperacional) CriarFaturamento(ctx context.Context, s identid
 	return f, nil
 }
 func (g *GerenciadorOperacional) Faturar(ctx context.Context, s identidade.Sessao, id string) error {
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(s) {
 		return fmt.Errorf("seu cargo não finaliza faturamento")
 	}
 	return g.Repo.FinalizarFaturamento(ctx, id, s.ID, s.Nome)
@@ -301,7 +301,7 @@ func somenteDigitos(v string) string {
 	}, v)
 }
 func (g *GerenciadorOperacional) ImportarSebrae(ctx context.Context, s identidade.Sessao, xmlConteudo, vencimento string) (*dominio.DocumentoFiscal, error) {
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(s) {
 		return nil, fmt.Errorf("seu cargo não importa documentos")
 	}
 	xmlConteudo = strings.TrimSpace(xmlConteudo)
@@ -362,7 +362,7 @@ func (g *GerenciadorOperacional) ImportarSebrae(ctx context.Context, s identidad
 	return d, nil
 }
 func (g *GerenciadorOperacional) RegistrarResultadoFiscal(ctx context.Context, s identidade.Sessao, id, status, chave, protocolo, xmlConteudo, erroTexto string) error {
-	if !identidade.PodeLancar(s.Cargo) {
+	if !identidade.FinanceiroPodeLancar(s) {
 		return fmt.Errorf("seu cargo não atualiza documento fiscal")
 	}
 	if len(xmlConteudo) > 1024*1024 {
@@ -378,7 +378,7 @@ func (g *GerenciadorOperacional) RegistrarResultadoFiscal(ctx context.Context, s
 	if status == "REJEITADO" && erroTexto == "" {
 		return fmt.Errorf("rejeição exige a mensagem retornada pelo autorizador")
 	}
-	if status == "CANCELADO" && (!identidade.PodeAprovar(s.Cargo) || protocolo == "") {
+	if status == "CANCELADO" && (!identidade.FinanceiroPodeAprovar(s) || protocolo == "") {
 		return fmt.Errorf("cancelamento exige aprovador e protocolo")
 	}
 	return g.Repo.RegistrarResultadoFiscal(ctx, id, status, chave, protocolo, strings.TrimSpace(xmlConteudo), erroTexto, s.ID, s.Nome)

@@ -17,6 +17,7 @@ const COOKIE = 'locacao_sessao';
 /** Onde o Portal responde. É ele quem tem a tela de login. */
 const URL_PORTAL = process.env.NEXT_PUBLIC_URL_PORTAL ?? 'http://localhost:3004';
 const URL_APP = process.env.NEXT_PUBLIC_URL_APP ?? 'http://localhost:3000';
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 const MODULO_FROTA = 'FROTA';
 
@@ -91,7 +92,10 @@ export async function encerrarSessao() {
 
 /** Manda para o login do Portal, guardando para onde a pessoa queria ir. */
 export function urlDeLogin(destino = '/'): string {
-  return `${URL_PORTAL}/entrar?destino=${encodeURIComponent(new URL(destino, URL_APP).toString())}`;
+  // `new URL('/veiculos', URL_APP)` descarta o pathname de URL_APP. Ao publicar a Frota
+  // sob /frota, preservamos esse prefixo antes de montar o destino de volta pós-login.
+  const caminho = `${BASE_PATH}${destino.startsWith('/') ? destino : `/${destino}`}`;
+  return `${URL_PORTAL}/entrar?destino=${encodeURIComponent(new URL(caminho, URL_APP).toString())}`;
 }
 
 /**

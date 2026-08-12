@@ -18,7 +18,7 @@ type UsuarioRepositorio interface {
 	Listar(ctx context.Context) ([]Usuario, error)
 	// Criar grava o usuário e os acessos numa transação só, e preenche u.ID.
 	Criar(ctx context.Context, u *Usuario, modulos []Modulo) error
-	AtualizarCargoEAcessos(ctx context.Context, id string, cargo Cargo, ativo bool, modulos []Modulo) error
+	AtualizarCargoEAcessos(ctx context.Context, id string, cargo Cargo, ativo bool, modulos []Modulo, papelFinanceiro PapelFinanceiro) error
 	AtualizarSenha(ctx context.Context, id string, senhaHash string) error
 	AtualizarUltimoAcesso(ctx context.Context, id string) error
 }

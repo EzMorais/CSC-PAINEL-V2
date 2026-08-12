@@ -2,5 +2,6 @@
 *.db-shm
 *.db-wal
 *.exe
+*.log
 playwright-report-go/
 dados/

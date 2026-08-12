@@ -19,6 +19,8 @@ COPY . .
 # por isso precisam chegar como build arg (ver .env.example na raiz), não só como variável
 # de ambiente do contêiner em execução.
 ARG NEXT_PUBLIC_URL_PORTAL
+ARG NEXT_PUBLIC_URL_APP
+ARG NEXT_PUBLIC_BASE_PATH
 ARG NEXT_PUBLIC_URL_PAINEL
 ARG NEXT_PUBLIC_URL_RH
 ARG NEXT_PUBLIC_URL_ESTOQUE

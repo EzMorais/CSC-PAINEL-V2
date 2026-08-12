@@ -7,6 +7,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,18 +19,17 @@ import (
 	aplicacaoFinanceiro "siqueiracampos/servidor/internal/application/financeiro"
 	aplicacaoIdentidade "siqueiracampos/servidor/internal/application/identidade"
 	aplicacaoPainel "siqueiracampos/servidor/internal/application/painel"
-	aplicacaoProgramacao "siqueiracampos/servidor/internal/application/programacao"
 	aplicacaoRH "siqueiracampos/servidor/internal/application/rh"
 	"siqueiracampos/servidor/internal/config"
 	dominioIdentidade "siqueiracampos/servidor/internal/domain/identidade"
 	dominioPainel "siqueiracampos/servidor/internal/domain/painel"
+	"siqueiracampos/servidor/internal/gateway"
 	handlersAlojamentos "siqueiracampos/servidor/internal/handlers/alojamentos"
 	handlersCompras "siqueiracampos/servidor/internal/handlers/compras"
 	handlersEstoque "siqueiracampos/servidor/internal/handlers/estoque"
 	handlersFinanceiro "siqueiracampos/servidor/internal/handlers/financeiro"
 	handlersIdentidade "siqueiracampos/servidor/internal/handlers/identidade"
 	handlersPainel "siqueiracampos/servidor/internal/handlers/painel"
-	handlersProgramacao "siqueiracampos/servidor/internal/handlers/programacao"
 	handlersRH "siqueiracampos/servidor/internal/handlers/rh"
 	"siqueiracampos/servidor/internal/infrastructure/clienterh"
 	"siqueiracampos/servidor/internal/infrastructure/database"
@@ -61,6 +61,63 @@ func main() {
 	sessoes := middleware.NovoSessoes(servicoSessao, cfg.ForcaHTTPS)
 
 	mux := http.NewServeMux()
+
+	// Os módulos migrados ficam neste processo. Frota, Cadastros e Programação ainda usam
+	// Next.js e o WhatsApp é um conector sem tela; todos continuam atrás da mesma porta
+	// pública para que o ERP tenha uma única entrada, sem vazar as portas internas para quem
+	// usa o sistema.
+	proxyFrota, err := gateway.NovoProxy(cfg.FrotaUpstream)
+	if err != nil {
+		log.Fatalf("proxy da Frota: %v", err)
+	}
+	proxyCadastros, err := gateway.NovoProxy(cfg.CadastrosUpstream)
+	if err != nil {
+		log.Fatalf("proxy de Cadastros: %v", err)
+	}
+	proxyProgramacao, err := gateway.NovoProxy(cfg.ProgramacaoUpstream)
+	if err != nil {
+		log.Fatalf("proxy da Programação: %v", err)
+	}
+	proxyWhatsApp, err := gateway.NovoProxy(cfg.WhatsAppUpstream)
+	if err != nil {
+		log.Fatalf("proxy do WhatsApp: %v", err)
+	}
+	mux.HandleFunc("/frota", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/frota/veiculos", http.StatusPermanentRedirect)
+	})
+	mux.Handle("/frota/", proxyFrota)
+	mux.Handle("/cadastros", proxyCadastros)
+	mux.Handle("/cadastros/", proxyCadastros)
+	mux.Handle("/api/integracao/cadastros", proxyCadastros)
+	mux.Handle("/_next/", proxyCadastros)
+	// O proxy não pode pular a regra de acesso que a implementação Go anterior aplicava.
+	// A Programação legada só confere se há uma sessão válida; este invólucro preserva também
+	// a autorização por módulo antes de a requisição sair do gateway.
+	programacaoProtegida := func(proximo http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sess := sessoes.Ler(r)
+			if sess == nil {
+				http.Redirect(w, r, "/entrar?destino="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				return
+			}
+			if !dominioIdentidade.TemAcesso(*sess, dominioIdentidade.ModuloProgramacao) {
+				http.Error(w, "Acesso à Programação Diária não liberado.", http.StatusForbidden)
+				return
+			}
+			proximo.ServeHTTP(w, r)
+		})
+	}
+	// A tela de Programação volta a ser a implementação legada, que preserva o quadro
+	// completo. A entrada curta abre a data solicitada; as demais URLs do módulo seguem
+	// sendo encaminhadas sem alteração, inclusive os assets em /programacao/_next/.
+	mux.Handle("GET /programacao", programacaoProtegida(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/programacao/dia/2026-08-13", http.StatusTemporaryRedirect)
+	})))
+	mux.Handle("/programacao/", programacaoProtegida(proxyProgramacao))
+	mux.HandleFunc("/whatsapp", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/whatsapp/saude", http.StatusPermanentRedirect)
+	})
+	mux.Handle("/whatsapp/", http.StripPrefix("/whatsapp", proxyWhatsApp))
 
 	// ── Identidade (antigo Portal) — montado na raiz ──────────────────────────
 	usuarios := database.NovoUsuarioRepositorio(db)
@@ -428,38 +485,6 @@ func main() {
 	mux.HandleFunc("POST /alojamentos/rotas/{id}/alternar", hAlojamentos.RotaAlternar)
 	mux.HandleFunc("POST /api/integracao/whatsapp/recebida", hAlojamentos.WhatsappRecebida)
 
-	// ── Programação Diária — montada sob /programacao ──
-	// Porta de apps/programacao (Next.js, https://github.com/EzMorais/CSC-PAINEL): quem vai
-	// pra qual frente de trabalho amanhã, com quais veículos/máquinas. Sem a geração de
-	// imagem pro WhatsApp nem a leitura de manutenção da Frota nesta fatia — ver
-	// domain/programacao/conflitos.go.
-	repoProgramacao := database.NovoProgramacaoRepositorio(db)
-	hProgramacao := handlersProgramacao.Novo(sessoes, &aplicacaoProgramacao.Gerenciador{Repo: repoProgramacao}, repoProgramacao)
-	mux.HandleFunc("GET /programacao", hProgramacao.Hoje)
-	mux.HandleFunc("GET /programacao/dia/{data}", hProgramacao.DiaPagina)
-	mux.HandleFunc("POST /programacao/dia/{data}/criar", hProgramacao.DiaCriar)
-	mux.HandleFunc("POST /programacao/dia/{data}/copiar", hProgramacao.DiaCopiar)
-	mux.HandleFunc("POST /programacao/dia/{data}/publicar", hProgramacao.DiaPublicar)
-	mux.HandleFunc("POST /programacao/escalas", hProgramacao.EscalarCriar)
-	mux.HandleFunc("POST /programacao/escalas/{id}/mover", hProgramacao.EscalaMover)
-	mux.HandleFunc("POST /programacao/escalas/{id}/tirar", hProgramacao.EscalaTirar)
-	mux.HandleFunc("POST /programacao/recursos", hProgramacao.RecursoCriar)
-	mux.HandleFunc("POST /programacao/recursos/{id}/tirar", hProgramacao.RecursoTirar)
-	mux.HandleFunc("GET /programacao/frentes", hProgramacao.Frentes)
-	mux.HandleFunc("POST /programacao/frentes", hProgramacao.FrenteCriar)
-	mux.HandleFunc("POST /programacao/frentes/{id}/alternar", hProgramacao.FrenteAlternar)
-	mux.HandleFunc("POST /programacao/frentes/{id}/mover", hProgramacao.FrenteMover)
-	mux.HandleFunc("GET /programacao/funcionarios", hProgramacao.Funcionarios)
-	mux.HandleFunc("POST /programacao/funcionarios", hProgramacao.FuncionarioCriar)
-	mux.HandleFunc("POST /programacao/funcionarios/{id}/alternar-ativo", hProgramacao.FuncionarioAlternarAtivo)
-	mux.HandleFunc("POST /programacao/funcionarios/{id}/alternar-ausente", hProgramacao.FuncionarioAlternarAusente)
-	mux.HandleFunc("GET /programacao/veiculos", hProgramacao.Veiculos)
-	mux.HandleFunc("POST /programacao/veiculos", hProgramacao.VeiculoCriar)
-	mux.HandleFunc("POST /programacao/veiculos/{id}/alternar", hProgramacao.VeiculoAlternar)
-	mux.HandleFunc("GET /programacao/funcoes", hProgramacao.Funcoes)
-	mux.HandleFunc("POST /programacao/funcoes", hProgramacao.FuncaoCriar)
-	mux.HandleFunc("POST /programacao/funcoes/{id}/alternar", hProgramacao.FuncaoAlternar)
-
 	mux.Handle("GET /estatico/", http.StripPrefix("/estatico/", http.FileServer(http.Dir("static"))))
 
 	// /healthz (liveness) e /readyz (readiness) — sem exigir sessão, são consultados por
@@ -486,7 +511,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("servidor único (identidade + painel + almoxarifado + RH + compras + alojamentos + financeiro + programação) ouvindo em :%s", cfg.Porta)
+		log.Printf("servidor único (identidade + painel + almoxarifado + RH + compras + alojamentos + financeiro; Programação legada via gateway) ouvindo em :%s", cfg.Porta)
 		if err := servidor.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("servidor: %v", err)
 		}

@@ -25,6 +25,7 @@ type GerenciadorUsuarios struct {
 type EntradaCriarUsuario struct {
 	Nome, Email, Senha, Cargo, Telefone, Observacao string
 	Modulos                                         []string
+	PapelFinanceiro                                 string
 }
 
 func ponteiroSeNaoVazio(s string) *string {
@@ -55,6 +56,17 @@ func validarCargoEModulos(cargoStr string, modulosStr []string) (dominio.Cargo, 
 	return cargo, modulos, erros
 }
 
+func validarPapelFinanceiro(papelStr string) (dominio.PapelFinanceiro, []string) {
+	papel := dominio.PapelFinanceiro(papelStr)
+	if papel == "" {
+		papel = dominio.PapelFinanceiroNenhum
+	}
+	if !papel.Valido() {
+		return papel, []string{"Papel do Financeiro inválido."}
+	}
+	return papel, nil
+}
+
 // Criar espelha `criarUsuario` de actions/usuarios.ts — ver COMPORTAMENTO.md §5.
 func (g *GerenciadorUsuarios) Criar(ctx context.Context, e EntradaCriarUsuario) (*dominio.Usuario, error) {
 	var erros []string
@@ -76,6 +88,9 @@ func (g *GerenciadorUsuarios) Criar(ctx context.Context, e EntradaCriarUsuario) 
 	cargo, modulos, errosCargo := validarCargoEModulos(e.Cargo, e.Modulos)
 	erros = append(erros, errosCargo...)
 
+	papelFinanceiro, errosPapel := validarPapelFinanceiro(e.PapelFinanceiro)
+	erros = append(erros, errosPapel...)
+
 	if len(erros) > 0 {
 		return nil, erroValidacao(erros...)
 	}
@@ -88,6 +103,7 @@ func (g *GerenciadorUsuarios) Criar(ctx context.Context, e EntradaCriarUsuario) 
 	u := &dominio.Usuario{
 		Nome: nome, Email: email, SenhaHash: string(hash), Cargo: cargo, Ativo: true,
 		Telefone: ponteiroSeNaoVazio(e.Telefone), Observacao: ponteiroSeNaoVazio(e.Observacao),
+		PapelFinanceiro: papelFinanceiro,
 	}
 
 	if err := g.Usuarios.Criar(ctx, u, modulos); err != nil {
@@ -101,9 +117,10 @@ func (g *GerenciadorUsuarios) Criar(ctx context.Context, e EntradaCriarUsuario) 
 }
 
 type EntradaEditarUsuario struct {
-	Cargo   string
-	Ativo   bool
-	Modulos []string
+	Cargo           string
+	Ativo           bool
+	Modulos         []string
+	PapelFinanceiro string
 }
 
 // Editar bloqueia autoedição — ver COMPORTAMENTO.md §5: sem essa trava um admin
@@ -114,11 +131,13 @@ func (g *GerenciadorUsuarios) Editar(ctx context.Context, admin dominio.Sessao, 
 	}
 
 	cargo, modulos, erros := validarCargoEModulos(e.Cargo, e.Modulos)
+	papelFinanceiro, errosPapel := validarPapelFinanceiro(e.PapelFinanceiro)
+	erros = append(erros, errosPapel...)
 	if len(erros) > 0 {
 		return erroValidacao(erros...)
 	}
 
-	return g.Usuarios.AtualizarCargoEAcessos(ctx, alvoID, cargo, e.Ativo, modulos)
+	return g.Usuarios.AtualizarCargoEAcessos(ctx, alvoID, cargo, e.Ativo, modulos, papelFinanceiro)
 }
 
 func (g *GerenciadorUsuarios) RedefinirSenha(ctx context.Context, alvoID, novaSenha string) error {

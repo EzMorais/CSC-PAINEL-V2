@@ -21,17 +21,17 @@ export default async function LayoutApp({
   if (!sessao) redirect("/entrar");
 
   const itens = [
-    { href: "/dashboard", rotulo: "Dashboard", Icone: LayoutDashboard },
+    { href: "/dashboard", rotulo: "Dashboard", icone: <LayoutDashboard className="size-4" /> },
     {
       href: "/cadastros",
       rotulo: "Cadastros",
-      Icone: FolderKanban,
+      icone: <FolderKanban className="size-4" />,
       visivel: temAcesso(sessao, MODULO.CADASTROS),
     },
     {
       href: "/usuarios",
       rotulo: "Usuários",
-      Icone: Users,
+      icone: <Users className="size-4" />,
       visivel: sessao.cargo === CARGO.ADMIN,
     },
   ].filter((item) => item.visivel !== false);

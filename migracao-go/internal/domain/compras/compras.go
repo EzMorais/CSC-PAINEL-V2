@@ -290,6 +290,15 @@ type TituloFinanceiroCompra struct {
 	EmissaoFiscal                                                *time.Time
 	ValorFiscalCentavos                                          *int64
 }
+type AbatimentoDevolucao struct {
+	RecebimentoID, DevolucaoID, DevolucaoNumero, Motivo, RegistradoPor string
+	ValorCentavos                                                      int64
+	OcorridoEm                                                         time.Time
+}
 type ClienteFinanceiro interface {
 	CriarTituloCompra(context.Context, TituloFinanceiroCompra) error
+	// AbaterDevolucao reduz o saldo aberto do título já materializado pelo
+	// recebimento na mesma proporção da devolução. Sem título materializado é
+	// no-op; ídempotente por devolução (nunca reduz o mesmo título duas vezes).
+	AbaterDevolucao(context.Context, AbatimentoDevolucao) error
 }
